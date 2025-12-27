@@ -1,0 +1,77 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - navigation [ref=e5]:
+        - generic [ref=e6]:
+          - link "Home" [ref=e8] [cursor=pointer]:
+            - /url: /
+          - generic [ref=e9]:
+            - link "Login" [ref=e10] [cursor=pointer]:
+              - /url: /login
+            - link "Register" [ref=e11] [cursor=pointer]:
+              - /url: /register
+            - link "Forgot Password" [ref=e12] [cursor=pointer]:
+              - /url: /forgot-password
+    - main [ref=e13]:
+      - generic [ref=e15]:
+        - generic [ref=e16]:
+          - heading "Create Account" [level=1] [ref=e17]
+          - paragraph [ref=e18]: Sign up for a new account
+        - generic [ref=e19]:
+          - generic [ref=e20]:
+            - text: Name (Optional)
+            - generic [ref=e21]:
+              - textbox "Name (Optional)" [active] [ref=e22]:
+                - /placeholder: John Doe
+              - paragraph [ref=e23]: Name is required
+          - generic [ref=e24]:
+            - text: Email
+            - textbox "Email" [ref=e26]:
+              - /placeholder: you@example.com
+              - text: e2e-duplicate-1766689722533@example.com
+          - generic [ref=e27]:
+            - text: Password
+            - textbox "Password" [ref=e29]:
+              - /placeholder: Enter your password
+              - text: Password123!
+            - generic [ref=e31]:
+              - generic [ref=e32]:
+                - generic [ref=e33]: "Password strength:"
+                - generic [ref=e34]: Good
+              - 'progressbar "Password strength: Good" [ref=e36]'
+          - button "Register" [ref=e37] [cursor=pointer]
+        - generic [ref=e38]:
+          - generic [ref=e43]: Or continue with
+          - generic [ref=e44]:
+            - button "Google" [ref=e45] [cursor=pointer]:
+              - generic [ref=e46]:
+                - img
+                - text: Google
+            - button "GitHub" [ref=e47] [cursor=pointer]:
+              - generic [ref=e48]:
+                - img
+                - text: GitHub
+            - button "Microsoft" [ref=e49] [cursor=pointer]:
+              - generic [ref=e50]:
+                - img
+                - text: Microsoft
+        - generic [ref=e51]:
+          - text: Already have an account?
+          - link "Login" [ref=e52] [cursor=pointer]:
+            - /url: /login
+    - contentinfo [ref=e53]:
+      - generic [ref=e55]:
+        - generic [ref=e56]: © 2025 Your Company. All rights reserved.
+        - generic [ref=e57]:
+          - link "Home" [ref=e58] [cursor=pointer]:
+            - /url: /
+          - link "Login" [ref=e59] [cursor=pointer]:
+            - /url: /login
+          - link "Register" [ref=e60] [cursor=pointer]:
+            - /url: /register
+  - region "Notifications (F8)":
+    - list
+```
