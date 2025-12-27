@@ -9,67 +9,179 @@
 ## 🚀 Quick Start: Running the Application
 
 ### Prerequisites
-- Node.js 18+ installed
-- Backend server running on port 3001
-- Database configured and running
+- **Node.js 18+** installed
+- **PostgreSQL** installed and running
+- **Resend API Key** (for email functionality) - Get from [resend.com](https://resend.com)
+- **Git** (for cloning if needed)
 
-### Step 1: Start Backend Server
+### Step 1: Database Setup
+
+1. **Create PostgreSQL Database**:
+```bash
+# Connect to PostgreSQL
+psql -U postgres
+
+# Create database
+CREATE DATABASE nextsaas_db;
+
+# Exit psql
+\q
+```
+
+2. **Configure Database Connection**:
+   - Copy `backend/.env.example` to `backend/.env`
+   - Update `DATABASE_URL` in `backend/.env`:
+     ```env
+     DATABASE_URL=postgresql://YOUR_USERNAME:YOUR_PASSWORD@localhost:5432/nextsaas_db
+     ```
+
+3. **Run Database Migrations**:
 ```bash
 cd backend
-npm install  # If not already done
+npx prisma migrate dev
+npx prisma generate
+```
+
+**Expected**: Database tables created successfully
+
+### Step 2: Backend Configuration
+
+1. **Configure Environment Variables** (`backend/.env`):
+```env
+# Database
+DATABASE_URL=postgresql://YOUR_USERNAME:YOUR_PASSWORD@localhost:5432/nextsaas_db
+
+# JWT Secrets (generate secure random strings, minimum 32 characters)
+JWT_SECRET=your-secure-secret-minimum-32-characters-long
+JWT_REFRESH_SECRET=your-refresh-secret-minimum-32-characters-long
+
+# Email (Get from resend.com)
+RESEND_API_KEY=re_xxxxxxxxxxxx
+FROM_EMAIL=noreply@yourdomain.com
+APP_NAME=NextSaaS
+
+# Server
+PORT=3001
+NODE_ENV=development
+FRONTEND_URL=http://localhost:3000
+
+# OAuth (Optional - for OAuth testing)
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GITHUB_CLIENT_ID=your-github-client-id
+GITHUB_CLIENT_SECRET=your-github-client-secret
+MICROSOFT_CLIENT_ID=your-microsoft-client-id
+MICROSOFT_CLIENT_SECRET=your-microsoft-client-secret
+
+# Payment Providers (Optional - for payment testing)
+PAYMENT_PROVIDER=STRIPE  # or RAZORPAY or CASHFREE
+STRIPE_SECRET_KEY=sk_test_xxxxx
+RAZORPAY_KEY_ID=rzp_test_xxxxx
+RAZORPAY_KEY_SECRET=xxxxx
+```
+
+2. **Install Backend Dependencies**:
+```bash
+cd backend
+npm install
+```
+
+3. **Start Backend Server**:
+```bash
 npm run dev
 ```
 **Expected**: Server should start on `http://localhost:3001`
+- You should see: "Server running on port 3001"
+- Check `http://localhost:3001/api/health` - should return `{"status":"ok"}`
 
-### Step 2: Start Frontend Development Server
+### Step 3: Frontend Configuration
+
+1. **Configure Environment Variables** (`frontend/.env`):
+```env
+VITE_API_BASE_URL=http://localhost:3001/api
+```
+
+2. **Install Frontend Dependencies**:
 ```bash
 cd frontend
-npm install  # If not already done
+npm install
+```
+
+3. **Start Frontend Development Server**:
+```bash
 npm run dev
 ```
 **Expected**: Frontend should start on `http://localhost:3000`
+- You should see: "Local: http://localhost:3000"
 
-### Step 3: Open Browser
-Navigate to: `http://localhost:3000`
+### Step 4: Open Browser and Verify
+
+1. Navigate to: `http://localhost:3000`
+2. You should see the **Landing Page**
+3. Check browser console (F12) - should have no errors
+4. Check Network tab - API calls should go to `http://localhost:3001/api`
+
+### Troubleshooting Setup
+
+**Database Connection Issues**:
+- Verify PostgreSQL is running: `pg_isready` or `psql -U postgres`
+- Check `DATABASE_URL` format in `.env`
+- Ensure database exists: `psql -U postgres -l` (list databases)
+
+**Backend Won't Start**:
+- Check port 3001 is not in use: `lsof -i :3001`
+- Verify all environment variables are set
+- Check backend logs for errors
+
+**Frontend Won't Start**:
+- Check port 3000 is not in use: `lsof -i :3000`
+- Verify `VITE_API_BASE_URL` is correct
+- Clear cache: `rm -rf node_modules/.vite`
+
+**CORS Errors**:
+- Verify `FRONTEND_URL` in backend `.env` matches frontend URL
+- Check backend CORS configuration
 
 ---
 
 ## 📋 Testing Overview
 
-This manual testing guide covers **all three phases** of the template:
+This comprehensive manual testing guide covers **ALL features** of the NextSaaS application:
 
-
--> to start with i think we should create a landing page, a standard SaaS product landing page. we can add/enhance that later, we should have menu bar at the top, which should take users to login/register/forgot password page and there should be a button there to come back to the home page. we can add footer as well these header and footer should be consistent across all pages 
-
-
-### ✅ Phase 1: Authentication & Core Features (8 tests)
-- User Registration (with password strength validation)
-- User Login
-- Protected Routes
-- User Logout
-- Form Validation
-- Error Handling
-- Session Persistence
-- Responsive Design
-
-### ✅ Phase 2: Advanced Features (7 tests)
+### ✅ Core Features
+- Landing Page
+- Authentication (Register, Login, Logout)
+- Forgot Password & Reset Password
+- OAuth Authentication (Google, GitHub, Microsoft)
+- Multi-Factor Authentication (MFA)
 - Profile Management
-- Edit Profile Information
-- Change Password (with password strength validation)
+- Password Change
+
+### ✅ Admin Panel Features
+- Admin Dashboard
+- User Management
+- Audit Logs
+- Feature Flags Management
+- Payment Management
+- System Settings
+
+### ✅ Advanced Features
+- Notifications System
+- RBAC (Role-Based Access Control)
+- GDPR Compliance (Data Export, Deletion, Consents)
+- Payment Processing
+- Feature Flags (User-facing)
+- Audit Logging
+
+### ✅ UI/UX Features
 - Toast Notifications
 - Loading States
-- React Query Integration
-- Error Boundary
+- Error Boundaries
+- Form Validation
+- Responsive Design
+- Session Persistence
 
-### ✅ Phase 3: Production Readiness (6 tests)
-- Password Strength Validation (Registration)
-- Password Strength Validation (Password Change)
-- API Versioning
-- Feature Flags
-- Confirmation Dialogs
-- Idempotency
-
-**Total**: 21 comprehensive test scenarios covering all features
+**Total**: 50+ comprehensive test scenarios covering all functionality
 
 ---
 
@@ -637,149 +749,995 @@ This manual testing guide covers **all three phases** of the template:
 
 ---
 
+### ✅ Phase 4: Landing Page & Navigation
+
+#### Test 4.1: Landing Page
+**Objective**: Verify landing page displays correctly and navigation works
+
+**Steps**:
+1. Navigate to `http://localhost:3000/`
+2. Verify landing page elements
+
+**Expected Results**:
+- ✅ Landing page loads successfully
+- ✅ Header/navigation bar is visible at top
+- ✅ Footer is visible at bottom
+- ✅ Navigation links work: Login, Register, Forgot Password
+- ✅ "Home" or logo button returns to landing page
+- ✅ Header and footer are consistent across all pages
+- ✅ Page is responsive on mobile/tablet/desktop
+
+**Test Cases**:
+- [ ] Landing page loads without errors
+- [ ] Header navigation links work
+- [ ] Footer displays correctly
+- [ ] Navigation to Login page works
+- [ ] Navigation to Register page works
+- [ ] Navigation to Forgot Password page works
+- [ ] Return to home page works
+- [ ] Responsive design works on all screen sizes
+
+---
+
+### ✅ Phase 5: Password Recovery
+
+#### Test 5.1: Forgot Password
+**Objective**: Verify users can request password reset
+
+**Steps**:
+1. Navigate to `http://localhost:3000/forgot-password`
+2. Enter a registered email address
+3. Click "Send Reset Link" button
+4. Check email inbox for reset link
+
+**Expected Results**:
+- ✅ Form validates email format
+- ✅ Loading state shows during request
+- ✅ Success message appears: "Password reset link sent to your email"
+- ✅ Email is received with reset link
+- ✅ Reset link contains token
+- ✅ Error message shows for non-existent email (optional - for security)
+
+**Test Cases**:
+- [ ] Valid email sends reset link
+- [ ] Invalid email format shows validation error
+- [ ] Non-existent email handled gracefully (may or may not show error for security)
+- [ ] Loading state during request
+- [ ] Success toast notification
+- [ ] Email received with reset link
+- [ ] Reset link is clickable and contains token
+
+---
+
+#### Test 5.2: Reset Password
+**Objective**: Verify users can reset password using reset link
+
+**Steps**:
+1. Click reset link from email (or navigate to `/reset-password?token=TOKEN`)
+2. Enter new password: `NewPassword123!`
+3. Confirm new password
+4. Click "Reset Password" button
+5. Try logging in with new password
+
+**Expected Results**:
+- ✅ Password strength indicator appears
+- ✅ Shows WEAK, FAIR, GOOD, or STRONG
+- ✅ Form validates password requirements
+- ✅ Confirm password must match
+- ✅ Loading state during reset
+- ✅ Success message: "Password reset successfully"
+- ✅ Redirects to login page
+- ✅ Can login with new password
+- ✅ Cannot login with old password
+
+**Test Cases**:
+- [ ] Valid reset token works
+- [ ] Invalid/expired token shows error
+- [ ] Password strength validation works
+- [ ] Weak password rejected
+- [ ] Fair password rejected
+- [ ] Good password accepted
+- [ ] Strong password accepted
+- [ ] Password confirmation must match
+- [ ] Success toast notification
+- [ ] Redirect to login page
+- [ ] Can login with new password
+- [ ] Old password no longer works
+
+---
+
+### ✅ Phase 6: OAuth Authentication
+
+#### Test 6.1: OAuth Login (Google)
+**Objective**: Verify Google OAuth login works
+
+**Prerequisites**: Google OAuth must be configured in backend `.env`
+
+**Steps**:
+1. Navigate to `/login`
+2. Click "Sign in with Google" button
+3. Complete Google OAuth flow
+4. Verify login success
+
+**Expected Results**:
+- ✅ OAuth button is visible
+- ✅ Clicking button initiates OAuth flow
+- ✅ Google consent screen appears
+- ✅ After consent, user is logged in
+- ✅ Redirects to dashboard
+- ✅ User information is displayed
+- ✅ Session is created
+
+**Test Cases**:
+- [ ] Google OAuth button visible
+- [ ] OAuth flow initiates correctly
+- [ ] Google consent screen appears
+- [ ] Login successful after consent
+- [ ] User redirected to dashboard
+- [ ] User information displayed
+- [ ] Session persists
+
+---
+
+#### Test 6.2: OAuth Login (GitHub)
+**Objective**: Verify GitHub OAuth login works
+
+**Prerequisites**: GitHub OAuth must be configured in backend `.env`
+
+**Steps**:
+1. Navigate to `/login`
+2. Click "Sign in with GitHub" button
+3. Complete GitHub OAuth flow
+4. Verify login success
+
+**Expected Results**:
+- ✅ GitHub OAuth button is visible
+- ✅ OAuth flow works correctly
+- ✅ User is logged in after consent
+- ✅ Redirects to dashboard
+
+**Test Cases**:
+- [ ] GitHub OAuth button visible
+- [ ] OAuth flow works
+- [ ] Login successful
+- [ ] User redirected correctly
+
+---
+
+#### Test 6.3: OAuth Login (Microsoft)
+**Objective**: Verify Microsoft OAuth login works
+
+**Prerequisites**: Microsoft OAuth must be configured in backend `.env`
+
+**Steps**:
+1. Navigate to `/login`
+2. Click "Sign in with Microsoft" button
+3. Complete Microsoft OAuth flow
+4. Verify login success
+
+**Expected Results**:
+- ✅ Microsoft OAuth button is visible
+- ✅ OAuth flow works correctly
+- ✅ User is logged in after consent
+
+**Test Cases**:
+- [ ] Microsoft OAuth button visible
+- [ ] OAuth flow works
+- [ ] Login successful
+
+---
+
+### ✅ Phase 7: Multi-Factor Authentication (MFA)
+
+#### Test 7.1: Setup TOTP MFA
+**Objective**: Verify users can setup TOTP-based MFA
+
+**Steps**:
+1. Log in as a user
+2. Navigate to profile or MFA settings page
+3. Click "Setup TOTP" or "Enable MFA"
+4. Scan QR code with authenticator app (Google Authenticator, Authy)
+5. Enter verification code from app
+6. Save backup codes
+
+**Expected Results**:
+- ✅ QR code is displayed
+- ✅ Secret key is shown (or can be copied)
+- ✅ Backup codes are generated
+- ✅ Verification code input appears
+- ✅ After verification, MFA is enabled
+- ✅ Success message appears
+
+**Test Cases**:
+- [ ] MFA setup page accessible
+- [ ] QR code displays correctly
+- [ ] Secret key can be copied
+- [ ] Backup codes generated
+- [ ] Verification code input works
+- [ ] Valid code enables MFA
+- [ ] Invalid code shows error
+- [ ] MFA enabled successfully
+- [ ] Backup codes saved
+
+---
+
+#### Test 7.2: Login with MFA Enabled
+**Objective**: Verify login requires MFA code when MFA is enabled
+
+**Steps**:
+1. Enable MFA for a user (Test 7.1)
+2. Log out
+3. Log in with email and password
+4. Enter MFA code from authenticator app
+5. Verify login success
+
+**Expected Results**:
+- ✅ After entering password, MFA code prompt appears
+- ✅ Can enter 6-digit code from authenticator
+- ✅ Valid code completes login
+- ✅ Invalid code shows error
+- ✅ Can use backup code if authenticator unavailable
+
+**Test Cases**:
+- [ ] MFA code prompt appears after password
+- [ ] Valid TOTP code works
+- [ ] Invalid code shows error
+- [ ] Backup code works
+- [ ] Used backup code cannot be reused
+- [ ] Login completes successfully
+
+---
+
+#### Test 7.3: Setup Email MFA
+**Objective**: Verify users can setup Email-based MFA
+
+**Steps**:
+1. Navigate to MFA settings
+2. Click "Setup Email MFA"
+3. Verify email is sent with OTP
+4. Enter OTP from email
+5. Verify MFA enabled
+
+**Expected Results**:
+- ✅ Email MFA setup initiates
+- ✅ OTP email is received
+- ✅ OTP input field appears
+- ✅ Valid OTP enables MFA
+- ✅ Invalid/expired OTP shows error
+
+**Test Cases**:
+- [ ] Email MFA setup works
+- [ ] OTP email received
+- [ ] Valid OTP enables MFA
+- [ ] Invalid OTP rejected
+- [ ] Expired OTP rejected
+
+---
+
+#### Test 7.4: Disable MFA
+**Objective**: Verify users can disable MFA
+
+**Steps**:
+1. Navigate to MFA settings
+2. Click "Disable MFA"
+3. Confirm action
+4. Verify MFA is disabled
+
+**Expected Results**:
+- ✅ Disable button is visible
+- ✅ Confirmation dialog appears
+- ✅ After confirmation, MFA is disabled
+- ✅ Login no longer requires MFA code
+
+**Test Cases**:
+- [ ] Disable MFA button works
+- [ ] Confirmation dialog appears
+- [ ] MFA disabled successfully
+- [ ] Login no longer requires MFA
+
+---
+
+### ✅ Phase 8: Admin Panel Features
+
+#### Test 8.1: Admin Dashboard Access
+**Objective**: Verify admin dashboard is accessible only to admins
+
+**Steps**:
+1. Log in as regular user (USER role)
+2. Try to navigate to `/admin/dashboard`
+3. Log out
+4. Log in as admin user (ADMIN or SUPER_ADMIN role)
+5. Navigate to `/admin/dashboard`
+
+**Expected Results**:
+- ✅ Regular users cannot access admin routes (redirected or error)
+- ✅ Admin users can access admin dashboard
+- ✅ Dashboard shows overview statistics
+- ✅ Navigation works
+
+**Test Cases**:
+- [ ] Regular user cannot access admin routes
+- [ ] Admin user can access dashboard
+- [ ] Dashboard displays statistics
+- [ ] Navigation sidebar works
+
+---
+
+#### Test 8.2: User Management (Admin)
+**Objective**: Verify admins can manage users
+
+**Steps**:
+1. Log in as admin
+2. Navigate to `/admin/users`
+3. View user list
+4. Test user management features
+
+**Expected Results**:
+- ✅ User list displays with pagination
+- ✅ Search functionality works
+- ✅ Filters work (role, status, etc.)
+- ✅ Can view user details
+- ✅ Can create new user
+- ✅ Can edit user (name, email, role, status)
+- ✅ Can delete user (with confirmation)
+- ✅ Can view user sessions
+- ✅ Can revoke user sessions
+- ✅ Can view user activity log
+
+**Test Cases**:
+- [ ] User list loads with pagination
+- [ ] Search users by email/name
+- [ ] Filter by role (USER, ADMIN, SUPER_ADMIN)
+- [ ] Filter by status (active/inactive)
+- [ ] View user details
+- [ ] Create new user
+- [ ] Edit user information
+- [ ] Change user role
+- [ ] Activate/deactivate user
+- [ ] Delete user (with confirmation)
+- [ ] View user sessions
+- [ ] Revoke user session
+- [ ] View user activity log
+
+---
+
+#### Test 8.3: Audit Logs (Admin)
+**Objective**: Verify admins can view and export audit logs
+
+**Steps**:
+1. Navigate to `/admin/audit-logs`
+2. View audit logs
+3. Test filtering and export
+
+**Expected Results**:
+- ✅ Audit logs list displays
+- ✅ Pagination works
+- ✅ Filters work (user, action, resource, date range)
+- ✅ Can view log details
+- ✅ Can export logs (CSV, JSON)
+- ✅ Logs show user actions, timestamps, IP addresses
+
+**Test Cases**:
+- [ ] Audit logs list loads
+- [ ] Pagination works
+- [ ] Filter by user
+- [ ] Filter by action type
+- [ ] Filter by resource
+- [ ] Filter by date range
+- [ ] View log details
+- [ ] Export to CSV
+- [ ] Export to JSON
+- [ ] Logs show correct information
+
+---
+
+#### Test 8.4: Feature Flags Management (Admin)
+**Objective**: Verify admins can manage feature flags
+
+**Steps**:
+1. Navigate to `/admin/feature-flags`
+2. View feature flags list
+3. Toggle feature flags
+
+**Expected Results**:
+- ✅ Feature flags list displays
+- ✅ Shows flag name, description, status
+- ✅ Can toggle flag on/off
+- ✅ Changes take effect immediately
+- ✅ Audit log created for changes
+
+**Test Cases**:
+- [ ] Feature flags list loads
+- [ ] Toggle flag on
+- [ ] Toggle flag off
+- [ ] Changes saved successfully
+- [ ] Audit log created
+- [ ] Frontend respects flag changes
+
+---
+
+#### Test 8.5: Payment Management (Admin)
+**Objective**: Verify admins can view and manage payments
+
+**Steps**:
+1. Navigate to `/admin/payments`
+2. View payments list
+3. Test payment management features
+
+**Expected Results**:
+- ✅ Payments list displays with filters
+- ✅ Can filter by user, status, date range
+- ✅ Can view payment details
+- ✅ Can process refunds
+- ✅ Can view subscriptions
+- ✅ Revenue analytics displayed
+
+**Test Cases**:
+- [ ] Payments list loads
+- [ ] Filter by user
+- [ ] Filter by status
+- [ ] Filter by date range
+- [ ] View payment details
+- [ ] Process refund (full)
+- [ ] Process refund (partial)
+- [ ] View subscriptions
+- [ ] Revenue analytics display
+
+---
+
+#### Test 8.6: System Settings (Admin)
+**Objective**: Verify admins can manage system settings
+
+**Steps**:
+1. Navigate to `/admin/settings`
+2. View system settings
+3. Update settings
+
+**Expected Results**:
+- ✅ Settings page displays
+- ✅ Can view application settings
+- ✅ Can update settings
+- ✅ Changes saved successfully
+- ✅ Email templates can be managed (if available)
+- ✅ Maintenance mode can be toggled (if available)
+
+**Test Cases**:
+- [ ] Settings page loads
+- [ ] View current settings
+- [ ] Update general settings
+- [ ] Update email settings
+- [ ] Update payment settings
+- [ ] Save changes
+- [ ] Changes persist
+
+---
+
+### ✅ Phase 9: Notifications System
+
+#### Test 9.1: View Notifications
+**Objective**: Verify users can view their notifications
+
+**Steps**:
+1. Log in as a user
+2. Navigate to notifications (if available in UI) or use API
+3. View notifications list
+
+**Expected Results**:
+- ✅ Notifications list displays
+- ✅ Shows unread/read status
+- ✅ Can filter by unread only
+- ✅ Pagination works
+- ✅ Notifications show type, title, message, timestamp
+
+**Test Cases**:
+- [ ] Notifications list loads
+- [ ] Unread notifications highlighted
+- [ ] Filter unread only works
+- [ ] Pagination works
+- [ ] Notification details visible
+
+---
+
+#### Test 9.2: Mark Notifications as Read
+**Objective**: Verify users can mark notifications as read
+
+**Steps**:
+1. View notifications
+2. Click on a notification or "Mark as Read"
+3. Verify notification is marked as read
+
+**Expected Results**:
+- ✅ Can mark individual notification as read
+- ✅ Can mark all notifications as read
+- ✅ Unread count updates
+- ✅ Visual indicator changes
+
+**Test Cases**:
+- [ ] Mark single notification as read
+- [ ] Mark all notifications as read
+- [ ] Unread count updates
+- [ ] Visual indicator changes
+
+---
+
+#### Test 9.3: Delete Notifications
+**Objective**: Verify users can delete notifications
+
+**Steps**:
+1. View notifications
+2. Delete a notification
+3. Verify notification is removed
+
+**Expected Results**:
+- ✅ Can delete individual notification
+- ✅ Notification removed from list
+- ✅ Confirmation may appear (if implemented)
+
+**Test Cases**:
+- [ ] Delete notification works
+- [ ] Notification removed from list
+- [ ] List updates correctly
+
+---
+
+#### Test 9.4: Notification Preferences
+**Objective**: Verify users can manage notification preferences
+
+**Steps**:
+1. Navigate to notification preferences (if available)
+2. Update preferences (email, in-app, SMS)
+
+**Expected Results**:
+- ✅ Preferences page displays
+- ✅ Can toggle email notifications
+- ✅ Can toggle in-app notifications
+- ✅ Can toggle SMS notifications (if available)
+- ✅ Changes saved successfully
+
+**Test Cases**:
+- [ ] Preferences page accessible
+- [ ] Toggle email notifications
+- [ ] Toggle in-app notifications
+- [ ] Toggle SMS notifications
+- [ ] Changes saved
+
+---
+
+### ✅ Phase 10: RBAC (Role-Based Access Control)
+
+#### Test 10.1: Check User Role
+**Objective**: Verify users can check their role
+
+**Steps**:
+1. Log in as a user
+2. Check role information (via API or UI if available)
+
+**Expected Results**:
+- ✅ Can view own role (USER, ADMIN, SUPER_ADMIN)
+- ✅ Can view permissions
+- ✅ Role hierarchy displayed correctly
+
+**Test Cases**:
+- [ ] View own role
+- [ ] View permissions
+- [ ] Role hierarchy correct
+
+---
+
+#### Test 10.2: Role-Based Access
+**Objective**: Verify role-based access control works
+
+**Steps**:
+1. Log in as USER role
+2. Try to access admin features
+3. Log in as ADMIN role
+4. Try to access admin features
+5. Log in as SUPER_ADMIN role
+6. Try to access all features
+
+**Expected Results**:
+- ✅ USER cannot access admin features
+- ✅ ADMIN can access admin features
+- ✅ SUPER_ADMIN can access all features
+- ✅ Role checks work correctly
+
+**Test Cases**:
+- [ ] USER role restrictions work
+- [ ] ADMIN role access works
+- [ ] SUPER_ADMIN role access works
+- [ ] Unauthorized access blocked
+
+---
+
+#### Test 10.3: Update User Role (Super Admin)
+**Objective**: Verify super admins can update user roles
+
+**Steps**:
+1. Log in as SUPER_ADMIN
+2. Navigate to user management
+3. Change a user's role
+4. Verify role change
+
+**Expected Results**:
+- ✅ Can change user role to USER, ADMIN, or SUPER_ADMIN
+- ✅ Role change saved
+- ✅ User permissions update immediately
+- ✅ Audit log created
+
+**Test Cases**:
+- [ ] Change role to USER
+- [ ] Change role to ADMIN
+- [ ] Change role to SUPER_ADMIN
+- [ ] Role change saved
+- [ ] Permissions update
+- [ ] Audit log created
+
+---
+
+### ✅ Phase 11: GDPR Compliance
+
+#### Test 11.1: Data Export Request
+**Objective**: Verify users can request data export
+
+**Steps**:
+1. Log in as a user
+2. Navigate to GDPR/data export (if available in UI) or use API
+3. Request data export
+4. Download exported data
+
+**Expected Results**:
+- ✅ Can request data export
+- ✅ Export includes all user data
+- ✅ Export file generated (JSON or CSV)
+- ✅ Download link provided
+- ✅ Export expires after 7 days
+
+**Test Cases**:
+- [ ] Request data export
+- [ ] Export generated successfully
+- [ ] Export includes user data
+- [ ] Download link works
+- [ ] Export file format correct
+
+---
+
+#### Test 11.2: Data Deletion Request
+**Objective**: Verify users can request data deletion
+
+**Steps**:
+1. Request data deletion
+2. Check email for confirmation link
+3. Confirm deletion
+4. Verify data is deleted
+
+**Expected Results**:
+- ✅ Can request data deletion
+- ✅ Confirmation email sent
+- ✅ Can choose soft or hard deletion
+- ✅ After confirmation, data deleted
+- ✅ User account deactivated/deleted
+
+**Test Cases**:
+- [ ] Request soft deletion
+- [ ] Request hard deletion
+- [ ] Confirmation email received
+- [ ] Confirm deletion works
+- [ ] Data deleted successfully
+- [ ] Account deactivated/deleted
+
+---
+
+#### Test 11.3: Consent Management
+**Objective**: Verify users can manage consents
+
+**Steps**:
+1. View consent preferences
+2. Grant consent (marketing, analytics, etc.)
+3. Revoke consent
+4. Verify consent status
+
+**Expected Results**:
+- ✅ Can view current consents
+- ✅ Can grant consent
+- ✅ Can revoke consent
+- ✅ Consent status tracked
+- ✅ Timestamps recorded
+
+**Test Cases**:
+- [ ] View consents
+- [ ] Grant marketing consent
+- [ ] Grant analytics consent
+- [ ] Revoke consent
+- [ ] Consent status updates
+- [ ] Timestamps correct
+
+---
+
+### ✅ Phase 12: Payment Processing
+
+#### Test 12.1: Create Payment
+**Objective**: Verify users can create payments
+
+**Steps**:
+1. Log in as a user
+2. Create a payment (if UI available) or use API
+3. Complete payment flow
+
+**Expected Results**:
+- ✅ Can create payment intent
+- ✅ Payment amount and currency specified
+- ✅ Payment provider selected (Stripe, Razorpay, Cashfree)
+- ✅ Payment status tracked
+- ✅ Payment details saved
+
+**Test Cases**:
+- [ ] Create payment intent
+- [ ] Specify amount and currency
+- [ ] Select payment provider
+- [ ] Payment status updates
+- [ ] Payment details saved
+
+---
+
+#### Test 12.2: View Payment History
+**Objective**: Verify users can view payment history
+
+**Steps**:
+1. View payment history (if UI available)
+2. Test filtering and pagination
+
+**Expected Results**:
+- ✅ Payment history displays
+- ✅ Shows payment details (amount, status, date)
+- ✅ Can filter by status
+- ✅ Pagination works
+
+**Test Cases**:
+- [ ] Payment history loads
+- [ ] Payment details visible
+- [ ] Filter by status works
+- [ ] Pagination works
+
+---
+
+#### Test 12.3: Payment Refund
+**Objective**: Verify payments can be refunded
+
+**Steps**:
+1. View a completed payment
+2. Process refund (full or partial)
+3. Verify refund status
+
+**Expected Results**:
+- ✅ Can process full refund
+- ✅ Can process partial refund
+- ✅ Refund status tracked
+- ✅ Payment status updates to REFUNDED or PARTIALLY_REFUNDED
+
+**Test Cases**:
+- [ ] Process full refund
+- [ ] Process partial refund
+- [ ] Refund status updates
+- [ ] Payment status updates
+
+---
+
 ## 📊 Test Results Template
 
-Use this template to track your manual testing:
+Use this template to track your manual testing. Copy and fill out for each testing session:
 
 ```markdown
-## Manual Test Results - [Date]
+## Manual Test Results - [Date] - [Tester Name]
 
 ### Phase 1: Authentication & Core Features
-
-#### Test 1.1: User Registration
-- [ ] Valid registration: ✅ / ❌
-- [ ] Invalid email: ✅ / ❌
-- [ ] Weak password: ✅ / ❌
-- [ ] Fair password (rejected): ✅ / ❌
-- [ ] Good password (accepted): ✅ / ❌
-- [ ] Strong password (accepted): ✅ / ❌
-- [ ] Password strength indicator: ✅ / ❌
-- [ ] Duplicate email: ✅ / ❌
-- **Notes**: 
-
-#### Test 1.2: User Login
-- [ ] Valid login: ✅ / ❌
-- [ ] Invalid credentials: ✅ / ❌
-- [ ] Form validation: ✅ / ❌
-- **Notes**: 
-
-#### Test 1.3: Protected Routes
-- [ ] Unauthenticated redirect: ✅ / ❌
-- [ ] Authenticated access: ✅ / ❌
-- **Notes**: 
-
-#### Test 1.4: User Logout
-- [ ] Logout works: ✅ / ❌
-- [ ] Cookies cleared: ✅ / ❌
-- **Notes**: 
-
-#### Test 1.5: Form Validation
-- [ ] Login validation: ✅ / ❌
-- [ ] Register validation: ✅ / ❌
-- [ ] Password strength validation: ✅ / ❌
-- **Notes**: 
-
-#### Test 1.6: Error Handling
-- [ ] Error messages display: ✅ / ❌
-- [ ] Network errors handled: ✅ / ❌
-- **Notes**: 
-
-#### Test 1.7: Session Persistence
-- [ ] Page refresh: ✅ / ❌
-- [ ] Browser restart: ✅ / ❌
-- **Notes**: 
-
-#### Test 1.8: Responsive Design
-- [ ] Mobile: ✅ / ❌
-- [ ] Tablet: ✅ / ❌
-- [ ] Desktop: ✅ / ❌
-- **Notes**: 
+[Include all Phase 1 tests from above]
 
 ### Phase 2: Advanced Features
-
-#### Test 2.1: Profile Management
-- [ ] Profile page loads: ✅ / ❌
-- [ ] Loading skeleton: ✅ / ❌
-- **Notes**: 
-
-#### Test 2.2: Edit Profile
-- [ ] Update name: ✅ / ❌
-- [ ] Update email: ✅ / ❌
-- [ ] Success toast: ✅ / ❌
-- [ ] Error handling: ✅ / ❌
-- **Notes**: 
-
-#### Test 2.3: Change Password
-- [ ] Password change works: ✅ / ❌
-- [ ] Password strength indicator: ✅ / ❌
-- [ ] Weak password rejected: ✅ / ❌
-- [ ] Fair password rejected: ✅ / ❌
-- [ ] Good password accepted: ✅ / ❌
-- [ ] Success toast: ✅ / ❌
-- **Notes**: 
-
-#### Test 2.4: Toast Notifications
-- [ ] Success toasts: ✅ / ❌
-- [ ] Error toasts: ✅ / ❌
-- [ ] Auto-dismiss: ✅ / ❌
-- **Notes**: 
-
-#### Test 2.5: Loading States
-- [ ] Skeleton loaders: ✅ / ❌
-- [ ] Loading buttons: ✅ / ❌
-- **Notes**: 
-
-#### Test 2.6: React Query
-- [ ] Data caching: ✅ / ❌
-- [ ] Cache invalidation: ✅ / ❌
-- **Notes**: 
-
-#### Test 2.7: Error Boundary
-- [ ] Error caught: ✅ / ❌
-- [ ] Fallback UI: ✅ / ❌
-- [ ] Try Again button: ✅ / ❌
-- **Notes**: 
+[Include all Phase 2 tests from above]
 
 ### Phase 3: Production Readiness
+[Include all Phase 3 tests from above]
 
-#### Test 3.1: Password Strength (Registration)
-- [ ] WEAK indicator: ✅ / ❌
-- [ ] FAIR indicator: ✅ / ❌
-- [ ] GOOD indicator: ✅ / ❌
-- [ ] STRONG indicator: ✅ / ❌
-- [ ] Real-time updates: ✅ / ❌
+### Phase 4: Landing Page & Navigation
+#### Test 4.1: Landing Page
+- [ ] Landing page loads: ✅ / ❌
+- [ ] Header navigation works: ✅ / ❌
+- [ ] Footer displays: ✅ / ❌
+- [ ] Navigation links work: ✅ / ❌
 - **Notes**: 
 
-#### Test 3.2: Password Strength (Password Change)
-- [ ] All strength levels: ✅ / ❌
-- [ ] Real-time updates: ✅ / ❌
+### Phase 5: Password Recovery
+#### Test 5.1: Forgot Password
+- [ ] Request reset link: ✅ / ❌
+- [ ] Email received: ✅ / ❌
+- [ ] Reset link works: ✅ / ❌
 - **Notes**: 
 
-#### Test 3.3: API Versioning
-- [ ] API requests work: ✅ / ❌
-- [ ] Version headers: ✅ / ❌
+#### Test 5.2: Reset Password
+- [ ] Reset password works: ✅ / ❌
+- [ ] Password strength validation: ✅ / ❌
+- [ ] Can login with new password: ✅ / ❌
 - **Notes**: 
 
-#### Test 3.4: Feature Flags
-- [ ] Flags configurable: ✅ / ❌
-- [ ] Features respect flags: ✅ / ❌
+### Phase 6: OAuth Authentication
+#### Test 6.1: Google OAuth
+- [ ] OAuth button visible: ✅ / ❌
+- [ ] OAuth flow works: ✅ / ❌
+- [ ] Login successful: ✅ / ❌
 - **Notes**: 
 
-#### Test 3.5: Confirmation Dialogs
-- [ ] Dialog appears: ✅ / ❌
-- [ ] Confirm works: ✅ / ❌
-- [ ] Cancel works: ✅ / ❌
+#### Test 6.2: GitHub OAuth
+- [ ] OAuth button visible: ✅ / ❌
+- [ ] OAuth flow works: ✅ / ❌
+- [ ] Login successful: ✅ / ❌
 - **Notes**: 
 
-#### Test 3.6: Idempotency
-- [ ] Duplicate prevention: ✅ / ❌
+#### Test 6.3: Microsoft OAuth
+- [ ] OAuth button visible: ✅ / ❌
+- [ ] OAuth flow works: ✅ / ❌
+- [ ] Login successful: ✅ / ❌
+- **Notes**: 
+
+### Phase 7: Multi-Factor Authentication
+#### Test 7.1: Setup TOTP MFA
+- [ ] QR code displays: ✅ / ❌
+- [ ] Backup codes generated: ✅ / ❌
+- [ ] MFA enabled: ✅ / ❌
+- **Notes**: 
+
+#### Test 7.2: Login with MFA
+- [ ] MFA code prompt appears: ✅ / ❌
+- [ ] Valid code works: ✅ / ❌
+- [ ] Backup code works: ✅ / ❌
+- **Notes**: 
+
+#### Test 7.3: Setup Email MFA
+- [ ] Email MFA setup works: ✅ / ❌
+- [ ] OTP received: ✅ / ❌
+- [ ] MFA enabled: ✅ / ❌
+- **Notes**: 
+
+#### Test 7.4: Disable MFA
+- [ ] Disable MFA works: ✅ / ❌
+- [ ] Login no longer requires MFA: ✅ / ❌
+- **Notes**: 
+
+### Phase 8: Admin Panel Features
+#### Test 8.1: Admin Dashboard
+- [ ] Admin access works: ✅ / ❌
+- [ ] Dashboard displays: ✅ / ❌
+- [ ] Statistics visible: ✅ / ❌
+- **Notes**: 
+
+#### Test 8.2: User Management
+- [ ] User list loads: ✅ / ❌
+- [ ] Search works: ✅ / ❌
+- [ ] Create user: ✅ / ❌
+- [ ] Edit user: ✅ / ❌
+- [ ] Delete user: ✅ / ❌
+- **Notes**: 
+
+#### Test 8.3: Audit Logs
+- [ ] Audit logs load: ✅ / ❌
+- [ ] Filters work: ✅ / ❌
+- [ ] Export works: ✅ / ❌
+- **Notes**: 
+
+#### Test 8.4: Feature Flags
+- [ ] Feature flags list loads: ✅ / ❌
+- [ ] Toggle works: ✅ / ❌
+- [ ] Changes saved: ✅ / ❌
+- **Notes**: 
+
+#### Test 8.5: Payment Management
+- [ ] Payments list loads: ✅ / ❌
+- [ ] Filters work: ✅ / ❌
+- [ ] Refund works: ✅ / ❌
+- **Notes**: 
+
+#### Test 8.6: System Settings
+- [ ] Settings page loads: ✅ / ❌
+- [ ] Update settings works: ✅ / ❌
+- [ ] Changes saved: ✅ / ❌
+- **Notes**: 
+
+### Phase 9: Notifications System
+#### Test 9.1: View Notifications
+- [ ] Notifications list loads: ✅ / ❌
+- [ ] Unread/read status visible: ✅ / ❌
+- **Notes**: 
+
+#### Test 9.2: Mark as Read
+- [ ] Mark single as read: ✅ / ❌
+- [ ] Mark all as read: ✅ / ❌
+- **Notes**: 
+
+#### Test 9.3: Delete Notifications
+- [ ] Delete notification works: ✅ / ❌
+- **Notes**: 
+
+#### Test 9.4: Notification Preferences
+- [ ] Preferences page accessible: ✅ / ❌
+- [ ] Update preferences works: ✅ / ❌
+- **Notes**: 
+
+### Phase 10: RBAC
+#### Test 10.1: Check User Role
+- [ ] View own role: ✅ / ❌
+- [ ] View permissions: ✅ / ❌
+- **Notes**: 
+
+#### Test 10.2: Role-Based Access
+- [ ] USER restrictions work: ✅ / ❌
+- [ ] ADMIN access works: ✅ / ❌
+- [ ] SUPER_ADMIN access works: ✅ / ❌
+- **Notes**: 
+
+#### Test 10.3: Update User Role
+- [ ] Change role works: ✅ / ❌
+- [ ] Permissions update: ✅ / ❌
+- **Notes**: 
+
+### Phase 11: GDPR Compliance
+#### Test 11.1: Data Export
+- [ ] Request export works: ✅ / ❌
+- [ ] Export generated: ✅ / ❌
+- [ ] Download works: ✅ / ❌
+- **Notes**: 
+
+#### Test 11.2: Data Deletion
+- [ ] Request deletion works: ✅ / ❌
+- [ ] Confirmation email received: ✅ / ❌
+- [ ] Data deleted: ✅ / ❌
+- **Notes**: 
+
+#### Test 11.3: Consent Management
+- [ ] View consents: ✅ / ❌
+- [ ] Grant consent: ✅ / ❌
+- [ ] Revoke consent: ✅ / ❌
+- **Notes**: 
+
+### Phase 12: Payment Processing
+#### Test 12.1: Create Payment
+- [ ] Create payment works: ✅ / ❌
+- [ ] Payment status tracked: ✅ / ❌
+- **Notes**: 
+
+#### Test 12.2: View Payment History
+- [ ] Payment history loads: ✅ / ❌
+- [ ] Filters work: ✅ / ❌
+- **Notes**: 
+
+#### Test 12.3: Payment Refund
+- [ ] Full refund works: ✅ / ❌
+- [ ] Partial refund works: ✅ / ❌
 - **Notes**: 
 
 ## Overall Status: [ ] All Pass / [ ] Issues Found
 
+## Summary
+- **Total Tests**: [X] / [Total]
+- **Passed**: [X]
+- **Failed**: [X]
+- **Skipped**: [X] (if any)
+
 ## Issues Found:
 1. [Issue description]
+   - **Severity**: Critical / High / Medium / Low
+   - **Steps to Reproduce**: 
+   - **Expected**: 
+   - **Actual**: 
+   - **Screenshots**: (if applicable)
+
 2. [Issue description]
+   - **Severity**: Critical / High / Medium / Low
+   - **Steps to Reproduce**: 
+   - **Expected**: 
+   - **Actual**: 
+
+## Recommendations:
+- [Recommendation 1]
+- [Recommendation 2]
 ```
 
 ---
@@ -846,16 +1804,105 @@ Use this template to track your manual testing:
 
 ## 📝 Notes for Testers
 
+### Test User Setup
+
+**Create Test Users with Different Roles**:
+
+1. **Regular User (USER role)**:
+   - Register via `/register` page
+   - Use email: `user-${Date.now()}@test.com`
+   - Password: `TestUser123!`
+
+2. **Admin User (ADMIN role)**:
+   - Register a user first
+   - Update role in database:
+     ```sql
+     UPDATE users SET role = 'ADMIN' WHERE email = 'admin@test.com';
+     ```
+   - Or use admin service to create admin user
+
+3. **Super Admin User (SUPER_ADMIN role)**:
+   - Register a user first
+   - Update role in database:
+     ```sql
+     UPDATE users SET role = 'SUPER_ADMIN' WHERE email = 'superadmin@test.com';
+     ```
+
+### Testing Tips
+
 1. **Use Unique Emails**: Always use unique emails (e.g., `test-${Date.now()}@example.com`) to avoid conflicts
+
 2. **Check Browser Console**: Open DevTools (F12) to see any errors
+   - Console tab: JavaScript errors
+   - Network tab: API call status
+   - Application tab: Cookies, LocalStorage
+
 3. **Check Network Tab**: Monitor API calls in Network tab
-4. **Check Cookies**: DevTools > Application > Cookies - verify HTTP-only cookies are set
-5. **Test Password Strength**: Try different password combinations to see strength levels
-6. **Test Edge Cases**: Try empty forms, very long inputs, special characters
-7. **Test Error Scenarios**: Disconnect backend, use invalid data, etc.
+   - Verify request/response status codes
+   - Check request payloads
+   - Verify response data
+
+4. **Check Cookies**: DevTools > Application > Cookies
+   - Verify HTTP-only cookies are set (`accessToken`, `refreshToken`)
+   - Cookies should have `HttpOnly` flag
+   - Cookies should have `SameSite` attribute
+
+5. **Test Password Strength**: Try different password combinations:
+   - Weak: `weak` (too short)
+   - Fair: `Passw0rd!` (8-9 chars, all types)
+   - Good: `Password123!` (10-12 chars)
+   - Strong: `VeryStrongPassword123!` (13+ chars)
+
+6. **Test Edge Cases**:
+   - Empty forms
+   - Very long inputs (1000+ characters)
+   - Special characters in inputs
+   - SQL injection attempts (should be sanitized)
+   - XSS attempts (should be sanitized)
+
+7. **Test Error Scenarios**:
+   - Disconnect backend (stop server)
+   - Use invalid data
+   - Use expired tokens
+   - Use invalid tokens
+
 8. **Test Toast Notifications**: Perform actions that trigger success/error toasts
+   - Profile update → Success toast
+   - Password change → Success toast
+   - Invalid login → Error toast
+
 9. **Test Loading States**: Observe skeleton loaders and loading buttons
-10. **Test Responsive Design**: Use DevTools device toolbar to test different screen sizes
+   - Profile page initial load
+   - Form submissions
+   - API calls
+
+10. **Test Responsive Design**: Use DevTools device toolbar (Ctrl+Shift+M / Cmd+Shift+M)
+    - Mobile: 375px, 414px
+    - Tablet: 768px, 1024px
+    - Desktop: 1920px, 2560px
+
+11. **Access Profile Page**: 
+    - Currently, profile page can be accessed by navigating to `/profile` directly in the browser
+    - Or add a link in the dashboard/header for easier access
+
+12. **Admin Panel Access**:
+    - Only users with ADMIN or SUPER_ADMIN role can access `/admin/*` routes
+    - Regular users will be redirected or see an error
+
+13. **OAuth Testing**:
+    - OAuth requires proper configuration in backend `.env`
+    - Test with actual OAuth provider accounts
+    - OAuth buttons may show "Not Implemented" message if not fully configured
+
+14. **MFA Testing**:
+    - Use Google Authenticator or Authy app for TOTP
+    - Test with real email for Email MFA
+    - Save backup codes when setting up MFA
+
+15. **Payment Testing**:
+    - Use test API keys for payment providers
+    - Test with small amounts
+    - Verify webhook handling (if testing webhooks)
 
 ---
 
@@ -867,6 +1914,10 @@ All tests should pass before considering the template production-ready:
 - [ ] All 8 test suites pass
 - [ ] Password strength validation works
 - [ ] Cookie-based authentication works
+- [ ] Form validation works
+- [ ] Error handling works
+- [ ] Session persistence works
+- [ ] Responsive design works
 
 ### Phase 2: Advanced Features
 - [ ] Profile management works
@@ -881,13 +1932,65 @@ All tests should pass before considering the template production-ready:
 - [ ] Feature flags work (if UI uses them)
 - [ ] Confirmation dialogs work (when integrated)
 
+### Phase 4: Landing Page & Navigation
+- [ ] Landing page displays correctly
+- [ ] Header and footer consistent across pages
+- [ ] Navigation links work
+
+### Phase 5: Password Recovery
+- [ ] Forgot password flow works
+- [ ] Reset password flow works
+- [ ] Email delivery works
+
+### Phase 6: OAuth Authentication
+- [ ] Google OAuth works (if configured)
+- [ ] GitHub OAuth works (if configured)
+- [ ] Microsoft OAuth works (if configured)
+
+### Phase 7: Multi-Factor Authentication
+- [ ] TOTP MFA setup works
+- [ ] Email MFA setup works
+- [ ] MFA login flow works
+- [ ] MFA disable works
+
+### Phase 8: Admin Panel
+- [ ] Admin dashboard accessible
+- [ ] User management works
+- [ ] Audit logs viewable and exportable
+- [ ] Feature flags manageable
+- [ ] Payment management works
+- [ ] System settings manageable
+
+### Phase 9: Notifications
+- [ ] Notifications viewable
+- [ ] Mark as read works
+- [ ] Delete notifications works
+- [ ] Preferences manageable
+
+### Phase 10: RBAC
+- [ ] Role checks work
+- [ ] Role-based access control works
+- [ ] Role updates work (super admin)
+
+### Phase 11: GDPR Compliance
+- [ ] Data export works
+- [ ] Data deletion works
+- [ ] Consent management works
+
+### Phase 12: Payment Processing
+- [ ] Payment creation works
+- [ ] Payment history viewable
+- [ ] Refunds processable
+
 ### General
 - [ ] No console errors
 - [ ] No TypeScript errors
 - [ ] All UI elements functional
-- [ ] Responsive design works
+- [ ] Responsive design works on all screen sizes
 - [ ] Error handling works correctly
 - [ ] All features tested manually
+- [ ] Cross-browser compatibility (Chrome, Firefox, Safari, Edge)
+- [ ] Performance acceptable (page load < 3s)
 
 ---
 
@@ -899,7 +2002,38 @@ All tests should pass before considering the template production-ready:
 
 ---
 
+## 🗺️ Quick Reference
+
+### Test User Credentials (Create these for testing)
+- **Regular User**: Register via `/register`
+- **Admin User**: Register, then update role to `ADMIN` in database
+- **Super Admin**: Register, then update role to `SUPER_ADMIN` in database
+
+### Key URLs
+- **Landing Page**: `http://localhost:3000/`
+- **Login**: `http://localhost:3000/login`
+- **Register**: `http://localhost:3000/register`
+- **Dashboard**: `http://localhost:3000/dashboard`
+- **Profile**: `http://localhost:3000/profile`
+- **Admin Dashboard**: `http://localhost:3000/admin/dashboard`
+- **Backend API**: `http://localhost:3001/api`
+
+### Common Test Passwords
+- **Weak**: `weak` (rejected)
+- **Fair**: `Passw0rd!` (rejected - 8-9 chars)
+- **Good**: `Password123!` (accepted - 10-12 chars)
+- **Strong**: `VeryStrongPassword123!` (accepted - 13+ chars)
+
+### Test Checklist Summary
+- ✅ **50+ test scenarios** covering all features
+- ✅ **12 phases** of testing
+- ✅ **Complete setup guide** included
+- ✅ **Troubleshooting section** for common issues
+- ✅ **Test results template** for tracking
+
+---
+
 **Last Updated**: December 23, 2025  
-**Version**: 1.2.0  
-**Status**: All Phases Complete - Template Ready for Production Use
+**Version**: 2.0.0  
+**Status**: Comprehensive Manual Testing Guide - All Features Covered
 
