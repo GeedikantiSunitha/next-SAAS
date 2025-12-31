@@ -15,7 +15,7 @@ This document provides a **comprehensive, phased roadmap** for transforming this
 2. **High-Value New Features** (OAuth, Admin Panel, MFA, etc.)
 3. **Operational Improvements** (monitoring, scaling, deployment)
 
-**Total Estimated Effort**: **332-494 hours** (~11-17 weeks for 1 developer)
+**Total Estimated Effort**: **344-512 hours** (~11-17 weeks for 1 developer)
 
 **Recommended Approach**: Implement in phases, with each phase building on the previous one.
 
@@ -92,7 +92,7 @@ This document provides a **comprehensive, phased roadmap** for transforming this
 ## 2. Phase 1: Core Features (OAuth + Admin Panel)
 
 **Duration**: 3-4 weeks  
-**Effort**: 100-150 hours  
+**Effort**: 112-168 hours (updated with Metrics & Analytics)  
 **Priority**: 🔴 **CRITICAL** - Essential for modern SaaS
 
 ### Goal
@@ -490,6 +490,182 @@ POST   /api/admin/maintenance/toggle - Toggle maintenance mode
 
 ---
 
+#### 1.5 User Metrics & Analytics (12-18 hours)
+
+**Why Critical**: Every SaaS product needs user metrics. Demonstrates privacy-first, GDPR-compliant analytics approach.
+
+**Priority**: 🟠 **HIGH** - Universal value, privacy-compliant, extensible
+
+**Reference**: See [METRICS_ANALYTICS_RECOMMENDATION.md](../docs/METRICS_ANALYTICS_RECOMMENDATION.md) for detailed assessment.
+
+#### 1.5.1 Core Aggregated Metrics (4-6 hours)
+
+**What to Include** (Privacy-First Approach):
+- ✅ Aggregated user counts (total, active, new)
+- ✅ User growth trends (daily, weekly, monthly)
+- ✅ User engagement metrics (sessions, retention)
+- ✅ NO per-user data
+- ✅ NO PII exposure
+
+**Backend Implementation**:
+```typescript
+// backend/src/services/userMetricsService.ts
+export const getUserMetrics = async () => {
+  // Aggregated counts only
+  const totalUsers = await prisma.user.count();
+  const activeUsers24h = await getActiveUsersCount(24);
+  const activeUsers7d = await getActiveUsersCount(168);
+  const activeUsers30d = await getActiveUsersCount(720);
+  
+  // Growth trends (aggregated)
+  const growthTrend = await getUserGrowthTrend();
+  
+  // Engagement (aggregated)
+  const avgSessions = await getAvgSessionsPerUser();
+  const retention = await getRetentionRates();
+  
+  return {
+    totalUsers,
+    activeUsers: { last24h, last7d, last30d },
+    growth: growthTrend,
+    engagement: { avgSessions, retention }
+  };
+};
+```
+
+**Key Principles**:
+- ✅ **No PII** in responses
+- ✅ **Aggregated only** (counts, averages, percentages)
+- ✅ **Time-bucketed** (daily, weekly, monthly)
+- ✅ **Privacy-first** design
+- ✅ **GDPR/CCPA compliant**
+
+**API Endpoint**:
+- `GET /api/admin/metrics/users` - Get aggregated user metrics
+
+**Deliverables**:
+- `userMetricsService.ts` service
+- API endpoint for user metrics
+- Admin dashboard UI components
+- Tests written
+
+---
+
+#### 1.5.2 Usage Tracking Framework (8-12 hours)
+
+**What to Include** (Extensible Framework):
+- ✅ Anonymized usage event tracking
+- ✅ Aggregated feature usage metrics
+- ✅ NO user IDs in events
+- ✅ NO personal data
+- ✅ Extensible for product-specific needs
+
+**Database Schema**:
+```prisma
+model UsageEvent {
+  id           String   @id @default(uuid())
+  date         DateTime @db.Date
+  eventType    String
+  resourceType String
+  count        Int      @default(1)
+  metadata     Json?
+  createdAt    DateTime @default(now())
+  
+  @@unique([date, eventType])
+  @@index([date])
+  @@index([eventType])
+  @@map("usage_events")
+}
+```
+
+**Backend Implementation**:
+```typescript
+// backend/src/services/usageTrackingService.ts
+
+// Track event (anonymized)
+export const trackUsageEvent = async (
+  eventType: string,
+  resourceType: string,
+  metadata?: Record<string, any>
+) => {
+  // Store aggregated, not individual
+  await prisma.usageEvent.upsert({
+    where: {
+      date_eventType: {
+        date: new Date().toISOString().split('T')[0],
+        eventType
+      }
+    },
+    update: { count: { increment: 1 } },
+    create: {
+      date: new Date().toISOString().split('T')[0],
+      eventType,
+      resourceType,
+      count: 1,
+      metadata: metadata || {}
+    }
+  });
+};
+
+// Get aggregated usage
+export const getUsageMetrics = async (dateRange: DateRange) => {
+  // Return aggregated counts only
+  // NO individual user data
+};
+```
+
+**Key Principles**:
+- ✅ **No userId** in usage events
+- ✅ **Aggregated by date** (not per user)
+- ✅ **Extensible** (eventType, resourceType)
+- ✅ **Privacy-compliant** by design
+
+**API Endpoints**:
+- `POST /api/admin/metrics/usage/track` - Track usage event (internal)
+- `GET /api/admin/metrics/usage` - Get aggregated usage metrics
+
+**Frontend Implementation**:
+- Add metrics cards to Admin Dashboard
+- User growth charts
+- Feature usage charts
+- Engagement metrics display
+
+**Deliverables**:
+- `usageTrackingService.ts` service
+- `UsageEvent` Prisma model
+- Database migration
+- API endpoints
+- Admin dashboard UI components
+- Tests written
+- Documentation
+
+---
+
+**What NOT to Include** (Per Recommendation):
+- ❌ Per-user analytics
+- ❌ Individual user behavior tracking
+- ❌ Product-specific metrics (e-commerce, content, etc.)
+- ❌ Detailed user journeys
+- ❌ Real-time user tracking
+
+**Why This Approach**:
+- ✅ Universal value (every SaaS needs this)
+- ✅ Privacy-compliant (GDPR/CCPA ready)
+- ✅ Demonstrates best practices
+- ✅ Extensible for product-specific needs
+- ✅ Low maintenance
+
+**Dependencies**:
+- Admin Panel (Phase 1.4)
+- Database (existing)
+
+**Effort Breakdown**:
+- Core Metrics: 4-6 hours
+- Usage Framework: 8-12 hours
+- **Total: 12-18 hours**
+
+---
+
 ### Phase 1 Summary
 
 | Feature | Effort | Priority | Status |
@@ -504,7 +680,15 @@ POST   /api/admin/maintenance/toggle - Toggle maintenance mode
 | Feature Flags UI | 4-6h | 🟠 High | ⚠️ Open |
 | Payment Management | 4-6h | 🟠 High | ⚠️ Open |
 | Settings Management | 4-6h | 🟠 High | ⚠️ Open |
-| **Total** | **100-150h** | | **~3-4 weeks** |
+| User Metrics & Analytics | 12-18h | 🟠 High | ⚠️ Open |
+| **Total** | **112-168h** | | **~3-4 weeks** |
+
+**Phase 1 Features**:
+1. Observability stack
+2. ForgotPassword implementation
+3. Social OAuth (Google, GitHub, Microsoft)
+4. Full Admin Panel (User Management, Monitoring, Audit, Feature Flags, Payments, Settings)
+5. User Metrics & Analytics (Aggregated, Privacy-First)
 
 **Phase 1 Completion Criteria**:
 - ✅ Observability stack operational
@@ -512,6 +696,7 @@ POST   /api/admin/maintenance/toggle - Toggle maintenance mode
 - ✅ OAuth login working (Google, GitHub)
 - ✅ Complete admin panel operational
 - ✅ All admin modules functional
+- ✅ User Metrics & Analytics implemented (aggregated, privacy-first)
 - ✅ Tests passing
 
 ---
@@ -1423,13 +1608,13 @@ frontend/src/
 
 | Phase | Duration | Effort | Priority | Dependencies |
 |-------|----------|--------|----------|--------------|
-| **Phase 1** | 3-4 weeks | 100-150h | 🔴 Critical | None |
+| **Phase 1** | 3-4 weeks | 112-168h | 🔴 Critical | None |
 | **Phase 2** | 2-3 weeks | 40-60h | 🟠 High | None |
 | **Phase 3** | 1-2 weeks | 24-32h | 🟠 High | None |
 | **Phase 4** | 2-3 weeks | 72-104h | 🟡 Medium | None |
 | **Phase 5** | 1-2 weeks | 56-88h | 🟢 Low | None |
 | **Phase 6** | 2-3 weeks | 40-60h | 🔴 Critical | Phase 1+ |
-| **Total** | **11-17 weeks** | **332-494h** | | |
+| **Total** | **11-17 weeks** | **344-512h** | | |
 
 ### Sprint Breakdown
 
@@ -1441,6 +1626,7 @@ frontend/src/
 - User Management
 - System Monitoring
 - Admin Panel modules (Audit, Feature Flags, Payments, Settings)
+- User Metrics & Analytics (Aggregated, Privacy-First)
 
 **Sprint 5-6 (Weeks 5-7): Phase 2 - Security & UX**
 - MFA implementation
@@ -1482,7 +1668,8 @@ Phase 1 (Core Features)
   ├─> Observability → Required for monitoring
   ├─> ForgotPassword → Independent
   ├─> OAuth → Independent
-  └─> Admin Panel → Requires RBAC (exists), Audit (exists), Observability
+  ├─> Admin Panel → Requires RBAC (exists), Audit (exists), Observability
+  └─> User Metrics & Analytics → Requires Admin Panel, Database
 
 Phase 2 (Security & UX)
   ├─> MFA → Independent
@@ -1570,6 +1757,7 @@ Phase 6 (Production Readiness)
 | OAuth | High | Low | 🔴 Critical |
 | Admin Panel | High | High | 🔴 Critical |
 | ForgotPassword | High | Low | 🔴 Critical |
+| User Metrics & Analytics | High | Low | 🟠 High |
 | Redis Caching | High | Low | 🔴 Critical |
 | CI/CD | High | Medium | 🔴 Critical |
 | MFA | Medium | Medium | 🟠 High |
@@ -1627,6 +1815,9 @@ This comprehensive roadmap provides a **clear, phased approach** to transforming
 - [ ] Feature Flags UI complete
 - [ ] Payment Management complete
 - [ ] Settings Management complete
+- [ ] User Metrics & Analytics - Core aggregated metrics
+- [ ] User Metrics & Analytics - Usage tracking framework
+- [ ] User Metrics & Analytics - Admin dashboard integration
 
 ### Phase 2 Checklist
 
