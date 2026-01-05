@@ -27,7 +27,7 @@ export interface User {
 
 export interface AuthResponse {
   success: boolean;
-  data: User; // Backend login returns user directly (accessToken set as cookie)
+  data: User | { requiresMfa: boolean; mfaMethod: 'TOTP' | 'EMAIL'; user: User }; // Backend login returns user or MFA requirement
 }
 
 export interface RegisterResponse {
@@ -147,12 +147,39 @@ export const authApi = {
   },
 
   /**
+   * Exchange GitHub authorization code for access token
+   */
+  exchangeGitHubCode: async (code: string): Promise<{ success: boolean; data: { token: string } }> => {
+    const response = await apiClient.post<{ success: boolean; data: { token: string } }>(
+      '/api/auth/oauth/github/exchange',
+      { code }
+    );
+    return response.data;
+  },
+
+  /**
    * Get user's linked OAuth methods
    */
   getOAuthMethods: async (): Promise<{ success: boolean; data: ('google' | 'github' | 'microsoft')[] }> => {
-    const response = await apiClient.get<{ success: boolean; data: ('google' | 'github')[] }>(
+    const response = await apiClient.get<{ success: boolean; data: ('google' | 'github' | 'microsoft')[] }>(
       '/api/auth/oauth/methods'
     );
+    return response.data;
+  },
+
+  /**
+   * Complete login with MFA verification
+   */
+  loginWithMfa: async (
+    code: string,
+    method: 'TOTP' | 'EMAIL',
+    isBackupCode?: boolean
+  ): Promise<AuthResponse> => {
+    const response = await apiClient.post<AuthResponse>('/api/auth/login/mfa', {
+      code,
+      method,
+      isBackupCode: isBackupCode || false,
+    });
     return response.data;
   },
 };

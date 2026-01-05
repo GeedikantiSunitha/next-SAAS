@@ -8,6 +8,7 @@ import { body } from 'express-validator';
 import * as profileService from '../services/profileService';
 import { validate, validators } from '../middleware/validation';
 import { authenticate } from '../middleware/auth';
+import { getClientIp } from '../utils/getClientIp';
 import asyncHandler from '../utils/asyncHandler';
 
 const router = Router();
@@ -42,7 +43,7 @@ router.put(
   ]),
   asyncHandler(async (req, res) => {
     const { name, email } = req.body;
-    const ipAddress = req.ip;
+    const ipAddress = getClientIp(req) || undefined;
     const userAgent = req.headers['user-agent'];
 
     const updatedUser = await profileService.updateProfile(
@@ -84,7 +85,7 @@ router.put(
   ]),
   asyncHandler(async (req, res) => {
     const { currentPassword, newPassword } = req.body;
-    const ipAddress = req.ip;
+    const ipAddress = getClientIp(req) || undefined;
     const userAgent = req.headers['user-agent'];
 
     const result = await profileService.changePassword(

@@ -1,16 +1,18 @@
 /**
  * OAuth Buttons Component
  * 
- * Provides Google and GitHub OAuth login buttons
- * Uses OAuth 2.0 popup flow for authentication
+ * Provides Google, GitHub, and Microsoft OAuth login buttons
+ * Uses OAuth 2.0 redirect flow for authentication
  */
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { useToast } from '../hooks/use-toast';
 import { authApi } from '../api/auth';
 import { useAuth } from '../contexts/AuthContext';
 import { Chrome, Github, Mail } from 'lucide-react';
+import { initiateOAuth } from '../utils/oauth';
 
 interface OAuthButtonsProps {
   onSuccess?: () => void;
@@ -19,52 +21,40 @@ interface OAuthButtonsProps {
 
 export const OAuthButtons = ({ onSuccess, mode = 'login' }: OAuthButtonsProps) => {
   const [loading, setLoading] = useState<'google' | 'github' | 'microsoft' | null>(null);
-  const { setUser } = useAuth();
+  const { setUser, refreshUser } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   /**
    * Handle OAuth flow with provider
-   * For now, this is a placeholder that shows how it would work
-   * In production, you would:
-   * 1. Open OAuth popup/redirect
-   * 2. Get OAuth token from provider
-   * 3. Send token to backend
+   * Initiates OAuth redirect flow
    */
   const handleOAuth = async (provider: 'google' | 'github' | 'microsoft') => {
     try {
       setLoading(provider);
 
-      // TODO: Implement OAuth popup/redirect flow
-      // For Google: Use Google Identity Services (gsi)
-      // For GitHub: Use GitHub OAuth App redirect
-      // 
-      // Example flow:
-      // 1. Open popup with provider's OAuth URL
-      // 2. User authorizes
-      // 3. Get access token from callback
-      // 4. Send token to backend: authApi.oauthLogin(provider, token)
-      // 5. Backend verifies token and creates/logs in user
-      // 6. Set user in auth context
-      // 7. Redirect to dashboard
+      // Check if client ID is configured
+      const clientIdEnvVar = `VITE_${provider.toUpperCase()}_CLIENT_ID`;
+      const clientId = import.meta.env[clientIdEnvVar];
 
-      toast({
-        title: 'OAuth Not Implemented',
-        description: `${provider} OAuth integration requires OAuth app setup. See documentation.`,
-        variant: 'default',
-      });
+      if (!clientId) {
+        toast({
+          title: 'OAuth Not Configured',
+          description: `${provider} OAuth is not configured. Please set ${clientIdEnvVar} environment variable.`,
+          variant: 'destructive',
+        });
+        setLoading(null);
+        return;
+      }
 
-      // Placeholder for actual implementation
-      // const token = await getOAuthToken(provider);
-      // const response = await authApi.oauthLogin(provider, token);
-      // setUser(response.data);
-      // onSuccess?.();
+      // Initiate OAuth flow (redirects to provider)
+      initiateOAuth(provider);
     } catch (error: any) {
       toast({
         title: 'OAuth Error',
-        description: error.response?.data?.error || error.message || `Failed to authenticate with ${provider}`,
+        description: error.message || `Failed to initiate ${provider} OAuth`,
         variant: 'destructive',
       });
-    } finally {
       setLoading(null);
     }
   };
@@ -147,3 +137,55 @@ export const OAuthButtons = ({ onSuccess, mode = 'login' }: OAuthButtonsProps) =
   );
 };
 
+/**
+ * OAuth Callback Handler Component
+ * 
+ * Handles OAuth callbacks from providers
+ * Should be mounted on callback routes
+ */
+export const OAuthCallbackHandler = () => {
+  const { setUser, refreshUser } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  // This will be called by callback pages
+  const handleOAuthCallback = async (
+    provider: 'google' | 'github' | 'microsoft',
+    tokenOrCode: string,
+    isCode: boolean = false
+  ) => {
+    try {
+      let token = tokenOrCode;
+
+      // If it's a GitHub code, exchange it for token
+      if (provider === 'github' && isCode) {
+        const exchangeResponse = await authApi.exchangeGitHubCode(tokenOrCode);
+        token = exchangeResponse.data.token;
+      }
+
+      // Send token to backend for authentication
+      const response = await authApi.oauthLogin(provider, token);
+
+      // Backend sets cookies and returns user
+      // Refresh auth state
+      await refreshUser();
+
+      toast({
+        title: 'Login Successful',
+        description: `Successfully logged in with ${provider}`,
+        variant: 'success',
+      });
+
+      navigate('/dashboard', { replace: true });
+    } catch (error: any) {
+      toast({
+        title: 'OAuth Error',
+        description: error.response?.data?.error || error.message || `Failed to authenticate with ${provider}`,
+        variant: 'destructive',
+      });
+      navigate('/login', { replace: true });
+    }
+  };
+
+  return null; // This component doesn't render anything
+};

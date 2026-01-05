@@ -22,6 +22,12 @@ const AdminAuditLogs = lazy(() => import('./pages/admin/AdminAuditLogs').then(m 
 const AdminFeatureFlags = lazy(() => import('./pages/admin/AdminFeatureFlags').then(m => ({ default: m.AdminFeatureFlags })));
 const AdminPayments = lazy(() => import('./pages/admin/AdminPayments').then(m => ({ default: m.AdminPayments })));
 const AdminSettings = lazy(() => import('./pages/admin/AdminSettings').then(m => ({ default: m.AdminSettings })));
+const Notifications = lazy(() => import('./pages/Notifications').then(m => ({ default: m.Notifications })));
+const GdprSettings = lazy(() => import('./pages/GdprSettings').then(m => ({ default: m.GdprSettings })));
+const NewsletterSettings = lazy(() => import('./pages/NewsletterSettings').then(m => ({ default: m.NewsletterSettings })));
+const AdminNewsletters = lazy(() => import('./pages/admin/AdminNewsletters').then(m => ({ default: m.AdminNewsletters })));
+const PaymentSettings = lazy(() => import('./pages/PaymentSettings').then(m => ({ default: m.PaymentSettings })));
+const OAuthCallback = lazy(() => import('./pages/OAuthCallback').then(m => ({ default: m.OAuthCallback })));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -56,6 +62,10 @@ function App() {
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route
+                  path="/oauth/:provider/callback"
+                  element={<OAuthCallback />}
+                />
+                <Route
                   path="/dashboard"
                   element={
                     <ProtectedRoute>
@@ -68,6 +78,38 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <Profile />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/notifications"
+                  element={
+                    <ProtectedRoute>
+                      <Notifications />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/gdpr"
+                  element={
+                    <ProtectedRoute>
+                      <GdprSettings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/newsletter"
+                  element={
+                    <ProtectedRoute>
+                      <NewsletterSettings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/payments"
+                  element={
+                    <ProtectedRoute>
+                      <PaymentSettings />
                     </ProtectedRoute>
                   }
                 />
@@ -116,6 +158,14 @@ function App() {
                   element={
                     <AdminRoute>
                       <AdminSettings />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/newsletters"
+                  element={
+                    <AdminRoute>
+                      <AdminNewsletters />
                     </AdminRoute>
                   }
                 />

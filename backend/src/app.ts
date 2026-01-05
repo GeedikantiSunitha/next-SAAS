@@ -4,6 +4,7 @@ import { securityHeaders, corsConfig, apiLimiter, requestSizeLimit } from './mid
 import requestId from './middleware/requestId';
 import apiVersioning from './middleware/apiVersioning';
 import metricsMiddleware from './middleware/metrics';
+import { idempotency } from './middleware/idempotency';
 import errorHandler from './middleware/errorHandler';
 import routes from './routes';
 import logger from './utils/logger';
@@ -50,6 +51,10 @@ app.use(metricsMiddleware);
 
 // API Versioning middleware (before routes)
 app.use('/api', apiVersioning);
+
+// Idempotency middleware (before routes, optional - only works if idempotency-key header is present)
+// Prevents duplicate operations for POST/PUT/PATCH requests
+app.use('/api', idempotency);
 
 // Apply rate limiting to all routes
 app.use('/api', apiLimiter);

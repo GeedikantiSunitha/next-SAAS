@@ -7,6 +7,7 @@ import auditRoutes from './audit';
 import rbacRoutes from './rbac';
 import paymentRoutes from './payments';
 import gdprRoutes from './gdpr';
+import newsletterRoutes from './newsletter';
 import featureFlagsRoutes from './featureFlags';
 import adminRoutes from './admin';
 import { getMetrics } from './metrics';
@@ -22,6 +23,7 @@ router.use('/audit', auditRoutes);
 router.use('/rbac', rbacRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/gdpr', gdprRoutes);
+router.use('/newsletter', newsletterRoutes);
 router.use('/feature-flags', featureFlagsRoutes);
 router.use('/admin', adminRoutes); // Admin routes (protected by role)
 router.get('/metrics', getMetrics); // Expose metrics endpoint

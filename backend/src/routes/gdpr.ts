@@ -5,6 +5,7 @@
 import { Router } from 'express';
 import * as gdprService from '../services/gdprService';
 import { authenticate } from '../middleware/auth';
+import { getClientIp } from '../utils/getClientIp';
 import asyncHandler from '../utils/asyncHandler';
 import { DeletionType, ConsentType } from '@prisma/client';
 
@@ -126,7 +127,7 @@ router.post(
     const consent = await gdprService.grantConsent(
       req.user!.id,
       consentType as ConsentType,
-      req.ip,
+      getClientIp(req) || undefined,
       req.headers['user-agent']
     );
 
@@ -157,7 +158,7 @@ router.delete(
     const consent = await gdprService.revokeConsent(
       req.user!.id,
       consentType as ConsentType,
-      req.ip,
+      getClientIp(req) || undefined,
       req.headers['user-agent']
     );
 

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../config/database';
 import asyncHandler from '../utils/asyncHandler';
+import config from '../config';
 
 const router = Router();
 
@@ -19,11 +20,23 @@ router.get(
       dbStatus = 'unhealthy';
     }
 
+    // Check email configuration
+    const emailConfigured = !!(
+      process.env.RESEND_API_KEY &&
+      process.env.RESEND_API_KEY !== 'your-resend-api-key-here' &&
+      config.email.apiKey &&
+      config.email.apiKey !== 'your-resend-api-key-here'
+    );
+
     const health = {
       status: dbStatus === 'healthy' ? 'healthy' : 'degraded',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
       database: dbStatus,
+      email: {
+        configured: emailConfigured,
+        fromEmail: config.email.fromEmail || 'not configured',
+      },
       memory: {
         used: Math.round((process.memoryUsage().heapUsed / 1024 / 1024) * 100) / 100,
         total: Math.round((process.memoryUsage().heapTotal / 1024 / 1024) * 100) / 100,

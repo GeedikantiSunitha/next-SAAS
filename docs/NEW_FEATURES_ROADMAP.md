@@ -993,7 +993,7 @@ POST   /api/files/:id/share          - Generate share link
 ## 5. Phase 4: Advanced Features
 
 **Duration**: 2-3 weeks  
-**Effort**: 40-60 hours  
+**Effort**: 72-104 hours (updated with Newsletter)  
 **Priority**: 🟡 **MEDIUM** - Enhanced capabilities
 
 ### Goal
@@ -1087,6 +1087,89 @@ model WebhookDelivery {
 
 ---
 
+### 4.5 Newsletter System (16-24 hours)
+
+**Why Important**: Email marketing and user engagement are essential for SaaS growth.
+
+**Features**:
+- Newsletter subscription management
+- Email list management
+- Newsletter creation and editing
+- Newsletter scheduling
+- Email template system
+- Unsubscribe handling
+- Subscription preferences
+- Newsletter analytics (open rates, click rates)
+
+**Database Schema**:
+```prisma
+model Newsletter {
+  id          String   @id @default(uuid())
+  title       String
+  subject     String
+  content     String   // HTML content
+  status      String   // 'draft', 'scheduled', 'sent'
+  scheduledAt DateTime?
+  sentAt      DateTime?
+  sentCount   Int      @default(0)
+  openCount   Int      @default(0)
+  clickCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String   // Admin user ID
+  
+  @@index([status])
+  @@index([scheduledAt])
+}
+
+model NewsletterSubscription {
+  id          String   @id @default(uuid())
+  userId      String?  // Optional - can subscribe without account
+  email       String
+  isActive    Boolean  @default(true)
+  subscribedAt DateTime @default(now())
+  unsubscribedAt DateTime?
+  preferences Json?    // Email frequency, categories, etc.
+  
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([email])
+  @@index([userId])
+  @@index([isActive])
+}
+```
+
+**Backend Implementation**:
+```typescript
+// backend/src/services/newsletterService.ts
+- subscribe(email, userId?)
+- unsubscribe(email, token?)
+- sendNewsletter(newsletterId)
+- scheduleNewsletter(newsletterId, scheduledAt)
+- getSubscriptions(filters)
+- createNewsletter(data)
+- updateNewsletter(id, data)
+```
+
+**Frontend Implementation**:
+- Newsletter subscription form (landing page, footer)
+- Admin newsletter management page
+- Newsletter editor (rich text editor)
+- Subscription preferences page
+- Unsubscribe page
+
+**Dependencies**:
+- Email service (existing)
+- Rich text editor (TinyMCE, Quill, or similar)
+
+**Deliverables**:
+- Newsletter subscription working
+- Admin can create/send newsletters
+- Unsubscribe flow working
+- Analytics tracking
+
+---
+
 ### Phase 4 Summary
 
 | Feature | Effort | Priority | Status |
@@ -1095,7 +1178,8 @@ model WebhookDelivery {
 | Advanced Search | 16-24h | 🟡 Medium | ⚠️ Open |
 | WebSockets | 24-32h | 🟡 Medium | ⚠️ Open |
 | Advanced RBAC | 16-24h | 🟡 Medium | ⚠️ Open |
-| **Total** | **72-104h** | | **~2-3 weeks** |
+| Newsletter System | 16-24h | 🟡 Medium | ⚠️ Open |
+| **Total** | **88-128h** | | **~2-3 weeks** |
 
 ---
 

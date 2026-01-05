@@ -159,6 +159,32 @@ export const login = async (
     throw new UnauthorizedError('Invalid credentials');
   }
 
+  // Check if user has MFA enabled
+  const enabledMfaMethods = await prisma.mfaMethod.findMany({
+    where: {
+      userId: user.id,
+      isEnabled: true,
+    },
+    orderBy: { isPrimary: 'desc' },
+  });
+
+  // If MFA is enabled, return requiresMfa flag instead of tokens
+  if (enabledMfaMethods.length > 0) {
+    const primaryMethod = enabledMfaMethods.find((m) => m.isPrimary) || enabledMfaMethods[0];
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+      requiresMfa: true,
+      mfaMethod: primaryMethod.method,
+      // Don't return tokens yet - need MFA verification first
+    };
+  }
+
   // Generate tokens
   const { accessToken, refreshToken } = generateTokens(user.id);
 

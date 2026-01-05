@@ -9,6 +9,9 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Layout } from '../components/Layout';
 import { OAuthButtons } from '../components/OAuthButtons';
+import { MfaVerification } from '../components/MfaVerification';
+import { authApi } from '../api/auth';
+import { useToast } from '../hooks/use-toast';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -19,9 +22,14 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 export const Login = () => {
   const navigate = useNavigate();
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, refreshUser } = useAuth();
+  const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [requiresMfa, setRequiresMfa] = useState(false);
+  const [mfaMethod, setMfaMethod] = useState<'TOTP' | 'EMAIL' | null>(null);
+  const [mfaError, setMfaError] = useState<string | null>(null);
+  const [isVerifyingMfa, setIsVerifyingMfa] = useState(false);
 
   const {
     register,
@@ -45,14 +53,31 @@ export const Login = () => {
     try {
       setError(null);
       setIsSubmitting(true);
+      const response = await authApi.login({ email: data.email, password: data.password });
+      
+      // Check if MFA is required
+      if (response.data && typeof response.data === 'object' && 'requiresMfa' in response.data) {
+        const mfaData = response.data as { requiresMfa: boolean; mfaMethod: 'TOTP' | 'EMAIL'; user: any };
+        if (mfaData.requiresMfa) {
+          setRequiresMfa(true);
+          setMfaMethod(mfaData.mfaMethod);
+          setIsSubmitting(false);
+          return;
+        }
+      }
+      
+      // No MFA required - complete login
       await login(data.email, data.password);
-      // State will update asynchronously, useEffect will handle redirect
-      // But also navigate explicitly as a fallback
+      
+      // Show success toast
+      toast({
+        title: 'Login Successful',
+        description: 'Welcome back! You have been logged in successfully.',
+        variant: 'success',
+      });
+      
       navigate('/dashboard', { replace: true });
     } catch (err: any) {
-      // Backend returns { success: false, error: "message" } on error
-      // Axios errors have err.response.data.error for API errors
-      // Rate limit errors (429) may have different structure
       let errorMessage = 'Login failed. Please try again.';
       
       if (err.response?.data?.error) {
@@ -68,6 +93,66 @@ export const Login = () => {
       setIsSubmitting(false);
     }
   };
+
+  const handleMfaVerify = async (code: string, isBackupCode?: boolean) => {
+    if (!mfaMethod) return;
+
+    try {
+      setMfaError(null);
+      setIsVerifyingMfa(true);
+      
+      await authApi.loginWithMfa(code, mfaMethod, isBackupCode);
+      
+      // Backend sets cookies and returns user
+      // Refresh auth state
+      await refreshUser();
+      
+      // Show success toast
+      toast({
+        title: 'Login Successful',
+        description: 'Welcome back! You have been logged in successfully.',
+        variant: 'success',
+      });
+      
+      navigate('/dashboard', { replace: true });
+    } catch (err: any) {
+      let errorMessage = 'Invalid verification code. Please try again.';
+      
+      if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setMfaError(errorMessage);
+    } finally {
+      setIsVerifyingMfa(false);
+    }
+  };
+
+  const handleMfaCancel = () => {
+    setRequiresMfa(false);
+    setMfaMethod(null);
+    setMfaError(null);
+  };
+
+  // Show MFA verification if required
+  if (requiresMfa && mfaMethod) {
+    return (
+      <Layout>
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/20 py-12 px-4">
+          <MfaVerification
+            method={mfaMethod}
+            onVerify={handleMfaVerify}
+            onCancel={handleMfaCancel}
+            isLoading={isVerifyingMfa}
+            error={mfaError}
+            showBackupCodeOption={true}
+          />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>

@@ -5,8 +5,10 @@ import { validate, validators } from '../middleware/validation';
 import { authenticate } from '../middleware/auth';
 import { authLimiter } from '../middleware/security';
 import asyncHandler from '../utils/asyncHandler';
+import { getClientIp } from '../utils/getClientIp';
 import config from '../config';
 import { prisma } from '../config/database';
+import logger from '../utils/logger';
 
 const router = Router();
 
@@ -44,7 +46,7 @@ router.post(
   ]),
   asyncHandler(async (req, res) => {
     const { email, password, name } = req.body;
-    const ipAddress = req.ip;
+    const ipAddress = getClientIp(req) || undefined;
     const userAgent = req.headers['user-agent'];
 
     const user = await authService.register(email, password, name, ipAddress, userAgent);
@@ -92,27 +94,57 @@ router.post(
   ]),
   asyncHandler(async (req, res) => {
     const { email, password } = req.body;
-    const ipAddress = req.ip;
+    const ipAddress = getClientIp(req) || undefined;
     const userAgent = req.headers['user-agent'];
 
-    const { user, accessToken, refreshToken } = await authService.login(
+    const loginResult = await authService.login(
       email,
       password,
       ipAddress,
       userAgent
     );
 
+    // If MFA is required, return requiresMfa flag and temporary token
+    if (loginResult.requiresMfa) {
+      // Create temporary session for MFA verification
+      const tempToken = require('crypto').randomBytes(32).toString('hex');
+      const expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + 10); // 10 minutes
+
+      await prisma.session.create({
+        data: {
+          userId: loginResult.user.id,
+          token: tempToken,
+          expiresAt,
+          ipAddress,
+          userAgent,
+        },
+      });
+
+      // Set temporary token as cookie
+      res.cookie('tempLoginToken', tempToken, getCookieOptions(10 * 60)); // 10 minutes
+
+      return res.json({
+        success: true,
+        data: {
+          requiresMfa: true,
+          mfaMethod: loginResult.mfaMethod,
+          user: loginResult.user,
+        },
+      });
+    }
+
+    // No MFA required - complete login normally
     // Set access token as HTTP-only cookie
-    res.cookie('accessToken', accessToken, getCookieOptions(config.cookie.accessTokenMaxAge));
+    res.cookie('accessToken', loginResult.accessToken!, getCookieOptions(config.cookie.accessTokenMaxAge));
 
     // Set refresh token as HTTP-only cookie
-    res.cookie('refreshToken', refreshToken, getCookieOptions(config.cookie.maxAge));
+    res.cookie('refreshToken', loginResult.refreshToken!, getCookieOptions(config.cookie.maxAge));
 
     // Return user only (no tokens in body)
-    // Match register response format: data is user directly
-    res.json({
+    return res.json({
       success: true,
-      data: user,
+      data: loginResult.user,
     });
   })
 );
@@ -267,7 +299,7 @@ router.post(
         action: 'OAUTH_LINKED',
         resource: 'users',
         resourceId: userId,
-        ipAddress: req.ip,
+        ipAddress: getClientIp(req) || undefined,
         userAgent: req.headers['user-agent'],
         details: {
           provider,
@@ -310,7 +342,7 @@ router.post(
         action: 'OAUTH_UNLINKED',
         resource: 'users',
         resourceId: userId,
-        ipAddress: req.ip,
+        ipAddress: getClientIp(req) || undefined,
         userAgent: req.headers['user-agent'],
         details: {
           provider,
@@ -393,7 +425,7 @@ router.post(
         userId: user.id,
         token: refreshToken,
         expiresAt,
-        ipAddress: req.ip,
+        ipAddress: getClientIp(req) || undefined,
         userAgent: req.headers['user-agent'],
       },
     });
@@ -411,7 +443,7 @@ router.post(
         action: 'OAUTH_LOGIN',
         resource: 'users',
         resourceId: user.id,
-        ipAddress: req.ip,
+        ipAddress: getClientIp(req) || undefined,
         userAgent: req.headers['user-agent'],
         details: {
           provider,
@@ -459,7 +491,7 @@ router.post(
         action: 'OAUTH_LINKED',
         resource: 'users',
         resourceId: userId,
-        ipAddress: req.ip,
+        ipAddress: getClientIp(req) || undefined,
         userAgent: req.headers['user-agent'],
         details: {
           provider,
@@ -502,7 +534,7 @@ router.post(
         action: 'OAUTH_UNLINKED',
         resource: 'users',
         resourceId: userId,
-        ipAddress: req.ip,
+        ipAddress: getClientIp(req) || undefined,
         userAgent: req.headers['user-agent'],
         details: {
           provider,
@@ -514,6 +546,79 @@ router.post(
       success: true,
       data: user,
     });
+  })
+);
+
+/**
+ * POST /api/auth/oauth/github/exchange
+ * Exchange GitHub authorization code for access token
+ * GitHub uses authorization code flow, so we need to exchange code for token
+ */
+router.post(
+  '/oauth/github/exchange',
+  authLimiter,
+  validate([
+    body('code').notEmpty().withMessage('Authorization code is required'),
+  ]),
+  asyncHandler(async (req, res) => {
+    const { code } = req.body;
+
+    if (!config.oauth.github.enabled) {
+      res.status(400).json({
+        success: false,
+        error: 'GitHub OAuth is not enabled',
+      });
+      return;
+    }
+
+    try {
+      // Exchange code for access token
+      const axios = require('axios');
+      const tokenResponse = await axios.post(
+        'https://github.com/login/oauth/access_token',
+        {
+          client_id: config.oauth.github.clientId,
+          client_secret: config.oauth.github.clientSecret,
+          code,
+        },
+        {
+          headers: {
+            Accept: 'application/json',
+          },
+        }
+      );
+
+      if (tokenResponse.data.error) {
+        res.status(400).json({
+          success: false,
+          error: tokenResponse.data.error_description || 'Failed to exchange GitHub code',
+        });
+        return;
+      }
+
+      const accessToken = tokenResponse.data.access_token;
+
+      if (!accessToken) {
+        res.status(400).json({
+          success: false,
+          error: 'Failed to get access token from GitHub',
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        data: {
+          token: accessToken,
+        },
+      });
+    } catch (error: any) {
+      logger.error('Failed to exchange GitHub code', { error: error.message });
+      res.status(500).json({
+        success: false,
+        error: 'Failed to exchange GitHub authorization code',
+      });
+    }
   })
 );
 
@@ -714,6 +819,133 @@ router.post(
     res.json({
       success: true,
       data: result,
+    });
+  })
+);
+
+/**
+ * POST /api/auth/login/mfa
+ * Complete login with MFA verification
+ */
+router.post(
+  '/login/mfa',
+  validate([
+    body('code').isString().notEmpty().withMessage('MFA code is required'),
+    body('method').isIn(['TOTP', 'EMAIL']).withMessage('Invalid MFA method'),
+    body('isBackupCode').optional().isBoolean(),
+  ]),
+  asyncHandler(async (req, res) => {
+    const { code, method, isBackupCode } = req.body;
+    const ipAddress = getClientIp(req) || undefined;
+    const userAgent = req.headers['user-agent'];
+
+    // Get user from temporary session token
+    const tempToken = req.cookies.tempLoginToken;
+    if (!tempToken) {
+      return res.status(401).json({
+        success: false,
+        error: 'Temporary login token required. Please login again.',
+      });
+    }
+
+    // Find temporary session
+    const tempSession = await prisma.session.findFirst({
+      where: {
+        token: tempToken,
+        expiresAt: {
+          gt: new Date(),
+        },
+      },
+      include: {
+        user: true,
+      },
+    });
+
+    if (!tempSession) {
+      return res.status(401).json({
+        success: false,
+        error: 'Temporary login token expired. Please login again.',
+      });
+    }
+
+    const userId = tempSession.userId;
+
+    // Verify MFA code
+    let isValid = false;
+    if (isBackupCode) {
+      isValid = await mfaService.verifyBackupCode(userId, code);
+    } else if (method === 'TOTP') {
+      isValid = await mfaService.verifyTotp(userId, code);
+    } else if (method === 'EMAIL') {
+      isValid = await mfaService.verifyEmailOtp(userId, code);
+    }
+
+    if (!isValid) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid MFA code',
+      });
+    }
+
+    // Generate tokens
+    const { accessToken, refreshToken } = authService.generateTokens(userId);
+
+    // Save refresh token in database
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30); // 30 days
+
+    await prisma.session.create({
+      data: {
+        userId,
+        token: refreshToken,
+        expiresAt,
+        ipAddress,
+        userAgent,
+      },
+    });
+
+    // Delete temporary session
+    await prisma.session.delete({
+      where: {
+        id: tempSession.id,
+      },
+    });
+
+    // Clear temp token cookie
+    res.clearCookie('tempLoginToken');
+
+    // Set access token as HTTP-only cookie
+    res.cookie('accessToken', accessToken, getCookieOptions(config.cookie.accessTokenMaxAge));
+
+    // Set refresh token as HTTP-only cookie
+    res.cookie('refreshToken', refreshToken, getCookieOptions(config.cookie.maxAge));
+
+    // Get user
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+      },
+    });
+
+    // Log successful login
+    await prisma.auditLog.create({
+      data: {
+        userId,
+        action: 'USER_LOGIN',
+        resource: 'users',
+        resourceId: userId,
+        ipAddress,
+        userAgent,
+      },
+    });
+
+    return res.json({
+      success: true,
+      data: user,
     });
   })
 );

@@ -77,7 +77,7 @@ export const renderTemplate = (templateName: string, data: Record<string, any>):
 /**
  * Send email using Resend
  */
-const sendEmail = async (options: {
+export const sendEmail = async (options: {
   to: string;
   subject: string;
   html: string;

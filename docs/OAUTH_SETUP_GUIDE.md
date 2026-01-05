@@ -70,8 +70,8 @@ All providers use a token-based flow where:
    ```
 6. **Authorized redirect URIs**:
    ```
-   http://localhost:3000/auth/google/callback
-   https://yourdomain.com/auth/google/callback
+   http://localhost:3000/oauth/google/callback
+   https://yourdomain.com/oauth/google/callback
    ```
 7. Click **"Create"**
 8. **Copy the Client ID and Client Secret** (you'll need these)
@@ -86,61 +86,75 @@ All providers use a token-based flow where:
 
 ## GitHub OAuth Setup
 
+### Quick Start: Get Your GitHub OAuth Keys
+
+**Time Required**: ~5 minutes
+
 ### Step 1: Create GitHub OAuth App
 
-1. Go to [GitHub Settings](https://github.com/settings/developers)
-2. Click **"OAuth Apps"** → **"New OAuth App"**
-3. Fill in the form:
-   - **Application name**: Your application name
-   - **Homepage URL**: `https://yourdomain.com` or `http://localhost:3000`
+1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
+2. Click **"OAuth Apps"** in the left sidebar
+3. Click **"New OAuth App"** button
+4. Fill in the form:
+   - **Application name**: Your application name (e.g., "My SaaS App")
+   - **Homepage URL**: 
+     - For development: `http://localhost:3000`
+     - For production: `https://yourdomain.com`
    - **Authorization callback URL**: 
      ```
-     http://localhost:3000/auth/github/callback
+     http://localhost:3000/oauth/github/callback
      ```
-     or
-     ```
-     https://yourdomain.com/auth/github/callback
-     ```
-4. Click **"Register application"**
+     (Add production URL later: `https://yourdomain.com/oauth/github/callback`)
+5. Click **"Register application"**
 
 ### Step 2: Get Client Credentials
 
-1. After creating the app, you'll see:
-   - **Client ID** (public)
-   - **Client Secret** (click "Generate a new client secret" if needed)
-2. **Copy both values** (you'll need these)
+1. After creating the app, you'll see the app details page
+2. **Client ID**: This is shown immediately (copy it)
+3. **Client Secret**: 
+   - Click **"Generate a new client secret"** button
+   - Enter a note (e.g., "Production Secret")
+   - Click **"Generate client secret"**
+   - ⚠️ **Copy the secret immediately** - you can only see it once!
+4. **Copy both values**:
+   - ✅ **GITHUB_CLIENT_ID**: The Client ID
+   - ✅ **GITHUB_CLIENT_SECRET**: The Client Secret you just generated
 
-### Step 3: Configure Scopes (Optional)
+### Step 3: Configure Scopes (Already Handled)
 
-By default, GitHub OAuth requests `user:email` scope. If you need additional permissions:
-- Edit your OAuth App
-- Note: Scopes are requested during authorization, not in app settings
+The implementation automatically requests `user:email` scope, which is sufficient for basic OAuth login. No additional configuration needed.
 
 ---
 
 ## Microsoft OAuth Setup
 
+### Quick Start: Get Your Microsoft OAuth Keys
+
+**Time Required**: ~10-15 minutes
+
 ### Step 1: Register Application in Azure Portal
 
 1. Go to [Azure Portal](https://portal.azure.com/)
-2. Navigate to **"Azure Active Directory"** → **"App registrations"**
-3. Click **"+ New registration"**
-4. Fill in the form:
-   - **Name**: Your application name
+2. Sign in with your Microsoft account
+3. Navigate to **"Azure Active Directory"** → **"App registrations"**
+4. Click **"+ New registration"**
+5. Fill in the form:
+   - **Name**: Your application name (e.g., "My SaaS App")
    - **Supported account types**: 
-     - Choose **"Accounts in any organizational directory and personal Microsoft accounts"** (for Outlook.com and Azure AD)
+     - Choose **"Accounts in any organizational directory and personal Microsoft accounts"** 
+     - (This allows both Outlook.com and Azure AD accounts)
    - **Redirect URI**:
      - Platform: **"Single-page application (SPA)"**
-     - URI: `http://localhost:3000/auth/microsoft/callback`
-     - Add another for production: `https://yourdomain.com/auth/microsoft/callback`
-5. Click **"Register"**
+     - URI: `http://localhost:3000/oauth/microsoft/callback`
+     - (You can add production URL later)
+6. Click **"Register"**
 
 ### Step 2: Get Application Credentials
 
 1. After registration, you'll see the **Overview** page
 2. **Copy the following values**:
-   - **Application (client) ID** (this is your Client ID)
-   - **Directory (tenant) ID** (optional, for multi-tenant apps)
+   - ✅ **MICROSOFT_CLIENT_ID**: The **Application (client) ID** (shown on Overview page)
+   - ✅ **MICROSOFT_TENANT_ID** (optional): The **Directory (tenant) ID** (only needed for single-tenant apps)
 
 ### Step 3: Create Client Secret
 
@@ -149,8 +163,8 @@ By default, GitHub OAuth requests `user:email` scope. If you need additional per
 3. **Description**: Enter a description (e.g., "Production Secret")
 4. **Expires**: Choose expiration (recommend 24 months)
 5. Click **"Add"**
-6. **IMPORTANT**: Copy the **Value** immediately (it won't be shown again)
-   - This is your **Client Secret**
+6. **IMPORTANT**: Copy the **Value** immediately (it won't be shown again!)
+   - ✅ **MICROSOFT_CLIENT_SECRET**: This is the secret value
 
 ### Step 4: Configure API Permissions
 
@@ -174,38 +188,84 @@ By default, GitHub OAuth requests `user:email` scope. If you need additional per
    - ✅ **ID tokens** (for OpenID Connect)
 3. Under **"Redirect URIs"**, ensure your URIs are listed:
    ```
-   http://localhost:3000/auth/microsoft/callback
-   https://yourdomain.com/auth/microsoft/callback
+   http://localhost:3000/oauth/microsoft/callback
+   https://yourdomain.com/oauth/microsoft/callback
    ```
+   (Add production URL when ready)
 4. Click **"Save"**
 
 ---
 
-## Backend Configuration
+## Configuration: Add Keys to Your Project
 
-### Step 1: Add Environment Variables
+### Step 1: Add Backend Environment Variables
 
-Add the following to your `.env` file in the `backend` directory:
+Add the following to your `backend/.env` file:
 
 ```env
-# Google OAuth
-GOOGLE_CLIENT_ID=your-google-client-id-here
-GOOGLE_CLIENT_SECRET=your-google-client-secret-here
+# Google OAuth (from Step 3 above)
+GOOGLE_CLIENT_ID=paste-your-google-client-id-here
+GOOGLE_CLIENT_SECRET=paste-your-google-client-secret-here
 
-# GitHub OAuth
-GITHUB_CLIENT_ID=your-github-client-id-here
-GITHUB_CLIENT_SECRET=your-github-client-secret-here
+# GitHub OAuth (from Step 2 above)
+GITHUB_CLIENT_ID=paste-your-github-client-id-here
+GITHUB_CLIENT_SECRET=paste-your-github-client-secret-here
 
-# Microsoft OAuth
-MICROSOFT_CLIENT_ID=your-microsoft-client-id-here
-MICROSOFT_CLIENT_SECRET=your-microsoft-client-secret-here
+# Microsoft OAuth (from Step 3 above)
+MICROSOFT_CLIENT_ID=paste-your-microsoft-client-id-here
+MICROSOFT_CLIENT_SECRET=paste-your-microsoft-client-secret-here
 ```
 
-### Step 2: Verify Configuration
+**Replace the placeholder values** with the actual keys you copied from each provider.
 
-The backend automatically enables OAuth providers when both `CLIENT_ID` and `CLIENT_SECRET` are provided. You can verify this by checking the logs on startup.
+### Step 2: Add Frontend Environment Variables
 
-### Step 3: Test Backend Endpoints
+Add the following to your `frontend/.env` file:
+
+```env
+# Google OAuth (Client ID only - never put secrets in frontend!)
+VITE_GOOGLE_CLIENT_ID=paste-your-google-client-id-here
+
+# GitHub OAuth (Client ID only)
+VITE_GITHUB_CLIENT_ID=paste-your-github-client-id-here
+
+# Microsoft OAuth (Client ID only)
+VITE_MICROSOFT_CLIENT_ID=paste-your-microsoft-client-id-here
+VITE_MICROSOFT_TENANT_ID=common
+```
+
+**Important Notes**:
+- ✅ Only **Client IDs** go in the frontend `.env` file
+- ❌ **Never put Client Secrets in frontend code** - they must stay in backend `.env` only
+- The `VITE_` prefix is required for Vite to expose these variables to the frontend
+
+### Step 3: Restart Your Servers
+
+After adding the environment variables:
+
+1. **Restart backend**:
+   ```bash
+   cd backend
+   # Stop the server (Ctrl+C) and restart
+   npm run dev
+   ```
+
+2. **Restart frontend**:
+   ```bash
+   cd frontend
+   # Stop the server (Ctrl+C) and restart
+   npm run dev
+   ```
+
+### Step 4: Verify Configuration
+
+The backend automatically enables OAuth providers when both `CLIENT_ID` and `CLIENT_SECRET` are provided. Check the backend logs on startup - you should see OAuth providers being enabled.
+
+---
+
+## Testing Your OAuth Setup
+
+### Test Backend Endpoints
 
 Test the OAuth endpoints (they require valid tokens):
 
@@ -228,230 +288,7 @@ curl -X POST http://localhost:3001/api/auth/oauth/microsoft \
 
 ---
 
-## Frontend Implementation
-
-### Step 1: Install Required Dependencies
-
-For Google OAuth, you'll need to add the Google Identity Services script. For GitHub and Microsoft, you can use standard OAuth 2.0 flows.
-
-#### Option A: Using Google Identity Services (GSI) - Recommended for Google
-
-Add to your `frontend/index.html`:
-
-```html
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-```
-
-#### Option B: Using OAuth Libraries
-
-You can also use libraries like:
-- `@react-oauth/google` for Google
-- `@azure/msal-browser` for Microsoft
-- Standard OAuth 2.0 redirect flow for GitHub
-
-### Step 2: Update OAuthButtons Component
-
-Replace the placeholder implementation in `frontend/src/components/OAuthButtons.tsx`:
-
-#### For Google (Using Google Identity Services):
-
-```typescript
-import { useEffect } from 'react';
-
-// Declare Google types
-declare global {
-  interface Window {
-    google?: any;
-  }
-}
-
-const handleGoogleOAuth = async () => {
-  return new Promise<string>((resolve, reject) => {
-    if (!window.google) {
-      reject(new Error('Google Identity Services not loaded'));
-      return;
-    }
-
-    window.google.accounts.oauth2.initTokenClient({
-      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-      scope: 'email profile openid',
-      callback: (response: any) => {
-        if (response.error) {
-          reject(new Error(response.error));
-        } else {
-          resolve(response.access_token);
-        }
-      },
-    }).requestAccessToken();
-  });
-};
-```
-
-#### For GitHub (Using OAuth 2.0 Redirect):
-
-```typescript
-const handleGitHubOAuth = () => {
-  const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
-  const redirectUri = `${window.location.origin}/auth/github/callback`;
-  const scope = 'user:email';
-  const state = crypto.randomUUID(); // Store in sessionStorage for CSRF protection
-  
-  sessionStorage.setItem('oauth_state', state);
-  
-  const authUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${state}`;
-  
-  window.location.href = authUrl;
-};
-```
-
-#### For Microsoft (Using MSAL or OAuth 2.0):
-
-```typescript
-const handleMicrosoftOAuth = () => {
-  const clientId = import.meta.env.VITE_MICROSOFT_CLIENT_ID;
-  const redirectUri = `${window.location.origin}/auth/microsoft/callback`;
-  const scope = 'User.Read email profile openid';
-  const state = crypto.randomUUID();
-  
-  sessionStorage.setItem('oauth_state', state);
-  
-  const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&response_mode=fragment&scope=${encodeURIComponent(scope)}&state=${state}`;
-  
-  window.location.href = authUrl;
-};
-```
-
-### Step 3: Create OAuth Callback Pages
-
-Create callback pages to handle OAuth redirects:
-
-#### `frontend/src/pages/OAuthCallback.tsx`:
-
-```typescript
-import { useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import { authApi } from '../api/auth';
-import { useAuth } from '../contexts/AuthContext';
-
-export const OAuthCallback = () => {
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const { setUser } = useAuth();
-  const provider = searchParams.get('provider') || window.location.pathname.split('/')[2]; // google, github, or microsoft
-
-  useEffect(() => {
-    const handleCallback = async () => {
-      try {
-        // Extract token from URL (method depends on provider)
-        let token: string | null = null;
-
-        if (provider === 'google') {
-          // Google GSI returns token in callback, not URL
-          // Handle accordingly
-        } else if (provider === 'github') {
-          const code = searchParams.get('code');
-          if (code) {
-            // Exchange code for token (you may need a backend endpoint for this)
-            // Or use the code directly if your backend handles it
-            token = code; // Simplified - implement proper token exchange
-          }
-        } else if (provider === 'microsoft') {
-          // Microsoft returns token in URL fragment
-          const hash = window.location.hash.substring(1);
-          const params = new URLSearchParams(hash);
-          token = params.get('access_token');
-        }
-
-        if (!token) {
-          throw new Error('No token received');
-        }
-
-        // Send token to backend
-        const response = await authApi.oauthLogin(provider as 'google' | 'github' | 'microsoft', token);
-        setUser(response.data);
-        navigate('/dashboard', { replace: true });
-      } catch (error: any) {
-        console.error('OAuth callback error:', error);
-        navigate('/login?error=oauth_failed', { replace: true });
-      }
-    };
-
-    handleCallback();
-  }, [provider, searchParams, navigate, setUser]);
-
-  return <div>Completing authentication...</div>;
-};
-```
-
-### Step 4: Add Routes
-
-Update `frontend/src/App.tsx`:
-
-```typescript
-import { OAuthCallback } from './pages/OAuthCallback';
-
-// Add routes
-<Route path="/auth/google/callback" element={<OAuthCallback />} />
-<Route path="/auth/github/callback" element={<OAuthCallback />} />
-<Route path="/auth/microsoft/callback" element={<OAuthCallback />} />
-```
-
-### Step 5: Add Frontend Environment Variables
-
-Create `frontend/.env`:
-
-```env
-VITE_GOOGLE_CLIENT_ID=your-google-client-id-here
-VITE_GITHUB_CLIENT_ID=your-github-client-id-here
-VITE_MICROSOFT_CLIENT_ID=your-microsoft-client-id-here
-```
-
-**Note**: Never expose client secrets in frontend code. Only client IDs should be in frontend environment variables.
-
-### Step 6: Update OAuthButtons Implementation
-
-Replace the `handleOAuth` function in `OAuthButtons.tsx`:
-
-```typescript
-const handleOAuth = async (provider: 'google' | 'github' | 'microsoft') => {
-  try {
-    setLoading(provider);
-
-    let token: string;
-
-    switch (provider) {
-      case 'google':
-        token = await handleGoogleOAuth();
-        break;
-      case 'github':
-        handleGitHubOAuth(); // Redirects, so this won't return
-        return;
-      case 'microsoft':
-        handleMicrosoftOAuth(); // Redirects, so this won't return
-        return;
-      default:
-        throw new Error(`Unsupported provider: ${provider}`);
-    }
-
-    // For Google (token-based, no redirect)
-    const response = await authApi.oauthLogin(provider, token);
-    setUser(response.data);
-    onSuccess?.();
-  } catch (error: any) {
-    toast({
-      title: 'OAuth Error',
-      description: error.message || `Failed to authenticate with ${provider}`,
-      variant: 'destructive',
-    });
-  } finally {
-    setLoading(null);
-  }
-};
-```
-
----
-
-## Testing
+## Testing Your OAuth Setup
 
 ### Backend Tests
 
@@ -521,9 +358,10 @@ npm test -- src/__tests__/components/OAuthButtons.test.tsx
 
 **Solution**:
 - Ensure redirect URIs in provider settings match exactly (including protocol, domain, port, and path)
-- For localhost: `http://localhost:3000/auth/[provider]/callback`
-- For production: `https://yourdomain.com/auth/[provider]/callback`
+- For localhost: `http://localhost:3000/oauth/[provider]/callback`
+- For production: `https://yourdomain.com/oauth/[provider]/callback`
 - No trailing slashes
+- **Important**: The path is `/oauth/` not `/auth/`
 
 #### 4. CORS Errors
 

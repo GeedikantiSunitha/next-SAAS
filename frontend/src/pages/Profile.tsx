@@ -13,6 +13,7 @@ import { PasswordStrengthIndicator } from '../components/PasswordStrengthIndicat
 import { Layout } from '../components/Layout';
 import { useToast } from '../hooks/use-toast';
 import { useProfile, useUpdateProfile, useChangePassword } from '../hooks/useProfile';
+import { MfaSettings } from '../components/MfaSettings';
 import { User as UserIcon } from 'lucide-react';
 
 // Profile update schema - email validation when provided
@@ -358,6 +359,9 @@ export const Profile = () => {
                 </form>
               </CardContent>
             </Card>
+
+            {/* MFA Settings Card */}
+            <MfaSettings />
             </div>
           </div>
         </div>

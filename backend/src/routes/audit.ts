@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import * as auditService from '../services/auditService';
 import { authenticate } from '../middleware/auth';
+import { getClientIp } from '../utils/getClientIp';
 import { asyncHandler } from '../utils/asyncHandler';
 
 const router = Router();
@@ -151,7 +152,7 @@ router.post(
       resource,
       resourceId,
       details,
-      ipAddress: ipAddress || req.ip,
+      ipAddress: ipAddress || getClientIp(req) || undefined,
       userAgent: userAgent || req.get('user-agent'),
     });
 

@@ -2,26 +2,29 @@
  * Admin Feature Flags Service
  * 
  * Provides feature flags management for admin dashboard
+ * Feature flags are stored in database and can be updated dynamically
  */
 
 import { prisma } from '../config/database';
-import { getFeatureFlag, setFeatureFlag } from '../services/featureFlagsService';
 import { createAuditLog } from './auditService';
 
 /**
- * Get all feature flags
+ * Get all feature flags from database
  */
 export const getAllFeatureFlags = async (adminUserId: string) => {
-  // Get feature flags from environment/config
-  // In a real implementation, these would be stored in database
-  const flags = [
-    { key: 'registration', enabled: process.env.ENABLE_REGISTRATION !== 'false' },
-    { key: 'oauth', enabled: process.env.ENABLE_OAUTH === 'true' },
-    { key: 'google_oauth', enabled: process.env.ENABLE_GOOGLE_OAUTH === 'true' },
-    { key: 'github_oauth', enabled: process.env.ENABLE_GITHUB_OAUTH === 'true' },
-    { key: 'microsoft_oauth', enabled: process.env.ENABLE_MICROSOFT_OAUTH === 'true' },
-  ];
+  // Get all feature flags from database
+  const flags = await prisma.featureFlag.findMany({
+    orderBy: { key: 'asc' },
+    select: {
+      key: true,
+      enabled: true,
+      description: true,
+      updatedAt: true,
+      updatedBy: true,
+    },
+  });
 
+  // Create audit log
   await createAuditLog({
     userId: adminUserId,
     action: 'FEATURE_FLAGS_VIEWED',
@@ -32,27 +35,41 @@ export const getAllFeatureFlags = async (adminUserId: string) => {
 };
 
 /**
- * Update feature flag
+ * Update feature flag (creates if doesn't exist)
  */
 export const updateFeatureFlag = async (
   key: string,
   enabled: boolean,
   adminUserId: string
 ) => {
-  // In a real implementation, this would update database or config
-  // For now, we'll just log the action
+  // Upsert feature flag (create if doesn't exist, update if exists)
+  const flag = await prisma.featureFlag.upsert({
+    where: { key },
+    update: {
+      enabled,
+      updatedBy: adminUserId,
+      updatedAt: new Date(),
+    },
+    create: {
+      key,
+      enabled,
+      updatedBy: adminUserId,
+    },
+  });
+
+  // Create audit log
   await createAuditLog({
     userId: adminUserId,
     action: 'FEATURE_FLAG_UPDATED',
     resource: 'feature_flags',
     resourceId: key,
-    details: { key, enabled },
+    details: { key, enabled, previousEnabled: !enabled },
   });
 
   return {
-    key,
-    enabled,
-    message: 'Feature flag updated (requires server restart to take effect)',
+    key: flag.key,
+    enabled: flag.enabled,
+    message: 'Feature flag updated successfully',
   };
 };
 
