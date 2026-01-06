@@ -54,6 +54,7 @@ See [PROJECT_STATUS.md](./docs/PROJECT_STATUS.md) for quick overview.
 - **[MASTER_GUIDELINES.md](./docs/MASTER_GUIDELINES.md)** - Best practices
 - **[MICROSERVICES_SUPPORT.md](./docs/MICROSERVICES_SUPPORT.md)** - Dual architecture
 - **[TECH_STACK_DECISION.md](./docs/TECH_STACK_DECISION.md)** - Technology choices
+- **[TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)** - ⭐ Common issues and solutions
 
 ### 1. **[TEMPLATE_STRATEGY.md](./docs/TEMPLATE_STRATEGY.md)** - Strategic Planning
    - **Purpose**: Overall strategy and approach

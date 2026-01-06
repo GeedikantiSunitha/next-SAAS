@@ -10,6 +10,8 @@ import gdprRoutes from './gdpr';
 import newsletterRoutes from './newsletter';
 import featureFlagsRoutes from './featureFlags';
 import adminRoutes from './admin';
+import observabilityRoutes from './observability';
+import testHelpersRoutes from './testHelpers';
 import { getMetrics } from './metrics';
 
 const router = Router();
@@ -26,6 +28,8 @@ router.use('/gdpr', gdprRoutes);
 router.use('/newsletter', newsletterRoutes);
 router.use('/feature-flags', featureFlagsRoutes);
 router.use('/admin', adminRoutes); // Admin routes (protected by role)
+router.use('/observability', observabilityRoutes); // Observability routes (protected by role)
+router.use('/test-helpers', testHelpersRoutes); // Test helpers (test environment only)
 router.get('/metrics', getMetrics); // Expose metrics endpoint
 
 // Root endpoint

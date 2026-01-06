@@ -15,8 +15,27 @@ const router = Router();
 router.use(authenticate);
 
 /**
- * GET /api/feature-flags/:flagName
- * Get a specific feature flag
+ * @swagger
+ * /api/feature-flags/{flagName}:
+ *   get:
+ *     summary: Get a specific feature flag
+ *     tags: [Admin]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: flagName
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Feature flag name
+ *     responses:
+ *       200:
+ *         description: Feature flag status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
  */
 router.get(
   '/:flagName',
@@ -36,8 +55,20 @@ router.get(
 );
 
 /**
- * GET /api/feature-flags
- * Get all feature flags
+ * @swagger
+ * /api/feature-flags:
+ *   get:
+ *     summary: Get all feature flags
+ *     tags: [Admin]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: All feature flags
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
  */
 router.get(
   '/',

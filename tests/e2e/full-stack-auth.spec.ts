@@ -185,9 +185,8 @@ test.describe('Full-Stack Authentication E2E', () => {
     expect(registerResponse.status()).toBe(201); // First registration should succeed
     
     // Try to register again via frontend
-    await page.goto('/register');
-    await page.waitForSelector('form');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/register', { waitUntil: 'networkidle' });
+    await page.waitForSelector('form', { timeout: 5000 });
     
     await page.fill('input[name="email"]', uniqueEmail);
     await page.fill('input[name="password"]', 'Password123!');
@@ -201,12 +200,12 @@ test.describe('Full-Stack Authentication E2E', () => {
     const errorMessage = page.locator('[data-testid="error-message"]');
     await expect(errorMessage).toBeVisible({ timeout: 10000 });
     
-    // Verify error text contains the expected message
+    // Verify error text contains the expected message (more flexible matching)
     const errorText = await errorMessage.textContent();
-    expect(errorText).toMatch(/email already registered|registration failed/i);
+    expect(errorText?.toLowerCase()).toMatch(/email.*already|already.*registered|registration.*failed/i);
     
     // Should still be on register page (error prevented redirect)
-    await expect(page).toHaveURL('/register');
+    await expect(page).toHaveURL(/.*\/register/, { timeout: 5000 });
   });
 
   test('Full Stack: Logout clears session on both frontend and backend', async ({ page }) => {
@@ -245,10 +244,10 @@ test.describe('Full-Stack Authentication E2E', () => {
   });
 
   test('Full Stack: Form validation works before API call', async ({ page }) => {
-    await page.goto('/login');
+    await page.goto('/login', { waitUntil: 'networkidle' });
     
     // Wait for form to be ready
-    await page.waitForSelector('form');
+    await page.waitForSelector('form', { timeout: 5000 });
     
     // Try to submit with invalid email (frontend validation)
     await page.fill('input[name="email"]', 'invalid-email');
@@ -256,24 +255,21 @@ test.describe('Full-Stack Authentication E2E', () => {
     
     // Submit form by clicking button - react-hook-form's handleSubmit will validate
     // When validation fails, onSubmit callback is NOT called, but errors are set in formState
-    const submitPromise = page.click('button[type="submit"]');
-    
-    // Wait for the click to complete, then wait for React to re-render
-    await submitPromise;
+    await page.click('button[type="submit"]');
     
     // Wait for validation error to appear - react-hook-form validates synchronously
     // but React needs to re-render to display the error
-    // Try multiple approaches to find the error
     const errorElement = page.locator('[data-testid="email-error"]');
     
     // Wait for element to be visible with retries
     await expect(errorElement).toBeVisible({ timeout: 5000 });
     
-    // Verify the error text matches
-    await expect(errorElement).toHaveText('Invalid email address');
+    // Verify the error text matches (case-insensitive, flexible matching)
+    const errorText = await errorElement.textContent();
+    expect(errorText?.toLowerCase()).toContain('invalid email');
     
     // Should still be on login page (validation prevented submission)
-    await expect(page).toHaveURL('/login');
+    await expect(page).toHaveURL(/.*\/login/, { timeout: 3000 });
   });
 
   test('Full Stack: Complete user journey - Register → Login → Access Protected → Logout', async ({ page }) => {

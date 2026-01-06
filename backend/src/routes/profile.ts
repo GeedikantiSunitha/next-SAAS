@@ -14,8 +14,33 @@ import asyncHandler from '../utils/asyncHandler';
 const router = Router();
 
 /**
- * GET /api/profile/me
- * Get current user profile
+ * @swagger
+ * /api/profile/me:
+ *   get:
+ *     summary: Get current user profile
+ *     tags: [Profile]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *             example:
+ *               success: true
+ *               data:
+ *                 id: "123e4567-e89b-12d3-a456-426614174000"
+ *                 email: "user@example.com"
+ *                 name: "John Doe"
+ *                 role: "USER"
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get(
   '/me',
@@ -31,8 +56,38 @@ router.get(
 );
 
 /**
- * PUT /api/profile/me
- * Update current user profile
+ * @swagger
+ * /api/profile/me:
+ *   put:
+ *     summary: Update current user profile
+ *     tags: [Profile]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: John Doe
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: newemail@example.com
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
  */
 router.put(
   '/me',
@@ -61,8 +116,44 @@ router.put(
 );
 
 /**
- * PUT /api/profile/password
- * Change current user password
+ * @swagger
+ * /api/profile/password:
+ *   put:
+ *     summary: Change current user password
+ *     tags: [Profile]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - currentPassword
+ *               - newPassword
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *                 format: password
+ *                 description: Current password
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *                 minLength: 8
+ *                 description: New password (must meet strength requirements)
+ *                 example: NewSecurePassword123!
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       400:
+ *         description: Validation error or weak password
+ *       401:
+ *         description: Unauthorized or incorrect current password
  */
 router.put(
   '/password',

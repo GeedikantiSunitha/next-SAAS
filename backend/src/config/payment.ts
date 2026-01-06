@@ -24,6 +24,7 @@ export const razorpayConfig = {
   webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || process.env.PAYMENT_WEBHOOK_SECRET || '',
 };
 
+// NOTE: Cashfree support will be added in a future update
 export const cashfreeConfig = {
   appId: process.env.CASHFREE_APP_ID || process.env.PAYMENT_API_KEY || '',
   secretKey: process.env.CASHFREE_SECRET_KEY || process.env.PAYMENT_API_SECRET || '',

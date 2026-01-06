@@ -9,8 +9,42 @@ const router = Router();
 router.use(authenticate);
 
 /**
- * GET /api/notifications
- * Get user notifications
+ * @swagger
+ * /api/notifications:
+ *   get:
+ *     summary: Get user notifications
+ *     tags: [Notifications]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: unreadOnly
+ *         schema:
+ *           type: boolean
+ *         description: Filter to show only unread notifications
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Maximum number of notifications to return
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *         description: Number of notifications to skip
+ *     responses:
+ *       200:
+ *         description: List of notifications
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get(
   '/',
@@ -34,8 +68,26 @@ router.get(
 );
 
 /**
- * GET /api/notifications/unread-count
- * Get unread notification count
+ * @swagger
+ * /api/notifications/unread-count:
+ *   get:
+ *     summary: Get unread notification count
+ *     tags: [Notifications]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Unread notification count
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *             example:
+ *               success: true
+ *               data:
+ *                 count: 5
+ *       401:
+ *         description: Unauthorized
  */
 router.get(
   '/unread-count',
@@ -50,8 +102,47 @@ router.get(
 );
 
 /**
- * POST /api/notifications
- * Create a notification (admin/system use)
+ * @swagger
+ * /api/notifications:
+ *   post:
+ *     summary: Create a notification
+ *     tags: [Notifications]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - type
+ *               - channel
+ *               - title
+ *               - message
+ *             properties:
+ *               type:
+ *                 type: string
+ *                 enum: [INFO, WARNING, ERROR, SUCCESS]
+ *               channel:
+ *                 type: string
+ *                 enum: [EMAIL, IN_APP, SMS]
+ *               title:
+ *                 type: string
+ *               message:
+ *                 type: string
+ *               data:
+ *                 type: object
+ *                 description: Additional notification data
+ *     responses:
+ *       201:
+ *         description: Notification created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       401:
+ *         description: Unauthorized
  */
 router.post(
   '/',
@@ -75,8 +166,29 @@ router.post(
 );
 
 /**
- * PUT /api/notifications/:id/read
- * Mark notification as read
+ * @swagger
+ * /api/notifications/{id}/read:
+ *   put:
+ *     summary: Mark notification as read
+ *     tags: [Notifications]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Notification ID
+ *     responses:
+ *       200:
+ *         description: Notification marked as read
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       404:
+ *         description: Notification not found
  */
 router.put(
   '/:id/read',
@@ -94,8 +206,24 @@ router.put(
 );
 
 /**
- * PUT /api/notifications/read-all
- * Mark all notifications as read
+ * @swagger
+ * /api/notifications/read-all:
+ *   put:
+ *     summary: Mark all notifications as read
+ *     tags: [Notifications]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: All notifications marked as read
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *             example:
+ *               success: true
+ *               data:
+ *                 count: 10
  */
 router.put(
   '/read-all',
@@ -110,8 +238,31 @@ router.put(
 );
 
 /**
- * DELETE /api/notifications/:id
- * Delete a notification
+ * @swagger
+ * /api/notifications/{id}:
+ *   delete:
+ *     summary: Delete a notification
+ *     tags: [Notifications]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Notification ID
+ *     responses:
+ *       200:
+ *         description: Notification deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       404:
+ *         description: Notification not found
+ *       401:
+ *         description: Unauthorized
  */
 router.delete(
   '/:id',
@@ -129,8 +280,20 @@ router.delete(
 );
 
 /**
- * GET /api/notifications/preferences
- * Get user notification preferences
+ * @swagger
+ * /api/notifications/preferences:
+ *   get:
+ *     summary: Get user notification preferences
+ *     tags: [Notifications]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: User notification preferences
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
  */
 router.get(
   '/preferences',
@@ -147,8 +310,33 @@ router.get(
 );
 
 /**
- * PUT /api/notifications/preferences
- * Update user notification preferences
+ * @swagger
+ * /api/notifications/preferences:
+ *   put:
+ *     summary: Update user notification preferences
+ *     tags: [Notifications]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               emailEnabled:
+ *                 type: boolean
+ *               inAppEnabled:
+ *                 type: boolean
+ *               smsEnabled:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Preferences updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
  */
 router.put(
   '/preferences',

@@ -33,8 +33,55 @@ const getCookieOptions = (maxAge: number): CookieOptions => {
 };
 
 /**
- * POST /api/auth/register
- * Register a new user
+ * @swagger
+ * /api/auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 minLength: 8
+ *                 example: SecurePassword123!
+ *               name:
+ *                 type: string
+ *                 example: John Doe
+ *     responses:
+ *       201:
+ *         description: User registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *             example:
+ *               success: true
+ *               data:
+ *                 id: "123e4567-e89b-12d3-a456-426614174000"
+ *                 email: "user@example.com"
+ *                 name: "John Doe"
+ *                 role: "USER"
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Too many requests
  */
 router.post(
   '/register',
@@ -82,8 +129,56 @@ router.post(
 );
 
 /**
- * POST /api/auth/login
- * Login user
+ * @swagger
+ * /api/auth/login:
+ *   post:
+ *     summary: Login user
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 example: SecurePassword123!
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         headers:
+ *           Set-Cookie:
+ *             description: HTTP-only cookies containing accessToken and refreshToken
+ *             schema:
+ *               type: string
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *             example:
+ *               success: true
+ *               data:
+ *                 id: "123e4567-e89b-12d3-a456-426614174000"
+ *                 email: "user@example.com"
+ *                 name: "John Doe"
+ *                 role: "USER"
+ *       401:
+ *         description: Invalid credentials
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Too many requests
  */
 router.post(
   '/login',
@@ -150,8 +245,31 @@ router.post(
 );
 
 /**
- * POST /api/auth/refresh
- * Refresh access token using refresh token
+ * @swagger
+ * /api/auth/refresh:
+ *   post:
+ *     summary: Refresh access token using refresh token
+ *     tags: [Authentication]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Access token refreshed successfully
+ *         headers:
+ *           Set-Cookie:
+ *             description: New accessToken cookie
+ *             schema:
+ *               type: string
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       401:
+ *         description: Invalid or expired refresh token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post(
   '/refresh',
@@ -180,8 +298,25 @@ router.post(
 );
 
 /**
- * POST /api/auth/logout
- * Logout user (delete session)
+ * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     summary: Logout user (delete session)
+ *     tags: [Authentication]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Logged out successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *             example:
+ *               success: true
+ *               message: "Logged out successfully"
+ *       401:
+ *         description: Unauthorized
  */
 router.post(
   '/logout',
@@ -207,8 +342,29 @@ router.post(
 );
 
 /**
- * GET /api/auth/me
- * Get current user
+ * @swagger
+ * /api/auth/me:
+ *   get:
+ *     summary: Get current user
+ *     tags: [Authentication]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Current user information
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *             example:
+ *               success: true
+ *               data:
+ *                 id: "123e4567-e89b-12d3-a456-426614174000"
+ *                 email: "user@example.com"
+ *                 name: "John Doe"
+ *                 role: "USER"
+ *       401:
+ *         description: Unauthorized
  */
 router.get(
   '/me',
@@ -224,8 +380,39 @@ router.get(
 );
 
 /**
- * POST /api/auth/forgot-password
- * Request password reset
+ * @swagger
+ * /api/auth/forgot-password:
+ *   post:
+ *     summary: Request password reset
+ *     tags: [Authentication]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *     responses:
+ *       200:
+ *         description: Password reset email sent (always returns success for security)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *             example:
+ *               success: true
+ *               message: "If an account exists with this email, you will receive password reset instructions."
+ *       400:
+ *         description: Validation error
+ *       429:
+ *         description: Too many requests
  */
 router.post(
   '/forgot-password',
@@ -244,8 +431,44 @@ router.post(
 );
 
 /**
- * POST /api/auth/reset-password/:token
- * Reset password using token
+ * @swagger
+ * /api/auth/reset-password/{token}:
+ *   post:
+ *     summary: Reset password using token
+ *     tags: [Authentication]
+ *     security: []
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Password reset token from email
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - password
+ *             properties:
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 minLength: 8
+ *                 example: NewSecurePassword123!
+ *     responses:
+ *       200:
+ *         description: Password reset successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       400:
+ *         description: Invalid or expired token
+ *       429:
+ *         description: Too many requests
  */
 router.post(
   '/reset-password/:token',
@@ -380,8 +603,43 @@ router.get(
 );
 
 /**
- * POST /api/auth/oauth/:provider
- * Authenticate with OAuth provider (token-based flow)
+ * @swagger
+ * /api/auth/oauth/{provider}:
+ *   post:
+ *     summary: Authenticate with OAuth provider (token-based flow)
+ *     tags: [Authentication]
+ *     security: []
+ *     parameters:
+ *       - in: path
+ *         name: provider
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [google, github, microsoft]
+ *         description: OAuth provider name
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: OAuth access token from provider
+ *     responses:
+ *       200:
+ *         description: Authentication successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       400:
+ *         description: Invalid provider or token
+ *       429:
+ *         description: Too many requests
  */
 router.post(
   '/oauth/:provider',
@@ -550,9 +808,39 @@ router.post(
 );
 
 /**
- * POST /api/auth/oauth/github/exchange
- * Exchange GitHub authorization code for access token
- * GitHub uses authorization code flow, so we need to exchange code for token
+ * @swagger
+ * /api/auth/oauth/github/exchange:
+ *   post:
+ *     summary: Exchange GitHub authorization code for access token
+ *     tags: [Authentication]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - code
+ *             properties:
+ *               code:
+ *                 type: string
+ *                 description: GitHub authorization code
+ *     responses:
+ *       200:
+ *         description: Token exchange successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *             example:
+ *               success: true
+ *               data:
+ *                 token: "gho_xxxxxxxxxxxxx"
+ *       400:
+ *         description: Invalid code or GitHub OAuth not enabled
+ *       429:
+ *         description: Too many requests
  */
 router.post(
   '/oauth/github/exchange',
@@ -651,8 +939,27 @@ router.get(
 import * as mfaService from '../services/mfaService';
 
 /**
- * POST /api/auth/mfa/setup/totp
- * Setup TOTP MFA
+ * @swagger
+ * /api/auth/mfa/setup/totp:
+ *   post:
+ *     summary: Setup TOTP (Time-based One-Time Password) MFA
+ *     tags: [Authentication]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: TOTP setup initiated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *             example:
+ *               success: true
+ *               data:
+ *                 secret: "JBSWY3DPEHPK3PXP"
+ *                 qrCode: "data:image/png;base64,..."
+ *       401:
+ *         description: Unauthorized
  */
 router.post(
   '/mfa/setup/totp',
@@ -668,8 +975,26 @@ router.post(
 );
 
 /**
- * POST /api/auth/mfa/setup/email
- * Setup Email MFA
+ * @swagger
+ * /api/auth/mfa/setup/email:
+ *   post:
+ *     summary: Setup Email MFA
+ *     tags: [Authentication]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Email MFA setup initiated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *             example:
+ *               success: true
+ *               data:
+ *                 message: "OTP sent to email"
+ *       401:
+ *         description: Unauthorized
  */
 router.post(
   '/mfa/setup/email',
@@ -685,8 +1010,46 @@ router.post(
 );
 
 /**
- * POST /api/auth/mfa/verify
- * Verify MFA code
+ * @swagger
+ * /api/auth/mfa/verify:
+ *   post:
+ *     summary: Verify MFA code
+ *     tags: [Authentication]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - method
+ *               - code
+ *             properties:
+ *               method:
+ *                 type: string
+ *                 enum: [TOTP, EMAIL]
+ *                 example: TOTP
+ *               code:
+ *                 type: string
+ *                 description: MFA verification code
+ *                 example: "123456"
+ *     responses:
+ *       200:
+ *         description: MFA code verified
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *             example:
+ *               success: true
+ *               data:
+ *                 valid: true
+ *       400:
+ *         description: Invalid code
+ *       401:
+ *         description: Unauthorized
  */
 router.post(
   '/mfa/verify',
@@ -713,8 +1076,41 @@ router.post(
 );
 
 /**
- * POST /api/auth/mfa/enable
- * Enable MFA method
+ * @swagger
+ * /api/auth/mfa/enable:
+ *   post:
+ *     summary: Enable MFA method
+ *     tags: [Authentication]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - method
+ *               - code
+ *             properties:
+ *               method:
+ *                 type: string
+ *                 enum: [TOTP, EMAIL]
+ *                 example: TOTP
+ *               code:
+ *                 type: string
+ *                 description: Verification code from setup
+ *     responses:
+ *       200:
+ *         description: MFA enabled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       400:
+ *         description: Invalid code
+ *       401:
+ *         description: Unauthorized
  */
 router.post(
   '/mfa/enable',
@@ -735,8 +1131,35 @@ router.post(
 );
 
 /**
- * POST /api/auth/mfa/disable
- * Disable MFA method
+ * @swagger
+ * /api/auth/mfa/disable:
+ *   post:
+ *     summary: Disable MFA method
+ *     tags: [Authentication]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - method
+ *             properties:
+ *               method:
+ *                 type: string
+ *                 enum: [TOTP, EMAIL]
+ *                 example: TOTP
+ *     responses:
+ *       200:
+ *         description: MFA disabled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       401:
+ *         description: Unauthorized
  */
 router.post(
   '/mfa/disable',
@@ -754,8 +1177,26 @@ router.post(
 );
 
 /**
- * POST /api/auth/mfa/backup-codes
- * Generate backup codes
+ * @swagger
+ * /api/auth/mfa/backup-codes:
+ *   post:
+ *     summary: Generate backup codes for MFA
+ *     tags: [Authentication]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Backup codes generated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *             example:
+ *               success: true
+ *               data:
+ *                 codes: ["ABC123", "DEF456", "GHI789"]
+ *       401:
+ *         description: Unauthorized
  */
 router.post(
   '/mfa/backup-codes',
@@ -771,8 +1212,41 @@ router.post(
 );
 
 /**
- * POST /api/auth/mfa/verify-backup
- * Verify backup code
+ * @swagger
+ * /api/auth/mfa/verify-backup:
+ *   post:
+ *     summary: Verify backup code
+ *     tags: [Authentication]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - code
+ *             properties:
+ *               code:
+ *                 type: string
+ *                 description: Backup code to verify
+ *                 example: "ABC123"
+ *     responses:
+ *       200:
+ *         description: Backup code verified
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *             example:
+ *               success: true
+ *               data:
+ *                 valid: true
+ *       400:
+ *         description: Invalid backup code
+ *       401:
+ *         description: Unauthorized
  */
 router.post(
   '/mfa/verify-backup',
@@ -790,8 +1264,26 @@ router.post(
 );
 
 /**
- * GET /api/auth/mfa/methods
- * Get user's MFA methods
+ * @swagger
+ * /api/auth/mfa/methods:
+ *   get:
+ *     summary: Get user's enabled MFA methods
+ *     tags: [Authentication]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: List of enabled MFA methods
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *             example:
+ *               success: true
+ *               data:
+ *                 methods: [TOTP, EMAIL]
+ *       401:
+ *         description: Unauthorized
  */
 router.get(
   '/mfa/methods',
@@ -807,8 +1299,26 @@ router.get(
 );
 
 /**
- * POST /api/auth/mfa/send-email-otp
- * Send email OTP
+ * @swagger
+ * /api/auth/mfa/send-email-otp:
+ *   post:
+ *     summary: Send email OTP for MFA
+ *     tags: [Authentication]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Email OTP sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *             example:
+ *               success: true
+ *               data:
+ *                 message: "OTP sent to email"
+ *       401:
+ *         description: Unauthorized
  */
 router.post(
   '/mfa/send-email-otp',
@@ -824,8 +1334,47 @@ router.post(
 );
 
 /**
- * POST /api/auth/login/mfa
- * Complete login with MFA verification
+ * @swagger
+ * /api/auth/login/mfa:
+ *   post:
+ *     summary: Complete login with MFA verification
+ *     tags: [Authentication]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - code
+ *               - method
+ *             properties:
+ *               code:
+ *                 type: string
+ *                 description: MFA code or backup code
+ *                 example: "123456"
+ *               method:
+ *                 type: string
+ *                 enum: [TOTP, EMAIL]
+ *                 example: TOTP
+ *               isBackupCode:
+ *                 type: boolean
+ *                 description: Whether the code is a backup code
+ *                 default: false
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       401:
+ *         description: Invalid MFA code or expired token
+ *       400:
+ *         description: Validation error
+ *       429:
+ *         description: Too many requests
  */
 router.post(
   '/login/mfa',

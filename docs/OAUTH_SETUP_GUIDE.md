@@ -1,13 +1,15 @@
 # OAuth Setup Guide - Production Configuration
 
-This comprehensive guide will walk you through setting up OAuth authentication for Google, GitHub, and Microsoft (Outlook) in your SaaS template.
+This comprehensive guide will walk you through setting up OAuth authentication for Google and GitHub in your SaaS template.
+
+> **Note**: Microsoft (Outlook) OAuth support will be added in a future update. The code structure is in place but currently commented out.
 
 ## Table of Contents
 
 1. [Overview](#overview)
 2. [Google OAuth Setup](#google-oauth-setup)
 3. [GitHub OAuth Setup](#github-oauth-setup)
-4. [Microsoft OAuth Setup](#microsoft-oauth-setup)
+4. [Microsoft OAuth Setup](#microsoft-oauth-setup) *(Coming Soon)*
 5. [Backend Configuration](#backend-configuration)
 6. [Frontend Implementation](#frontend-implementation)
 7. [Testing](#testing)
@@ -17,10 +19,10 @@ This comprehensive guide will walk you through setting up OAuth authentication f
 
 ## Overview
 
-The template supports three OAuth providers:
-- **Google** - Using Google Identity Services (GSI)
-- **GitHub** - Using GitHub OAuth Apps
-- **Microsoft** - Using Microsoft Identity Platform (Azure AD)
+The template currently supports two OAuth providers:
+- **Google** - Using Google Identity Services (GSI) ✅
+- **GitHub** - Using GitHub OAuth Apps ✅
+- **Microsoft** - Using Microsoft Identity Platform (Azure AD) ⏳ *Coming Soon*
 
 All providers use a token-based flow where:
 1. Frontend obtains OAuth token from provider
@@ -44,18 +46,35 @@ All providers use a token-based flow where:
 1. In Google Cloud Console, go to **"APIs & Services"** → **"OAuth consent screen"**
 2. Choose **"External"** (unless you have Google Workspace)
 3. Fill in required information:
-   - **App name**: Your application name
-   - **User support email**: Your email
-   - **Developer contact information**: Your email
+   - **App name**: Enter your application's display name (e.g., "NextSaaS", "My SaaS App", "YourCompany Name")
+     - This is what users will see when they sign in with Google
+   - **User support email**: Enter your email address (e.g., `support@yourdomain.com` or `your-email@gmail.com`)
+     - This email will be shown to users if they need help
+   - **Developer contact information**: Enter the same email or your developer email
+     - This is used by Google to contact you about your app
+   - **App logo** (optional): Upload a logo (120x120px recommended)
+   - **App domain** (optional): Your website domain (e.g., `yourdomain.com`)
+   - **Application home page** (optional): Your website URL (e.g., `https://yourdomain.com`)
+   - **Privacy policy link** (optional): Link to your privacy policy
+   - **Terms of service link** (optional): Link to your terms of service
 4. Click **"Save and Continue"**
 5. **Scopes** (Step 2):
    - Click **"Add or Remove Scopes"**
-   - Add: `email`, `profile`, `openid`
+   - In the filter/search box, type and add these scopes:
+     - `email` - See your primary Google Account email address
+     - `profile` - See your personal info, including any personal info you've made publicly available
+     - `openid` - Associate you with your personal info on Google
    - Click **"Update"** → **"Save and Continue"**
 6. **Test users** (Step 3):
-   - Add test users if in testing mode
+   - If your app is in "Testing" mode, add email addresses of users who can test the app
+   - Add your own email address and any test accounts
    - Click **"Save and Continue"**
 7. Review and click **"Back to Dashboard"**
+
+**Note**: If you're just testing, you can use minimal information. The minimum required fields are:
+- App name (e.g., "My Test App")
+- User support email (your email)
+- Developer contact information (your email)
 
 ### Step 3: Create OAuth 2.0 Credentials
 
@@ -211,9 +230,9 @@ GOOGLE_CLIENT_SECRET=paste-your-google-client-secret-here
 GITHUB_CLIENT_ID=paste-your-github-client-id-here
 GITHUB_CLIENT_SECRET=paste-your-github-client-secret-here
 
-# Microsoft OAuth (from Step 3 above)
-MICROSOFT_CLIENT_ID=paste-your-microsoft-client-id-here
-MICROSOFT_CLIENT_SECRET=paste-your-microsoft-client-secret-here
+# Microsoft OAuth (Coming Soon - currently commented out)
+# MICROSOFT_CLIENT_ID=paste-your-microsoft-client-id-here
+# MICROSOFT_CLIENT_SECRET=paste-your-microsoft-client-secret-here
 ```
 
 **Replace the placeholder values** with the actual keys you copied from each provider.
@@ -229,9 +248,9 @@ VITE_GOOGLE_CLIENT_ID=paste-your-google-client-id-here
 # GitHub OAuth (Client ID only)
 VITE_GITHUB_CLIENT_ID=paste-your-github-client-id-here
 
-# Microsoft OAuth (Client ID only)
-VITE_MICROSOFT_CLIENT_ID=paste-your-microsoft-client-id-here
-VITE_MICROSOFT_TENANT_ID=common
+# Microsoft OAuth (Coming Soon - currently commented out)
+# VITE_MICROSOFT_CLIENT_ID=paste-your-microsoft-client-id-here
+# VITE_MICROSOFT_TENANT_ID=common
 ```
 
 **Important Notes**:

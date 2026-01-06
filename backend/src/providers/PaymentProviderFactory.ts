@@ -47,6 +47,7 @@ export class PaymentProviderFactory {
         });
         break;
 
+      // NOTE: Cashfree support will be added in a future update
       case 'CASHFREE':
         provider = new CashfreeProvider();
         provider.initialize({
@@ -87,6 +88,7 @@ export class PaymentProviderFactory {
         provider = new RazorpayProvider();
         break;
 
+      // NOTE: Cashfree support will be added in a future update
       case 'CASHFREE':
         provider = new CashfreeProvider();
         break;

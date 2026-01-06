@@ -6,7 +6,6 @@
 
 import { prisma } from '../config/database';
 import { register } from '../middleware/metrics';
-import promClient from 'prom-client';
 
 /**
  * Get system metrics
@@ -79,7 +78,7 @@ export const getDatabaseMetrics = async () => {
     }),
     prisma.auditLog.count(),
     prisma.notification.count({
-      where: { read: false },
+      where: { status: 'PENDING' },
     }),
   ]);
 

@@ -10,8 +10,20 @@ const router = Router();
 router.use(authenticate);
 
 /**
- * GET /api/rbac/me/role
- * Get current user's role
+ * @swagger
+ * /api/rbac/me/role:
+ *   get:
+ *     summary: Get current user's role
+ *     tags: [Admin]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: User role
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
  */
 router.get(
   '/me/role',
@@ -26,8 +38,20 @@ router.get(
 );
 
 /**
- * GET /api/rbac/me/permissions
- * Get current user's permissions info
+ * @swagger
+ * /api/rbac/me/permissions:
+ *   get:
+ *     summary: Get current user's permissions info
+ *     tags: [Admin]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: User permissions information
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
  */
 router.get(
   '/me/permissions',

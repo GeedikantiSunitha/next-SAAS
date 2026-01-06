@@ -6,8 +6,30 @@ import config from '../config';
 const router = Router();
 
 /**
- * GET /api/health
- * Health check endpoint
+ * @swagger
+ * /api/health:
+ *   get:
+ *     summary: Health check endpoint
+ *     tags: [Health]
+ *     responses:
+ *       200:
+ *         description: Service is healthy
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: healthy
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *                 database:
+ *                   type: string
+ *                   example: healthy
+ *       503:
+ *         description: Service is degraded
  */
 router.get(
   '/',

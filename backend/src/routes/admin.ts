@@ -13,35 +13,83 @@ router.use(authenticate);
 router.use(requireRole('ADMIN', 'SUPER_ADMIN'));
 
 /**
- * GET /api/admin/dashboard
- * Get admin dashboard overview
+ * @swagger
+ * /api/admin/dashboard:
+ *   get:
+ *     summary: Get admin dashboard overview
+ *     tags: [Admin]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       403:
+ *         description: Forbidden - Admin role required
  */
 router.get(
   '/dashboard',
   asyncHandler(async (_req, res) => {
-    // TODO: Implement dashboard stats
-    // - Total users
-    // - Active sessions
-    // - Recent activity
-    // - System health
+    const adminDashboardService = await import('../services/adminDashboardService');
+    const stats = await adminDashboardService.getDashboardStats();
     
     res.json({
       success: true,
       data: {
         message: 'Admin dashboard',
-        stats: {
-          totalUsers: 0,
-          activeSessions: 0,
-          recentActivity: [],
-        },
+        stats,
       },
     });
   })
 );
 
 /**
- * GET /api/admin/users
- * List all users (with pagination, filters)
+ * @swagger
+ * /api/admin/users:
+ *   get:
+ *     summary: List all users (with pagination, filters)
+ *     tags: [Admin]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Items per page
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by email or name
+ *       - in: query
+ *         name: role
+ *         schema:
+ *           type: string
+ *           enum: [USER, ADMIN, SUPER_ADMIN]
+ *         description: Filter by role
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: boolean
+ *         description: Filter by active status
+ *     responses:
+ *       200:
+ *         description: List of users
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       403:
+ *         description: Forbidden - Admin role required
  */
 router.get(
   '/users',
@@ -64,8 +112,31 @@ router.get(
 );
 
 /**
- * GET /api/admin/users/:id
- * Get user details by ID
+ * @swagger
+ * /api/admin/users/{id}:
+ *   get:
+ *     summary: Get user details by ID
+ *     tags: [Admin]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: User details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       404:
+ *         description: User not found
+ *       403:
+ *         description: Forbidden - Admin role required
  */
 router.get(
   '/users/:id',
@@ -81,8 +152,45 @@ router.get(
 );
 
 /**
- * POST /api/admin/users
- * Create a new user
+ * @swagger
+ * /api/admin/users:
+ *   post:
+ *     summary: Create a new user (admin only)
+ *     tags: [Admin]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 minLength: 8
+ *               name:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *                 enum: [USER, ADMIN, SUPER_ADMIN]
+ *               isActive:
+ *                 type: boolean
+ *     responses:
+ *       201:
+ *         description: User created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       403:
+ *         description: Forbidden - Admin role required
  */
 router.post(
   '/users',
@@ -112,8 +220,49 @@ router.post(
 );
 
 /**
- * PUT /api/admin/users/:id
- * Update user
+ * @swagger
+ * /api/admin/users/{id}:
+ *   put:
+ *     summary: Update user (admin only)
+ *     tags: [Admin]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               name:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *                 enum: [USER, ADMIN, SUPER_ADMIN]
+ *               isActive:
+ *                 type: boolean
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: User updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       403:
+ *         description: Forbidden - Admin role required
+ *       404:
+ *         description: User not found
  */
 router.put(
   '/users/:id',
@@ -144,8 +293,31 @@ router.put(
 );
 
 /**
- * DELETE /api/admin/users/:id
- * Delete user
+ * @swagger
+ * /api/admin/users/{id}:
+ *   delete:
+ *     summary: Delete user (admin only)
+ *     tags: [Admin]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: User deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       403:
+ *         description: Forbidden - Admin role required
+ *       404:
+ *         description: User not found
  */
 router.delete(
   '/users/:id',

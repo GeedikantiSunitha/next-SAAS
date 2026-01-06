@@ -8,6 +8,8 @@ import { idempotency } from './middleware/idempotency';
 import errorHandler from './middleware/errorHandler';
 import routes from './routes';
 import logger from './utils/logger';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './config/swagger';
 
 // Initialize Sentry (optional, only if DSN is provided)
 if (process.env.SENTRY_DSN) {
@@ -69,6 +71,22 @@ app.use((req, _res, next) => {
   });
   next();
 });
+
+// Swagger/OpenAPI documentation (only in development/staging)
+if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_SWAGGER === 'true') {
+  // Serve OpenAPI spec as JSON
+  app.get('/api-docs/swagger.json', (_req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(swaggerSpec);
+  });
+
+  // Serve Swagger UI
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'NextSaaS API Documentation',
+  }));
+  logger.info('Swagger UI available at /api-docs');
+}
 
 // Mount API routes
 app.use('/api', routes);

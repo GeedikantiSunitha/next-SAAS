@@ -1,8 +1,10 @@
 /**
  * OAuth Buttons Component
  * 
- * Provides Google, GitHub, and Microsoft OAuth login buttons
+ * Provides Google and GitHub OAuth login buttons
  * Uses OAuth 2.0 redirect flow for authentication
+ * 
+ * Note: Microsoft OAuth support is coming soon (code is commented out)
  */
 
 import { useState } from 'react';
@@ -72,7 +74,8 @@ export const OAuthButtons = ({ onSuccess, mode = 'login' }: OAuthButtonsProps) =
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
+        {/* Note: Changed from grid-cols-3 to grid-cols-2 since Microsoft is commented out */}
         <Button
           type="button"
           variant="outline"
@@ -113,6 +116,8 @@ export const OAuthButtons = ({ onSuccess, mode = 'login' }: OAuthButtonsProps) =
           )}
         </Button>
 
+        {/* Microsoft OAuth - Coming Soon (commented out for now) */}
+        {/* 
         <Button
           type="button"
           variant="outline"
@@ -132,6 +137,7 @@ export const OAuthButtons = ({ onSuccess, mode = 'login' }: OAuthButtonsProps) =
             </span>
           )}
         </Button>
+        */}
       </div>
     </div>
   );

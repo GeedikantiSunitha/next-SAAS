@@ -2,6 +2,9 @@
  * Cashfree Payment Provider
  * 
  * Implementation of IPaymentProvider for Cashfree
+ * 
+ * NOTE: Cashfree support will be added in a future update.
+ * The code structure is in place but currently contains placeholder implementations.
  */
 
 // import { Cashfree } from 'cashfree-pg'; // TODO: Enable when implementing

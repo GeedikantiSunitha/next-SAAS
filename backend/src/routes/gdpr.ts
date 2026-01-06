@@ -15,8 +15,26 @@ const router = Router();
 router.use(authenticate);
 
 /**
- * POST /api/gdpr/export
- * Request data export
+ * @swagger
+ * /api/gdpr/export:
+ *   post:
+ *     summary: Request data export (GDPR)
+ *     tags: [GDPR]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       201:
+ *         description: Data export requested successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *             example:
+ *               success: true
+ *               data:
+ *                 id: "export-id"
+ *                 downloadUrl: "https://..."
+ *               message: "Data export generated successfully. Download link expires in 7 days."
  */
 router.post(
   '/export',
@@ -36,8 +54,20 @@ router.post(
 );
 
 /**
- * GET /api/gdpr/exports
- * Get user's export requests
+ * @swagger
+ * /api/gdpr/exports:
+ *   get:
+ *     summary: Get user's export requests (GDPR)
+ *     tags: [GDPR]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: List of export requests
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
  */
 router.get(
   '/exports',
@@ -52,8 +82,37 @@ router.get(
 );
 
 /**
- * POST /api/gdpr/deletion
- * Request data deletion
+ * @swagger
+ * /api/gdpr/deletion:
+ *   post:
+ *     summary: Request data deletion (GDPR)
+ *     tags: [GDPR]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               deletionType:
+ *                 type: string
+ *                 enum: [SOFT, HARD]
+ *                 description: Type of deletion (SOFT = anonymize, HARD = permanent)
+ *               reason:
+ *                 type: string
+ *                 description: Reason for deletion request
+ *     responses:
+ *       201:
+ *         description: Deletion request created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *             example:
+ *               success: true
+ *               message: "Data deletion requested. Please check your email to confirm."
  */
 router.post(
   '/deletion',
@@ -75,8 +134,20 @@ router.post(
 );
 
 /**
- * GET /api/gdpr/deletions
- * Get user's deletion requests
+ * @swagger
+ * /api/gdpr/deletions:
+ *   get:
+ *     summary: Get user's deletion requests (GDPR)
+ *     tags: [GDPR]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: List of deletion requests
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
  */
 router.get(
   '/deletions',
@@ -91,8 +162,31 @@ router.get(
 );
 
 /**
- * POST /api/gdpr/deletion/confirm/:token
- * Confirm data deletion (public endpoint)
+ * @swagger
+ * /api/gdpr/deletion/confirm/{token}:
+ *   post:
+ *     summary: Confirm data deletion request (GDPR) - Public endpoint
+ *     tags: [GDPR]
+ *     security: []
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Deletion confirmation token from email
+ *     responses:
+ *       200:
+ *         description: Deletion confirmed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *             example:
+ *               success: true
+ *               message: "Data deletion confirmed. Your data will be deleted within 24 hours."
+ *       400:
+ *         description: Invalid or expired token
  */
 router.post(
   '/deletion/confirm/:token',
@@ -109,8 +203,32 @@ router.post(
 );
 
 /**
- * POST /api/gdpr/consents
- * Grant consent
+ * @swagger
+ * /api/gdpr/consents:
+ *   post:
+ *     summary: Grant consent (GDPR)
+ *     tags: [GDPR]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - consentType
+ *             properties:
+ *               consentType:
+ *                 type: string
+ *                 enum: [MARKETING, ANALYTICS, FUNCTIONAL]
+ *     responses:
+ *       200:
+ *         description: Consent granted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
  */
 router.post(
   '/consents',
@@ -140,8 +258,32 @@ router.post(
 );
 
 /**
- * DELETE /api/gdpr/consents/:consentType
- * Revoke consent
+ * @swagger
+ * /api/gdpr/consents/{consentType}:
+ *   delete:
+ *     summary: Revoke consent (GDPR)
+ *     tags: [GDPR]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: consentType
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [MARKETING, ANALYTICS, FUNCTIONAL]
+ *         description: Type of consent to revoke
+ *     responses:
+ *       200:
+ *         description: Consent revoked successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       400:
+ *         description: Invalid consent type
+ *       401:
+ *         description: Unauthorized
  */
 router.delete(
   '/consents/:consentType',
@@ -171,8 +313,22 @@ router.delete(
 );
 
 /**
- * GET /api/gdpr/consents
- * Get user's consents
+ * @swagger
+ * /api/gdpr/consents:
+ *   get:
+ *     summary: Get user's consent records (GDPR)
+ *     tags: [GDPR]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: List of user consents
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       401:
+ *         description: Unauthorized
  */
 router.get(
   '/consents',
@@ -187,8 +343,34 @@ router.get(
 );
 
 /**
- * GET /api/gdpr/consents/:consentType/check
- * Check if user has specific consent
+ * @swagger
+ * /api/gdpr/consents/{consentType}/check:
+ *   get:
+ *     summary: Check if user has specific consent (GDPR)
+ *     tags: [GDPR]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: consentType
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [MARKETING, ANALYTICS, FUNCTIONAL]
+ *         description: Type of consent to check
+ *     responses:
+ *       200:
+ *         description: Consent status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *             example:
+ *               success: true
+ *               data:
+ *                 hasConsent: true
+ *       401:
+ *         description: Unauthorized
  */
 router.get(
   '/consents/:consentType/check',

@@ -10,8 +10,58 @@ const router = Router();
 router.use(authenticate);
 
 /**
- * GET /api/audit
- * Get audit logs with optional filters (admin only in production)
+ * @swagger
+ * /api/audit:
+ *   get:
+ *     summary: Get audit logs with optional filters
+ *     tags: [Admin]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         description: Filter by user ID
+ *       - in: query
+ *         name: action
+ *         schema:
+ *           type: string
+ *         description: Filter by action type
+ *       - in: query
+ *         name: resource
+ *         schema:
+ *           type: string
+ *         description: Filter by resource type
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Start date filter
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: End date filter
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Maximum number of logs to return
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *         description: Number of logs to skip
+ *     responses:
+ *       200:
+ *         description: List of audit logs
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
  */
 router.get(
   '/',
@@ -46,8 +96,33 @@ router.get(
 );
 
 /**
- * GET /api/audit/stats
- * Get audit log statistics (admin only in production)
+ * @swagger
+ * /api/audit/stats:
+ *   get:
+ *     summary: Get audit log statistics
+ *     tags: [Admin]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Start date filter
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: End date filter
+ *     responses:
+ *       200:
+ *         description: Audit statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
  */
 router.get(
   '/stats',

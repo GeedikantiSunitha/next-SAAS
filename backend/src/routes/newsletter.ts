@@ -13,8 +13,32 @@ import { NewsletterStatus } from '@prisma/client';
 const router = Router();
 
 /**
- * POST /api/newsletter/subscribe
- * Subscribe to newsletter (public or authenticated)
+ * @swagger
+ * /api/newsletter/subscribe:
+ *   post:
+ *     summary: Subscribe to newsletter (public or authenticated)
+ *     tags: [Newsletter]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *     responses:
+ *       201:
+ *         description: Successfully subscribed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
  */
 router.post(
   '/subscribe',
@@ -37,8 +61,31 @@ router.post(
 );
 
 /**
- * POST /api/newsletter/unsubscribe
- * Unsubscribe from newsletter (public)
+ * @swagger
+ * /api/newsletter/unsubscribe:
+ *   post:
+ *     summary: Unsubscribe from newsletter (public)
+ *     tags: [Newsletter]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: Unsubscribe token from email
+ *     responses:
+ *       200:
+ *         description: Successfully unsubscribed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
  */
 router.post(
   '/unsubscribe',
@@ -58,8 +105,22 @@ router.post(
 );
 
 /**
- * GET /api/newsletter/subscription
- * Get user's subscription (authenticated)
+ * @swagger
+ * /api/newsletter/subscription:
+ *   get:
+ *     summary: Get user's subscription (authenticated)
+ *     tags: [Newsletter]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: User subscription details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       404:
+ *         description: Subscription not found
  */
 router.get(
   '/subscription',
@@ -86,8 +147,43 @@ router.use(authenticate);
 router.use(requireRole('ADMIN', 'SUPER_ADMIN'));
 
 /**
- * POST /api/newsletter
- * Create newsletter (admin only)
+ * @swagger
+ * /api/newsletter:
+ *   post:
+ *     summary: Create newsletter (admin only)
+ *     tags: [Newsletter]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - subject
+ *               - content
+ *             properties:
+ *               title:
+ *                 type: string
+ *               subject:
+ *                 type: string
+ *               content:
+ *                 type: string
+ *               scheduledAt:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Optional scheduled send time
+ *     responses:
+ *       201:
+ *         description: Newsletter created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       403:
+ *         description: Forbidden - Admin role required
  */
 router.post(
   '/',
@@ -116,8 +212,41 @@ router.post(
 );
 
 /**
- * GET /api/newsletter
- * Get all newsletters (admin only)
+ * @swagger
+ * /api/newsletter:
+ *   get:
+ *     summary: Get all newsletters (admin only)
+ *     tags: [Newsletter]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [DRAFT, SCHEDULED, SENT, CANCELLED]
+ *         description: Filter by status
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Items per page
+ *     responses:
+ *       200:
+ *         description: List of newsletters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       403:
+ *         description: Forbidden - Admin role required
  */
 router.get(
   '/',
@@ -140,8 +269,31 @@ router.get(
 );
 
 /**
- * GET /api/newsletter/:id
- * Get newsletter by ID (admin only)
+ * @swagger
+ * /api/newsletter/{id}:
+ *   get:
+ *     summary: Get newsletter by ID (admin only)
+ *     tags: [Newsletter]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Newsletter ID
+ *     responses:
+ *       200:
+ *         description: Newsletter details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       404:
+ *         description: Newsletter not found
+ *       403:
+ *         description: Forbidden - Admin role required
  */
 router.get(
   '/:id',
@@ -163,8 +315,49 @@ router.get(
 );
 
 /**
- * PUT /api/newsletter/:id
- * Update newsletter (admin only)
+ * @swagger
+ * /api/newsletter/{id}:
+ *   put:
+ *     summary: Update newsletter (admin only)
+ *     tags: [Newsletter]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Newsletter ID
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               subject:
+ *                 type: string
+ *               content:
+ *                 type: string
+ *               scheduledAt:
+ *                 type: string
+ *                 format: date-time
+ *               status:
+ *                 type: string
+ *                 enum: [DRAFT, SCHEDULED, SENT, CANCELLED]
+ *     responses:
+ *       200:
+ *         description: Newsletter updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       403:
+ *         description: Forbidden - Admin role required
+ *       404:
+ *         description: Newsletter not found
  */
 router.put(
   '/:id',
@@ -194,8 +387,34 @@ router.put(
 );
 
 /**
- * POST /api/newsletter/:id/send
- * Send newsletter (admin only)
+ * @swagger
+ * /api/newsletter/{id}/send:
+ *   post:
+ *     summary: Send newsletter immediately (admin only)
+ *     tags: [Newsletter]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Newsletter ID
+ *     responses:
+ *       200:
+ *         description: Newsletter sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *             example:
+ *               success: true
+ *               message: "Newsletter sent to 150 subscribers"
+ *       403:
+ *         description: Forbidden - Admin role required
+ *       404:
+ *         description: Newsletter not found
  */
 router.post(
   '/:id/send',
@@ -211,8 +430,46 @@ router.post(
 );
 
 /**
- * POST /api/newsletter/:id/schedule
- * Schedule newsletter (admin only)
+ * @swagger
+ * /api/newsletter/{id}/schedule:
+ *   post:
+ *     summary: Schedule newsletter for later (admin only)
+ *     tags: [Newsletter]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Newsletter ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - scheduledAt
+ *             properties:
+ *               scheduledAt:
+ *                 type: string
+ *                 format: date-time
+ *                 description: When to send the newsletter
+ *     responses:
+ *       200:
+ *         description: Newsletter scheduled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       400:
+ *         description: Invalid scheduledAt date
+ *       403:
+ *         description: Forbidden - Admin role required
+ *       404:
+ *         description: Newsletter not found
  */
 router.post(
   '/:id/schedule',
@@ -240,8 +497,38 @@ router.post(
 );
 
 /**
- * GET /api/newsletter/subscriptions
- * Get all subscriptions (admin only)
+ * @swagger
+ * /api/newsletter/subscriptions:
+ *   get:
+ *     summary: Get all newsletter subscriptions (admin only)
+ *     tags: [Newsletter]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: boolean
+ *         description: Filter by active status
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
+ *           default: 100
+ *     responses:
+ *       200:
+ *         description: List of subscriptions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *       403:
+ *         description: Forbidden - Admin role required
  */
 router.get(
   '/subscriptions',

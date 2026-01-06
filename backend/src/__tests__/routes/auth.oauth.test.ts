@@ -194,10 +194,7 @@ describe('OAuth Routes', () => {
           token: 'google-oauth-token',
         });
 
-      // Debug: log response if not 200
-      if (response.status !== 200) {
-        console.log('Link OAuth response:', response.status, response.body);
-      }
+      // Note: Response logging removed - check test output for failures
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -289,9 +286,7 @@ describe('OAuth Routes', () => {
         .get('/api/auth/oauth/methods')
         .set('Cookie', accessTokenCookie || '');
 
-      if (response.status !== 200) {
-        console.log('Get methods response:', response.status, response.body);
-      }
+      // Note: Response logging removed - check test output for failures
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -316,9 +311,7 @@ describe('OAuth Routes', () => {
         .get('/api/auth/oauth/methods')
         .set('Cookie', accessTokenCookie || '');
 
-      if (response.status !== 200) {
-        console.log('Get methods (empty) response:', response.status, response.body);
-      }
+      // Note: Response logging removed - check test output for failures
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
