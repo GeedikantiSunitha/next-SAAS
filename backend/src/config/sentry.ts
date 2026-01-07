@@ -7,15 +7,26 @@
 import * as Sentry from '@sentry/node';
 import { ProfilingIntegration } from '@sentry/profiling-node';
 import config from './index';
+import logger from '../utils/logger';
 
 /**
- * Initialize Sentry
+ * Initialize Sentry for error tracking and performance monitoring
+ * 
+ * @description
+ * Sets up Sentry integration for production error tracking.
+ * Only initializes if SENTRY_DSN environment variable is configured.
+ * 
+ * @example
+ * ```typescript
+ * // In server.ts
+ * initSentry();
+ * ```
  */
 export const initSentry = () => {
   const dsn = process.env.SENTRY_DSN;
 
   if (!dsn || dsn === 'your-sentry-dsn-here') {
-    console.log('Sentry DSN not configured, error tracking disabled');
+    logger.info('Sentry DSN not configured, error tracking disabled');
     return;
   }
 

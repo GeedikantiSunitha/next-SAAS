@@ -45,7 +45,39 @@ export const generateTokens = (userId: string) => {
 };
 
 /**
- * Register a new user
+ * Register a new user account
+ * 
+ * @description
+ * Creates a new user account with email/password authentication. Validates
+ * email uniqueness, password strength, and creates audit logs. This is the
+ * core user registration function used by the registration endpoint.
+ * 
+ * @param {string} email - User's email address (must be unique)
+ * @param {string} password - User's password (must meet strength requirements)
+ * @param {string} [name] - User's full name (optional)
+ * @param {string} [ipAddress] - User's IP address for audit logging
+ * @param {string} [userAgent] - User's browser/device info for audit logging
+ * 
+ * @returns {Promise<Object>} User object (without password)
+ * @returns {Object.id} User's unique ID
+ * @returns {Object.email} User's email address
+ * @returns {Object.name} User's name
+ * @returns {Object.role} User's role (default: USER)
+ * 
+ * @throws {ForbiddenError} If registration is disabled via feature flag
+ * @throws {ConflictError} If email is already registered
+ * @throws {ValidationError} If password doesn't meet strength requirements
+ * 
+ * @example
+ * ```typescript
+ * const user = await register(
+ *   'user@example.com',
+ *   'SecurePass123!',
+ *   'John Doe',
+ *   '192.168.1.1',
+ *   'Mozilla/5.0...'
+ * );
+ * ```
  */
 export const register = async (
   email: string,
@@ -54,12 +86,13 @@ export const register = async (
   ipAddress?: string,
   userAgent?: string
 ) => {
-  // Check if registration is enabled
+  // Check if registration is enabled via feature flag
+  // Allows admins to temporarily disable registration
   if (!config.features.registration) {
     throw new ForbiddenError('Registration is currently disabled');
   }
 
-  // Check if user already exists
+  // Check if user already exists (email must be unique)
   const existingUser = await prisma.user.findUnique({
     where: { email },
   });
@@ -68,7 +101,8 @@ export const register = async (
     throw new ConflictError('Email already registered');
   }
 
-  // Check password strength (reject WEAK and FAIR)
+  // Check password strength (reject WEAK and FAIR passwords)
+  // Only STRONG and VERY_STRONG passwords are accepted
   if (shouldRejectPassword(password)) {
     const strengthResult = checkPasswordStrength(password);
     throw new ValidationError(
@@ -76,7 +110,7 @@ export const register = async (
     );
   }
 
-  // Hash password
+  // Hash password using bcrypt (12 rounds for security/performance balance)
   const hashedPassword = await hashPassword(password);
 
   // Create user
@@ -113,7 +147,32 @@ export const register = async (
 };
 
 /**
- * Login user
+ * Authenticate user with email and password
+ * 
+ * @description
+ * Validates user credentials and returns user information. Handles various
+ * edge cases including disabled accounts, OAuth-only accounts, and invalid
+ * credentials. Creates audit logs for security tracking.
+ * 
+ * @param {string} email - User's email address
+ * @param {string} password - User's password (plain text, will be hashed and compared)
+ * @param {string} [ipAddress] - User's IP address for audit logging
+ * @param {string} [userAgent] - User's browser/device info for audit logging
+ * 
+ * @returns {Promise<Object>} User object (without password)
+ * 
+ * @throws {UnauthorizedError} If credentials are invalid, account is disabled,
+ *                             or account uses OAuth login
+ * 
+ * @example
+ * ```typescript
+ * const user = await login(
+ *   'user@example.com',
+ *   'SecurePass123!',
+ *   '192.168.1.1',
+ *   'Mozilla/5.0...'
+ * );
+ * ```
  */
 export const login = async (
   email: string,
@@ -121,26 +180,28 @@ export const login = async (
   ipAddress?: string,
   userAgent?: string
 ) => {
-  // Find user
+  // Find user by email (case-insensitive lookup handled by Prisma)
   const user = await prisma.user.findUnique({
     where: { email },
   });
 
   if (!user) {
+    // Generic error message to prevent email enumeration attacks
     throw new UnauthorizedError('Invalid credentials');
   }
 
-  // Check if user is active
+  // Check if user account is active (admins can disable accounts)
   if (!user.isActive) {
     throw new UnauthorizedError('Account is disabled');
   }
 
   // OAuth users don't have passwords - they must use OAuth login
+  // This prevents password-based login attempts on OAuth-only accounts
   if (!user.password) {
     throw new UnauthorizedError('This account uses OAuth login. Please sign in with your OAuth provider.');
   }
 
-  // Verify password
+  // Verify password using bcrypt comparison (timing-safe)
   const isValidPassword = await comparePassword(password, user.password);
 
   if (!isValidPassword) {

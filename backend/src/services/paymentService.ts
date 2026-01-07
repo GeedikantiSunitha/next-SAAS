@@ -13,16 +13,49 @@ import { AppError, NotFoundError } from '../utils/errors';
 import { createAuditLog } from './auditService';
 
 /**
- * Create a new payment
+ * Create a new payment with the configured payment provider
+ * 
+ * @description
+ * Creates a payment intent with the active payment provider (Stripe, Razorpay, or Cashfree)
+ * and stores the payment record in the database. Supports multiple payment providers
+ * through a unified interface. Creates audit logs for compliance.
+ * 
+ * @param {CreatePaymentParams} params - Payment creation parameters
+ * @param {string} params.userId - ID of the user making the payment
+ * @param {number} params.amount - Payment amount (in smallest currency unit, e.g., cents)
+ * @param {string} params.currency - Currency code (USD, INR, etc.)
+ * @param {PaymentProviderType} [params.provider] - Override default provider (optional)
+ * @param {string} [params.description] - Payment description
+ * @param {string} [params.paymentMethod] - Payment method type
+ * @param {Object} [params.metadata] - Additional metadata
+ * 
+ * @returns {Promise<Object>} Payment object with clientSecret for frontend
+ * @returns {string} clientSecret - Client secret for payment confirmation (Stripe)
+ * @returns {string} providerPaymentId - Provider's payment ID
+ * @returns {PaymentStatus} status - Payment status (PENDING, COMPLETED, etc.)
+ * 
+ * @throws {AppError} If payment creation fails
+ * 
+ * @example
+ * ```typescript
+ * const payment = await createPayment({
+ *   userId: 'user-123',
+ *   amount: 10000, // $100.00 in cents
+ *   currency: 'USD',
+ *   description: 'Premium subscription',
+ *   provider: 'STRIPE'
+ * });
+ * ```
  */
 export const createPayment = async (params: CreatePaymentParams & { provider?: PaymentProviderType }) => {
   try {
+    // Get the configured payment provider (Stripe, Razorpay, or Cashfree)
     const provider = PaymentProviderFactory.getProvider();
     
-    // Create payment with provider
+    // Create payment intent with provider (returns clientSecret for frontend)
     const paymentIntent = await provider.createPayment(params);
 
-    // Store in database
+    // Store payment record in database for tracking and audit
     const payment = await prisma.payment.create({
       data: {
         userId: params.userId,
@@ -71,7 +104,32 @@ export const createPayment = async (params: CreatePaymentParams & { provider?: P
 };
 
 /**
- * Capture/confirm a payment
+ * Capture/confirm a pending payment
+ * 
+ * @description
+ * Captures a previously created payment intent. This finalizes the payment
+ * and transfers funds from the customer to the merchant. Only pending payments
+ * can be captured. Creates audit logs for compliance.
+ * 
+ * @param {string} paymentId - ID of the payment to capture
+ * @param {string} userId - ID of the user making the request (must own the payment)
+ * @param {number} [amount] - Optional partial capture amount (if not provided, captures full amount)
+ * 
+ * @returns {Promise<Object>} Updated payment object with SUCCEEDED status
+ * 
+ * @throws {NotFoundError} If payment doesn't exist
+ * @throws {AppError} If user doesn't own the payment (403)
+ * @throws {AppError} If payment is already captured (400)
+ * @throws {AppError} If capture fails with payment provider (500)
+ * 
+ * @example
+ * ```typescript
+ * // Capture full payment
+ * const payment = await capturePayment('payment-id', 'user-id');
+ * 
+ * // Capture partial payment
+ * const payment = await capturePayment('payment-id', 'user-id', 5000);
+ * ```
  */
 export const capturePayment = async (paymentId: string, userId: string, amount?: number) => {
   try {
@@ -84,19 +142,21 @@ export const capturePayment = async (paymentId: string, userId: string, amount?:
       throw new NotFoundError('Payment not found');
     }
 
+    // Verify user owns this payment (security check)
     if (payment.userId !== userId) {
       throw new AppError('Unauthorized', 403);
     }
 
+    // Prevent double-capture (idempotency check)
     if (payment.status === PaymentStatus.SUCCEEDED) {
       throw new AppError('Payment already captured', 400);
     }
 
-    // Capture with provider
+    // Capture payment with provider (Stripe, Razorpay, or Cashfree)
     const provider = PaymentProviderFactory.getProvider();
     const paymentIntent = await provider.capturePayment({
       paymentId: payment.providerPaymentId!,
-      amount,
+      amount, // If undefined, captures full amount
     });
 
     // Update database

@@ -75,7 +75,7 @@ if (config.nodeEnv !== 'test') {
       }
 
       // Use the same password hashing as authService
-      const { hashPassword } = await import('../utils/password');
+      const { hashPassword } = await import('../services/authService');
       const hashedPassword = await hashPassword(password);
 
       const user = await prisma.user.create({

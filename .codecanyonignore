@@ -1,0 +1,112 @@
+# CodeCanyon Package Ignore File
+# Files and directories to exclude from distribution package
+
+# Dependencies
+node_modules/
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Environment variables (keep .env.example)
+.env
+.env.local
+.env.*.local
+**/.env
+**/.env.local
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+**/dist/
+**/build/
+**/.next/
+**/out/
+
+# Testing
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+**/coverage/
+**/.nyc_output/
+**/test-results/
+**/playwright-report/
+
+# Logs
+logs/
+*.log
+**/logs/
+**/*.log
+
+# OS
+.DS_Store
+Thumbs.db
+**/.DS_Store
+**/Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+**/.vscode/
+**/.idea/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+**/.git/
+**/.gitignore
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+**/*.sqlite
+**/*.sqlite3
+**/*.db
+
+# Temporary files
+tmp/
+temp/
+**/tmp/
+**/temp/
+
+# Documentation (keep main docs, exclude some internal docs)
+docs/PHASE*.md
+docs/*_COMPLETE.md
+docs/CODECANYON_*.md
+docs/MASTER_*.md
+docs/CRITICAL_*.md
+docs/ARCHITECTURAL_*.md
+docs/*_SUMMARY.md
+docs/*_REPORT.md
+
+# Scripts (keep useful ones, exclude dev scripts)
+scripts/test-all.sh
+
+# Docker (optional - include if useful)
+.dockerignore
+docker-compose.yml
+Dockerfile
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# Misc
+*.map
+*.tsbuildinfo
+.cache/
+.parcel-cache/

@@ -42,10 +42,37 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
+/**
+ * Get current authenticated user's profile
+ * 
+ * @description
+ * Returns the profile information of the currently authenticated user.
+ * Includes user details, preferences, and account status.
+ * 
+ * @route GET /api/profile/me
+ * @access Private (requires authentication)
+ * 
+ * @returns {Object} 200 - User profile object
+ * @returns {Object} 401 - Unauthorized (not authenticated)
+ * 
+ * @example
+ * // Response (200)
+ * {
+ *   "success": true,
+ *   "data": {
+ *     "id": "user-id",
+ *     "email": "user@example.com",
+ *     "name": "John Doe",
+ *     "role": "USER",
+ *     "isActive": true
+ *   }
+ * }
+ */
 router.get(
   '/me',
   authenticate,
   asyncHandler(async (req, res) => {
+    // Get user profile from authenticated session
     const user = await profileService.getUserProfile(req.user!.id);
 
     res.json({

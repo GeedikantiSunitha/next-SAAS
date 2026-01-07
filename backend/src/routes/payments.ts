@@ -58,9 +58,54 @@ router.use(authenticate);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
+/**
+ * Create a new payment
+ * 
+ * @description
+ * Creates a payment intent with the configured payment provider. The payment
+ * is stored in the database and a clientSecret is returned for frontend
+ * payment confirmation. Supports Stripe, Razorpay, and Cashfree.
+ * 
+ * @route POST /api/payments
+ * @access Private (requires authentication)
+ * 
+ * @param {number} req.body.amount - Payment amount (in smallest currency unit)
+ * @param {string} req.body.currency - Currency code (USD, INR, etc.)
+ * @param {string} [req.body.provider] - Payment provider override (STRIPE, RAZORPAY, CASHFREE)
+ * @param {string} [req.body.description] - Payment description
+ * @param {string} [req.body.paymentMethod] - Payment method type
+ * @param {Object} [req.body.metadata] - Additional metadata
+ * 
+ * @returns {Object} 201 - Payment object with clientSecret
+ * @returns {Object} 400 - Validation error or invalid amount
+ * @returns {Object} 401 - Unauthorized (not authenticated)
+ * @returns {Object} 500 - Payment provider error
+ * 
+ * @example
+ * // Request
+ * POST /api/payments
+ * {
+ *   "amount": 10000,
+ *   "currency": "USD",
+ *   "description": "Premium subscription"
+ * }
+ * 
+ * // Response (201)
+ * {
+ *   "success": true,
+ *   "data": {
+ *     "id": "payment-id",
+ *     "amount": 10000,
+ *     "currency": "USD",
+ *     "status": "PENDING",
+ *     "clientSecret": "pi_xxx_secret_xxx"
+ *   }
+ * }
+ */
 router.post(
   '/',
   asyncHandler(async (req, res) => {
+    // Create payment with user ID from authenticated session
     const payment = await paymentService.createPayment({
       ...req.body,
       userId: req.user!.id,

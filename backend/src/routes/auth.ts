@@ -83,6 +83,47 @@ const getCookieOptions = (maxAge: number): CookieOptions => {
  *       429:
  *         description: Too many requests
  */
+/**
+ * Register a new user and automatically log them in
+ * 
+ * @description
+ * Creates a new user account, validates password strength, and automatically
+ * logs the user in by generating JWT tokens and setting them as HTTP-only cookies.
+ * This provides a seamless registration experience.
+ * 
+ * @route POST /api/auth/register
+ * @access Public
+ * @rateLimit 5 requests per 15 minutes (authLimiter)
+ * 
+ * @param {string} req.body.email - User's email address (required, validated)
+ * @param {string} req.body.password - User's password (required, min 8 chars, strength validated)
+ * @param {string} req.body.name - User's full name (optional)
+ * 
+ * @returns {Object} 201 - User object with id, email, name, role
+ * @returns {Object} 400 - Validation error (weak password, invalid email)
+ * @returns {Object} 409 - Email already registered
+ * @returns {Object} 429 - Too many registration attempts
+ * 
+ * @example
+ * // Request
+ * POST /api/auth/register
+ * {
+ *   "email": "user@example.com",
+ *   "password": "SecurePass123!",
+ *   "name": "John Doe"
+ * }
+ * 
+ * // Response (201)
+ * {
+ *   "success": true,
+ *   "data": {
+ *     "id": "123e4567-e89b-12d3-a456-426614174000",
+ *     "email": "user@example.com",
+ *     "name": "John Doe",
+ *     "role": "USER"
+ *   }
+ * }
+ */
 router.post(
   '/register',
   authLimiter,
@@ -96,14 +137,17 @@ router.post(
     const ipAddress = getClientIp(req) || undefined;
     const userAgent = req.headers['user-agent'];
 
+    // Register user (validates email uniqueness, password strength)
     const user = await authService.register(email, password, name, ipAddress, userAgent);
 
     // Auto-login after registration: generate tokens and set as cookies
+    // This provides seamless UX - user doesn't need to login separately
     const { accessToken, refreshToken } = authService.generateTokens(user.id);
 
-    // Save refresh token in database
+    // Save refresh token in database for session management
+    // Refresh tokens allow users to get new access tokens without re-login
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30); // 30 days
+    expiresAt.setDate(expiresAt.getDate() + 30); // 30 days expiration
 
     await prisma.session.create({
       data: {
@@ -115,10 +159,11 @@ router.post(
       },
     });
 
-    // Set access token as HTTP-only cookie
+    // Set access token as HTTP-only cookie (15 minutes)
+    // HTTP-only prevents XSS attacks from accessing the token
     res.cookie('accessToken', accessToken, getCookieOptions(config.cookie.accessTokenMaxAge));
 
-    // Set refresh token as HTTP-only cookie
+    // Set refresh token as HTTP-only cookie (30 days)
     res.cookie('refreshToken', refreshToken, getCookieOptions(config.cookie.maxAge));
 
     res.status(201).json({
@@ -180,6 +225,51 @@ router.post(
  *       429:
  *         description: Too many requests
  */
+/**
+ * Authenticate user and generate JWT tokens
+ * 
+ * @description
+ * Authenticates user with email/password. If MFA is enabled, returns a temporary
+ * token for MFA verification. Otherwise, completes login and sets JWT tokens as
+ * HTTP-only cookies. Supports both regular login and MFA-protected accounts.
+ * 
+ * @route POST /api/auth/login
+ * @access Public
+ * @rateLimit 5 requests per 15 minutes (authLimiter)
+ * 
+ * @param {string} req.body.email - User's email address (required, validated)
+ * @param {string} req.body.password - User's password (required)
+ * 
+ * @returns {Object} 200 - Login successful (with or without MFA requirement)
+ * @returns {Object} 401 - Invalid credentials or account disabled
+ * @returns {Object} 429 - Too many login attempts
+ * 
+ * @example
+ * // Request
+ * POST /api/auth/login
+ * {
+ *   "email": "user@example.com",
+ *   "password": "SecurePass123!"
+ * }
+ * 
+ * // Response (200) - No MFA
+ * {
+ *   "success": true,
+ *   "data": {
+ *     "user": { "id": "...", "email": "..." }
+ *   }
+ * }
+ * 
+ * // Response (200) - MFA Required
+ * {
+ *   "success": true,
+ *   "data": {
+ *     "requiresMfa": true,
+ *     "mfaMethod": "TOTP",
+ *     "user": { "id": "...", "email": "..." }
+ *   }
+ * }
+ */
 router.post(
   '/login',
   authLimiter,
@@ -192,6 +282,7 @@ router.post(
     const ipAddress = getClientIp(req) || undefined;
     const userAgent = req.headers['user-agent'];
 
+    // Authenticate user (validates credentials, checks account status)
     const loginResult = await authService.login(
       email,
       password,
@@ -200,8 +291,9 @@ router.post(
     );
 
     // If MFA is required, return requiresMfa flag and temporary token
+    // Temporary token allows user to complete MFA verification without re-entering password
     if (loginResult.requiresMfa) {
-      // Create temporary session for MFA verification
+      // Create temporary session for MFA verification (10 minute expiration)
       const tempToken = require('crypto').randomBytes(32).toString('hex');
       const expiresAt = new Date();
       expiresAt.setMinutes(expiresAt.getMinutes() + 10); // 10 minutes
@@ -216,7 +308,7 @@ router.post(
         },
       });
 
-      // Set temporary token as cookie
+      // Set temporary token as cookie for MFA verification step
       res.cookie('tempLoginToken', tempToken, getCookieOptions(10 * 60)); // 10 minutes
 
       return res.json({
@@ -230,7 +322,7 @@ router.post(
     }
 
     // No MFA required - complete login normally
-    // Set access token as HTTP-only cookie
+    // Set access token as HTTP-only cookie (15 minutes)
     res.cookie('accessToken', loginResult.accessToken!, getCookieOptions(config.cookie.accessTokenMaxAge));
 
     // Set refresh token as HTTP-only cookie

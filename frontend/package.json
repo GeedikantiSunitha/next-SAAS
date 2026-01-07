@@ -1,7 +1,23 @@
 {
   "name": "nextsaas-frontend",
   "version": "1.0.0",
-  "description": "NextSaaS - Production-ready SaaS template frontend",
+  "description": "NextSaaS - Production-ready SaaS template frontend built with React, TypeScript, Vite, and Tailwind CSS",
+  "keywords": [
+    "saas",
+    "template",
+    "frontend",
+    "react",
+    "typescript",
+    "vite",
+    "tailwind",
+    "ui",
+    "dashboard",
+    "authentication",
+    "spa",
+    "single-page-app"
+  ],
+  "author": "",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",

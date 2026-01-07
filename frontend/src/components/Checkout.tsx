@@ -28,8 +28,9 @@ const checkoutSchema = z.object({
 type CheckoutFormData = z.infer<typeof checkoutSchema>;
 
 // Initialize Stripe with publishable key
+// Note: VITE_STRIPE_PUBLISHABLE_KEY must be set in environment variables
 const stripePromise = loadStripe(
-  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_live_51QuNQSIxkkh98w3NiFjKJV3T8s0fydAugqZEh5obi9O4fv1JG1SJ3y3ufx45fhzt1ynA9J9Yi4dRFNczUBxCTCWE00emAHSPp6'
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || ''
 );
 
 const CheckoutForm = () => {
