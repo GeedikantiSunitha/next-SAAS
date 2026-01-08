@@ -11,21 +11,19 @@ import QRCode from 'qrcode';
 import config from '../../config';
 
 // Mock dependencies
-const mockPrisma = {
-  user: {
-    findUnique: jest.fn(),
-  },
-  mfaMethod: {
-    upsert: jest.fn(),
-  },
-  mfaBackupCode: {
-    updateMany: jest.fn(),
-    create: jest.fn(),
-  },
-};
-
 jest.mock('../../config/database', () => ({
-  prisma: mockPrisma,
+  prisma: {
+    user: {
+      findUnique: jest.fn(),
+    },
+    mfaMethod: {
+      upsert: jest.fn(),
+    },
+    mfaBackupCode: {
+      updateMany: jest.fn(),
+      create: jest.fn(),
+    },
+  },
 }));
 
 jest.mock('speakeasy');
@@ -33,6 +31,8 @@ jest.mock('qrcode');
 jest.mock('../../services/auditService', () => ({
   createAuditLog: jest.fn(),
 }));
+
+import { prisma } from '../../config/database';
 
 describe('MFA TOTP - QR Code Quality', () => {
   const mockUser = {
@@ -43,16 +43,16 @@ describe('MFA TOTP - QR Code Quality', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue(mockUser);
-    (mockPrisma.mfaMethod.upsert as jest.Mock).mockResolvedValue({
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue(mockUser);
+    (prisma.mfaMethod.upsert as jest.Mock).mockResolvedValue({
       id: 'mfa-123',
       userId: mockUser.id,
       method: 'TOTP',
       secret: 'JBSWY3DPEHPK3PXP',
       isEnabled: false,
     });
-    (mockPrisma.mfaBackupCode.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
-    (mockPrisma.mfaBackupCode.create as jest.Mock).mockResolvedValue({ id: 'code-1' });
+    (prisma.mfaBackupCode.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
+    (prisma.mfaBackupCode.create as jest.Mock).mockResolvedValue({ id: 'code-1' });
   });
 
   it('should generate QR code with proper size (512x512)', async () => {
