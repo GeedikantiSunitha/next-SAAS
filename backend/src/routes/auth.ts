@@ -3,7 +3,7 @@ import { body } from 'express-validator';
 import * as authService from '../services/authService';
 import { validate, validators } from '../middleware/validation';
 import { authenticate } from '../middleware/auth';
-import { authLimiter } from '../middleware/security';
+import { authLimiter, oauthLimiter } from '../middleware/security';
 import asyncHandler from '../utils/asyncHandler';
 import { getClientIp } from '../utils/getClientIp';
 import config from '../config';
@@ -588,7 +588,7 @@ router.post(
 router.post(
   '/oauth/link',
   authenticate,
-  authLimiter,
+  oauthLimiter,
   validate([
     body('provider').isIn(['google', 'github', 'microsoft']).withMessage('Invalid OAuth provider'),
     body('token').notEmpty().withMessage('OAuth token is required'),
@@ -636,7 +636,7 @@ router.post(
 router.post(
   '/oauth/unlink',
   authenticate,
-  authLimiter,
+  oauthLimiter,
   validate([
     body('provider').isIn(['google', 'github', 'microsoft']).withMessage('Invalid OAuth provider'),
   ]),
@@ -735,7 +735,7 @@ router.get(
  */
 router.post(
   '/oauth/:provider',
-  authLimiter,
+  oauthLimiter,
   validate([
     body('token').notEmpty().withMessage('OAuth token is required'),
   ]),
@@ -815,7 +815,7 @@ router.post(
 router.post(
   '/oauth/link',
   authenticate,
-  authLimiter,
+  oauthLimiter,
   validate([
     body('provider').isIn(['google', 'github', 'microsoft']).withMessage('Invalid OAuth provider'),
     body('token').notEmpty().withMessage('OAuth token is required'),
@@ -863,7 +863,7 @@ router.post(
 router.post(
   '/oauth/unlink',
   authenticate,
-  authLimiter,
+  oauthLimiter,
   validate([
     body('provider').isIn(['google', 'github', 'microsoft']).withMessage('Invalid OAuth provider'),
   ]),
@@ -936,7 +936,7 @@ router.post(
  */
 router.post(
   '/oauth/github/exchange',
-  authLimiter,
+  oauthLimiter,
   validate([
     body('code').notEmpty().withMessage('Authorization code is required'),
   ]),

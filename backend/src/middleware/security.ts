@@ -70,6 +70,21 @@ export const authLimiter = rateLimit({
 });
 
 /**
+ * OAuth rate limiter (more lenient for development)
+ * 30 requests per 15 minutes per IP (configurable via OAUTH_RATE_LIMIT_MAX)
+ * Allows more requests than authLimiter for OAuth setup/testing
+ */
+export const oauthLimiter = rateLimit({
+  windowMs: config.rateLimit.windowMs,
+  max: parseInt(process.env.OAUTH_RATE_LIMIT_MAX || '30', 10),
+  message: 'Too many OAuth requests, please try again later',
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true, // Don't count successful OAuth attempts
+  skip: () => config.nodeEnv === 'test' || config.nodeEnv === 'development',
+});
+
+/**
  * Request size limiter
  * Prevent large payloads
  */

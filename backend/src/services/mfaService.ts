@@ -375,6 +375,18 @@ export const setupEmailMfa = async (userId: string) => {
 
   logger.info('Email MFA setup initiated', { userId });
 
+  // Automatically send OTP after setup
+  try {
+    await sendEmailOtp(userId);
+    logger.info('OTP automatically sent after Email MFA setup', { userId });
+  } catch (error: any) {
+    // Log error but don't fail setup - user can request OTP manually
+    logger.warn('Failed to send OTP during Email MFA setup', { 
+      userId, 
+      error: error.message 
+    });
+  }
+
   return {
     method: mfaMethod.method,
     isEnabled: mfaMethod.isEnabled,
