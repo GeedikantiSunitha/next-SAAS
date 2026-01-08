@@ -58,6 +58,7 @@ export const AdminUsers = () => {
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user: currentUser } = useAuth();
 
   const limit = 20;
 
@@ -138,6 +139,26 @@ export const AdminUsers = () => {
       toast({
         title: 'Error',
         description: error.response?.data?.error || 'Failed to delete user',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Toggle user active status mutation
+  const toggleActiveMutation = useMutation({
+    mutationFn: ({ userId, isActive }: { userId: string; isActive: boolean }) =>
+      adminApi.toggleUserActive(userId, isActive),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      toast({
+        title: 'Success',
+        description: `User ${variables.isActive ? 'enabled' : 'disabled'} successfully`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.error || 'Failed to update user status',
         variant: 'destructive',
       });
     },
@@ -329,6 +350,25 @@ export const AdminUsers = () => {
                               onClick={() => handleEdit(user)}
                             >
                               <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                if (user.isActive) {
+                                  // Show confirmation for disable
+                                  if (window.confirm('Are you sure you want to disable this user? They will not be able to login.')) {
+                                    toggleActiveMutation.mutate({ userId: user.id, isActive: false });
+                                  }
+                                } else {
+                                  toggleActiveMutation.mutate({ userId: user.id, isActive: true });
+                                }
+                              }}
+                              disabled={toggleActiveMutation.isPending}
+                              className={user.isActive ? 'text-orange-600 hover:text-orange-700' : 'text-green-600 hover:text-green-700'}
+                              title={user.isActive ? 'Disable user' : 'Enable user'}
+                            >
+                              {user.isActive ? 'Disable' : 'Enable'}
                             </Button>
                             <Button
                               variant="ghost"

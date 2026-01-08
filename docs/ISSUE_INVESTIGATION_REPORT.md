@@ -890,8 +890,180 @@ This report is designed to be shared with other projects (e.g., `nextsaas_mobile
 
 ---
 
+---
+
+## Issue #8: Missing Disable/Enable User Feature
+
+### **Reported Problem**
+- No quick way to disable/enable users in admin panel
+- Must use edit modal to change `isActive` status
+- No toggle button for quick user status management
+
+### **Investigation Findings**
+
+#### **Code Analysis**
+
+1. **Backend Support** (`backend/src/services/adminUserService.ts:251-253`):
+   - ✅ `isActive` field exists and can be updated
+   - ✅ `updateUser` function supports `isActive` changes
+   - ⚠️ **ISSUE**: No dedicated endpoint for quick toggle
+
+2. **Frontend UI** (`frontend/src/pages/admin/AdminUsers.tsx`):
+   - ✅ Shows `isActive` status (Active/Inactive badge)
+   - ✅ Edit modal includes `isActive` checkbox
+   - ⚠️ **ISSUE**: No quick toggle button in user list
+   - ⚠️ **ISSUE**: Must open edit modal to change status
+
+#### **Root Cause Identified**
+
+**Primary Issue**: **No Quick Toggle UI for User Status**
+
+1. **Backend Ready**: Backend already supports `isActive` updates
+2. **UI Missing**: No quick action button to toggle user status
+3. **UX Issue**: Requires opening edit modal for simple toggle operation
+
+#### **Recommended Fixes** (Not Implemented Yet)
+
+1. **Frontend Changes**:
+   - Add toggle button in user list row
+   - Add mutation for quick toggle
+   - Show confirmation dialog for disable action
+   - Update UI immediately after toggle
+
+2. **Backend Changes** (Optional):
+   - Add dedicated endpoint: `PATCH /api/admin/users/:id/toggle-active`
+   - Or use existing `PUT /api/admin/users/:id` with `isActive` field
+
+---
+
+## Issue #9: No Payment Initiation UI for Stripe
+
+### **Reported Problem**
+- No option to initiate payment in payment section
+- Need Stripe integration with:
+  - Card details entry
+  - Payment submission
+  - OTP/3D Secure flow (handled by Stripe)
+
+### **Investigation Findings**
+
+#### **Code Analysis**
+
+1. **Backend Support** (`backend/src/providers/StripeProvider.ts`):
+   - ✅ Stripe provider exists and is implemented
+   - ✅ Supports payment intent creation
+   - ✅ Supports payment capture
+   - ✅ Returns clientSecret for frontend
+
+2. **Frontend Payment UI** (`frontend/src/pages/PaymentSettings.tsx`):
+   - ✅ Has Checkout component (Stripe)
+   - ✅ Has Payment History component
+   - ⚠️ **ISSUE**: Checkout component exists but may have amount conversion issue
+   - ⚠️ **ISSUE**: Payment route exists but may not be easily discoverable
+
+3. **Payment Flow**:
+   - Stripe: Uses Stripe Elements (card element)
+   - Amount conversion: Frontend sends amount, backend expects cents
+   - OTP/3D Secure: Handled automatically by Stripe
+
+#### **Root Cause Identified**
+
+**Primary Issue**: **Stripe Payment UI May Have Issues**
+
+1. **Component Exists**: Checkout component with Stripe is present
+2. **Amount Conversion**: May need to convert amount to cents (smallest currency unit)
+3. **Discoverability**: Payment page may not be easily accessible or visible
+
+#### **Recommended Fixes** (Not Implemented Yet)
+
+1. **Frontend Changes**:
+   - Verify Checkout component converts amount to cents correctly
+   - Ensure Stripe publishable key is configured
+   - Add clear call-to-action to initiate payment
+   - Verify payment flow works end-to-end
+
+2. **Backend Changes** (if needed):
+   - Ensure Stripe webhook handling works
+   - Verify payment capture flow
+
+---
+
+## Issue #10: Admin Cannot Change User Roles
+
+### **Reported Problem**
+- Admin users cannot change user roles
+- Only SUPER_ADMIN can change roles (via RBAC endpoint)
+- Admin panel edit modal has role field but it doesn't work for ADMIN users
+
+### **Investigation Findings**
+
+#### **Code Analysis**
+
+1. **Backend Update User** (`backend/src/services/adminUserService.ts:247-249`):
+   ```typescript
+   if (data.role !== undefined) {
+     updateData.role = data.role;
+   }
+   ```
+   - ✅ `updateUser` allows role updates
+   - ⚠️ **ISSUE**: No role-based permission check
+   - ⚠️ **ISSUE**: Should restrict to SUPER_ADMIN only
+
+2. **RBAC Endpoint** (`backend/src/routes/rbac.ts:99-121`):
+   - ✅ Separate endpoint: `PUT /api/rbac/users/:userId/role`
+   - ✅ Requires `SUPER_ADMIN` role
+   - ⚠️ **ISSUE**: Admin panel doesn't use this endpoint
+
+3. **Frontend Edit Modal** (`frontend/src/pages/admin/AdminUsers.tsx:598-603`):
+   - ✅ Has role dropdown in edit modal
+   - ⚠️ **ISSUE**: Uses `updateUser` endpoint (allows ADMIN to change roles)
+   - ⚠️ **ISSUE**: Should check user role before allowing role changes
+
+4. **Business Rules** (`project_documentation/03-requirements/BUSINESS_RULES.md:104`):
+   - ✅ Rule: "Only SUPER_ADMIN can change user roles"
+   - ⚠️ **ISSUE**: Not enforced in `updateUser` service
+
+#### **Root Cause Identified**
+
+**Primary Issue**: **Role Change Permission Not Enforced**
+
+1. **Inconsistent Implementation**: 
+   - RBAC endpoint requires SUPER_ADMIN ✅
+   - Admin updateUser endpoint allows any ADMIN ❌
+
+2. **Frontend Issue**: 
+   - Edit modal shows role field to all admins
+   - Should hide/disable for non-SUPER_ADMIN users
+
+3. **Backend Issue**: 
+   - `updateUser` doesn't check if admin is SUPER_ADMIN before allowing role changes
+
+#### **Recommended Fixes** (Not Implemented Yet)
+
+1. **Backend Changes**:
+   - Add permission check in `updateUser` service
+   - Only allow SUPER_ADMIN to change roles
+   - Return 403 Forbidden if ADMIN tries to change role
+
+2. **Frontend Changes**:
+   - Check current user role before showing role field
+   - Disable/hide role field for ADMIN users
+   - Show tooltip explaining only SUPER_ADMIN can change roles
+
+---
+
+## Summary of New Root Causes
+
+| Issue | Root Cause | Why Tests Passed | Severity |
+|-------|------------|------------------|----------|
+| **#8: Disable/Enable User** | No quick toggle UI button | Tests don't verify UI components | **MEDIUM** - UX issue |
+| **#9: Razorpay Payment UI** | No frontend component for Razorpay | Tests only verify backend provider | **HIGH** - Missing feature |
+| **#10: Admin Role Change** | Permission not enforced | Tests don't verify permission checks | **HIGH** - Security/functionality issue |
+
+---
+
 **Report Generated**: January 2025  
 **Investigator**: AI Assistant  
-**Status**: Investigation Complete - 7 Issues Total (4 Fixed, 3 New Issues Identified)  
+**Status**: Investigation Complete - 10 Issues Total (7 Fixed, 3 New Issues Identified)  
 **Last Updated**: After new issues investigation  
 **Test Coverage**: 31 tests, all passing ✅

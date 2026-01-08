@@ -4,7 +4,6 @@
  * User-facing page for payment management
  */
 
-import { useState } from 'react';
 import { Checkout } from '../components/Checkout';
 import { PaymentHistory } from '../components/PaymentHistory';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';

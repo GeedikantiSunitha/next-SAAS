@@ -245,6 +245,21 @@ export const updateUser = async (
   }
 
   if (data.role !== undefined) {
+    // Check if admin is SUPER_ADMIN (only SUPER_ADMIN can change roles)
+    const admin = await prisma.user.findUnique({
+      where: { id: adminUserId },
+      select: { role: true },
+    });
+
+    if (admin?.role !== 'SUPER_ADMIN') {
+      throw new ForbiddenError('Only SUPER_ADMIN can change user roles');
+    }
+
+    // Prevent user from changing their own role
+    if (userId === adminUserId) {
+      throw new ForbiddenError('You cannot change your own role');
+    }
+
     updateData.role = data.role;
   }
 

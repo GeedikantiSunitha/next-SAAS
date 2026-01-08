@@ -16,9 +16,12 @@
 | #2: Import Error | HIGH | 2 files | 1 test file | ✅ Fixed |
 | #3: IP Address | MEDIUM | 4 files | 2 test files | ✅ Fixed |
 | #4: Feature Flags | MEDIUM | 3 files | 1 test file | ✅ Fixed |
-| #5: OAuth Rate Limiting | MEDIUM | 2 files | 0 test files | ⚠️ Pending |
-| #6: MFA TOTP Issues | MEDIUM | 2 files | 0 test files | ⚠️ Pending |
-| #7: Email MFA No OTP | HIGH | 2 files | 0 test files | ⚠️ Pending |
+| #5: OAuth Rate Limiting | MEDIUM | 2 files | 1 test file | ✅ Fixed |
+| #6: MFA TOTP Issues | MEDIUM | 2 files | 1 test file | ✅ Fixed |
+| #7: Email MFA No OTP | HIGH | 2 files | 1 test file | ✅ Fixed |
+| #8: Disable/Enable User | MEDIUM | 2 files | 1 test file | ⚠️ Pending |
+| #9: Razorpay Payment UI | HIGH | 3 files | 1 test file | ⚠️ Pending |
+| #10: Admin Role Change | HIGH | 2 files | 1 test file | ⚠️ Pending |
 
 ---
 
@@ -765,5 +768,244 @@ If you encounter issues when applying these fixes:
 
 ---
 
+---
+
+## Issue #8: Disable/Enable User Feature Missing
+
+### Problem
+No quick way to disable/enable users in admin panel. Must use edit modal to change status.
+
+### Root Cause
+Backend supports `isActive` updates, but no quick toggle UI button exists in the user list.
+
+### Fix Steps
+
+1. **Add Toggle Mutation**:
+   - **File**: `frontend/src/api/admin.ts`
+   - **Add**: New function to toggle user active status
+   ```typescript
+   toggleUserActive: async (userId: string, isActive: boolean): Promise<{ success: boolean; data: { user: any } }> => {
+     const response = await apiClient.put(`/api/admin/users/${userId}`, { isActive });
+     return response.data;
+   },
+   ```
+
+2. **Add Toggle Button in User List**:
+   - **File**: `frontend/src/pages/admin/AdminUsers.tsx`
+   - **Add**: Toggle button in actions column
+   ```typescript
+   // Add mutation
+   const toggleActiveMutation = useMutation({
+     mutationFn: ({ userId, isActive }: { userId: string; isActive: boolean }) =>
+       adminApi.toggleUserActive(userId, isActive),
+     onSuccess: () => {
+       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+       toast({ title: 'Success', description: 'User status updated' });
+     },
+   });
+
+   // Add button in table row
+   <Button
+     variant="ghost"
+     size="sm"
+     onClick={() => toggleActiveMutation.mutate({ 
+       userId: user.id, 
+       isActive: !user.isActive 
+     })}
+     className={user.isActive ? 'text-orange-600' : 'text-green-600'}
+   >
+     {user.isActive ? 'Disable' : 'Enable'}
+   </Button>
+   ```
+
+3. **Add Confirmation for Disable**:
+   - Show confirmation dialog when disabling user
+   - Explain consequences (user won't be able to login)
+
+### Files to Change
+- `frontend/src/api/admin.ts` (add toggleUserActive)
+- `frontend/src/pages/admin/AdminUsers.tsx` (add toggle button)
+
+### Test File to Add
+- `frontend/src/__tests__/pages/admin/AdminUsers.toggle.test.tsx`
+
+---
+
+## Issue #9: Stripe Payment Initiation Not Working
+
+### Problem
+No option to initiate payment in payment section. Stripe checkout exists but may not be working correctly.
+
+### Root Cause
+Checkout component exists but may have amount conversion issues (Stripe expects cents, not dollars).
+
+### Fix Steps
+
+1. **Fix Amount Conversion in Checkout**:
+   - **File**: `frontend/src/components/Checkout.tsx`
+   - **Function**: `onSubmit()`
+   - **Change**: Convert amount to cents before sending to backend
+   ```typescript
+   // BEFORE (around line 71):
+   const payment = await createPayment.mutateAsync({
+     amount: data.amount,
+     currency: data.currency,
+     description: data.description,
+     provider: 'STRIPE',
+   });
+   
+   // AFTER:
+   // Stripe expects amount in smallest currency unit (cents for USD, paise for INR, etc.)
+   const amountInCents = Math.round(data.amount * 100);
+   const payment = await createPayment.mutateAsync({
+     amount: amountInCents,
+     currency: data.currency,
+     description: data.description,
+     provider: 'STRIPE',
+   });
+   ```
+
+2. **Verify Stripe Configuration**:
+   - **File**: `frontend/.env.example`
+   - **Ensure**: `VITE_STRIPE_PUBLISHABLE_KEY` is documented
+   - **File**: `frontend/.env`
+   - **Set**: `VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...`
+
+3. **Verify Payment Route**:
+   - **File**: `frontend/src/App.tsx`
+   - **Ensure**: `/payments` route is accessible
+   - **Check**: PaymentSettings component is properly imported
+
+4. **Test Payment Flow**:
+   - Navigate to `/payments`
+   - Enter amount and card details
+   - Submit payment
+   - Verify payment processes correctly
+
+### Files to Change
+- `frontend/src/components/Checkout.tsx` (fix amount conversion)
+- `frontend/src/pages/PaymentSettings.tsx` (remove Razorpay references)
+
+### Test File to Add
+- `frontend/src/__tests__/components/Checkout.stripe.test.tsx`
+
+### Verification
+```bash
+# Test payment flow:
+# 1. Navigate to /payments
+# 2. Enter amount (e.g., 100.00)
+# 3. Select currency
+# 4. Enter card details
+# 5. Submit payment
+# 6. Verify payment processes (use Stripe test cards)
+```
+
+---
+
+## Issue #10: Admin Cannot Change User Roles
+
+### Problem
+Admin users cannot change user roles. Only SUPER_ADMIN should be able to change roles, but currently even ADMIN users see the role field (which doesn't work).
+
+### Root Cause
+1. Backend `updateUser` doesn't check if admin is SUPER_ADMIN before allowing role changes
+2. Frontend shows role field to all admins without permission check
+
+### Fix Steps
+
+#### Backend Changes
+
+1. **Add Permission Check in updateUser**:
+   - **File**: `backend/src/services/adminUserService.ts`
+   - **Function**: `updateUser()`
+   - **Change**: Check if admin is SUPER_ADMIN before allowing role changes
+   ```typescript
+   // Before role update (around line 247):
+   if (data.role !== undefined) {
+     // Check if admin is SUPER_ADMIN
+     const admin = await prisma.user.findUnique({
+       where: { id: adminUserId },
+       select: { role: true },
+     });
+
+     if (admin?.role !== 'SUPER_ADMIN') {
+       throw new ForbiddenError('Only SUPER_ADMIN can change user roles');
+     }
+
+     // Prevent changing own role
+     if (userId === adminUserId) {
+       throw new ForbiddenError('You cannot change your own role');
+     }
+
+     updateData.role = data.role;
+   }
+   ```
+
+#### Frontend Changes
+
+2. **Check User Role Before Showing Role Field**:
+   - **File**: `frontend/src/pages/admin/AdminUsers.tsx`
+   - **Component**: `EditUserModal`
+   - **Change**: Hide/disable role field for non-SUPER_ADMIN users
+   ```typescript
+   const { user: currentUser } = useAuth();
+
+   // In EditUserModal render:
+   {currentUser?.role === 'SUPER_ADMIN' && (
+     <div>
+       <label>Role</label>
+       <select
+         value={formData.role}
+         onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
+       >
+         <option value="USER">USER</option>
+         <option value="ADMIN">ADMIN</option>
+         <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+       </select>
+     </div>
+   )}
+   {currentUser?.role !== 'SUPER_ADMIN' && (
+     <div>
+       <label>Role</label>
+       <Input value={user.role} disabled />
+       <p className="text-xs text-muted-foreground">
+         Only SUPER_ADMIN can change user roles
+       </p>
+     </div>
+   )}
+   ```
+
+### Files to Change
+- `backend/src/services/adminUserService.ts` (add permission check)
+- `frontend/src/pages/admin/AdminUsers.tsx` (hide role field for non-SUPER_ADMIN)
+
+### Test File to Add
+- `backend/src/__tests__/services/adminUserService.roleChange.test.ts`
+
+### Verification
+```bash
+# Test as ADMIN user - should not be able to change roles
+# Test as SUPER_ADMIN - should be able to change roles
+```
+
+---
+
+## Testing Checklist (Updated)
+
+After applying fixes, verify:
+
+- [ ] **Issue #1**: Test email script works (`npm run test:email`)
+- [ ] **Issue #2**: AdminUsers page loads without errors
+- [ ] **Issue #3**: Audit logs show IP addresses (development) or "Localhost" (when null)
+- [ ] **Issue #4**: Feature Flags page shows 7 default flags after seed
+- [ ] **Issue #5**: OAuth works without hitting rate limit (make 10+ requests)
+- [ ] **Issue #6**: TOTP QR code can be scanned by authenticator app
+- [ ] **Issue #7**: Email MFA automatically sends OTP during setup
+- [ ] **Issue #8**: Can toggle user active status with one click
+- [ ] **Issue #9**: Can initiate Razorpay payment with card details
+- [ ] **Issue #10**: Only SUPER_ADMIN can change user roles
+
+---
+
 **Last Updated**: January 2025  
-**Status**: 4 fixes tested and verified ✅, 3 new issues identified ⚠️
+**Status**: 7 fixes tested and verified ✅, 3 new issues identified ⚠️

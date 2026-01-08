@@ -68,8 +68,10 @@ const CheckoutForm = () => {
 
     try {
       // Create payment intent on backend
+      // Stripe expects amount in smallest currency unit (cents for USD, paise for INR, etc.)
+      const amountInCents = Math.round(data.amount * 100);
       const payment = await createPayment.mutateAsync({
-        amount: data.amount,
+        amount: amountInCents,
         currency: data.currency,
         description: data.description,
         provider: 'STRIPE',

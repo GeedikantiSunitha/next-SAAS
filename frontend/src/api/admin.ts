@@ -101,6 +101,17 @@ export const adminApi = {
   },
 
   /**
+   * Toggle user active status
+   */
+  toggleUserActive: async (
+    userId: string,
+    isActive: boolean
+  ): Promise<{ success: boolean; data: { user: any } }> => {
+    const response = await apiClient.put(`/api/admin/users/${userId}`, { isActive });
+    return response.data;
+  },
+
+  /**
    * Get user sessions
    */
   getUserSessions: async (userId: string): Promise<{
