@@ -53,6 +53,14 @@ console.log(`   From Email: ${fromEmail}`);
 console.log(`   Test Email: delivered@resend.dev`);
 console.log('');
 
+// Check if user wants to test with a real email address
+const testRealEmail = process.argv[2];
+if (testRealEmail && testRealEmail !== 'delivered@resend.dev') {
+  console.log('⚠️  Testing with real email address:', testRealEmail);
+  console.log('   Note: This may fail if domain is not verified');
+  console.log('');
+}
+
 // Initialize Resend client
 const resend = new Resend(apiKey);
 
@@ -62,9 +70,11 @@ const resend = new Resend(apiKey);
   console.log('');
 
   try {
+  const recipientEmail = testRealEmail || 'delivered@resend.dev';
+  
   const result = await resend.emails.send({
     from: fromEmail,
-    to: 'delivered@resend.dev',
+    to: recipientEmail,
     subject: 'Test Email from NextSaaS - API Key Verification',
     html: `
       <!DOCTYPE html>
@@ -171,13 +181,24 @@ This is an automated test email. You can safely ignore it.
       console.log('💡 This means your API key is invalid or expired.');
       console.log('   Please check your API key in the Resend dashboard:');
       console.log('   https://resend.com/api-keys');
-    } else if (result.error.message.includes('domain') || result.error.message.includes('Domain')) {
-      console.log('💡 This might be a domain verification issue.');
-      console.log('   For test emails to delivered@resend.dev, you can use onboarding@resend.dev');
-      console.log('   For real emails, you need to verify your domain in Resend.');
+    } else if (result.error.message.includes('domain') || result.error.message.includes('Domain') || result.error.message.includes('not verified')) {
+      console.log('💡 Domain verification issue detected.');
+      console.log('');
+      console.log('📌 For Development/Testing (Template Use):');
+      console.log('   • Use delivered@resend.dev as recipient (works with onboarding@resend.dev)');
+      console.log('   • This is perfect for testing the template without domain setup');
+      console.log('   • Check delivered@resend.dev inbox: https://resend.com/emails');
+      console.log('');
+      console.log('📌 For Production/Real Emails:');
+      console.log('   • You need to verify your domain in Resend');
+      console.log('   • Go to: https://resend.com/domains');
+      console.log('   • Add your domain and follow DNS setup instructions');
+      console.log('   • Update FROM_EMAIL in .env to use your verified domain');
     } else {
       console.log('💡 Check the Resend dashboard for more details:');
       console.log('   https://resend.com/emails');
+      console.log('');
+      console.log('Error message:', result.error.message);
     }
     
     process.exit(1);
@@ -189,7 +210,7 @@ This is an automated test email. You can safely ignore it.
     console.log('');
     console.log('📬 Email Details:');
     console.log(`   Email ID: ${result.data.id}`);
-    console.log(`   To: delivered@resend.dev`);
+    console.log(`   To: ${recipientEmail}`);
     console.log(`   From: ${fromEmail}`);
     console.log(`   Subject: Test Email from NextSaaS - API Key Verification`);
     console.log('');
@@ -200,17 +221,33 @@ This is an automated test email. You can safely ignore it.
     console.log('   ✅ Resend API is accepting your requests');
     console.log('   ✅ Email sending functionality is working');
     console.log('');
-    console.log('⚠️  Important Notes:');
-    console.log('   • Test emails to delivered@resend.dev work with onboarding@resend.dev');
-    console.log('   • For real email addresses, you need to verify your domain in Resend');
-    console.log('   • Go to https://resend.com/domains to verify your domain');
-    console.log('   • Once verified, update FROM_EMAIL in .env to use your domain');
-    console.log('');
-    console.log('🔍 If you\'re still not receiving emails to real addresses:');
-    console.log('   1. Check spam/junk folder');
-    console.log('   2. Verify your domain in Resend dashboard');
-    console.log('   3. Check Resend dashboard for delivery status');
-    console.log('   4. Check backend logs for any errors');
+    
+    if (recipientEmail === 'delivered@resend.dev') {
+      console.log('📌 Development/Testing Setup (Template Default):');
+      console.log('   ✅ This is the correct setup for template testing');
+      console.log('   ✅ No domain verification needed for test emails');
+      console.log('   ✅ Check your email at: https://resend.com/emails');
+      console.log('');
+      console.log('💡 For Testing Real Email Addresses:');
+      console.log('   • Run: npm run test:email your-email@example.com');
+      console.log('   • This will test if domain verification is needed');
+      console.log('   • If it fails, you\'ll need to verify your domain');
+      console.log('');
+      console.log('📌 For Production Use:');
+      console.log('   • Verify your domain at: https://resend.com/domains');
+      console.log('   • Update FROM_EMAIL in .env to use your verified domain');
+      console.log('   • Example: FROM_EMAIL=noreply@yourdomain.com');
+    } else {
+      console.log('📌 Real Email Address Test:');
+      console.log('   ✅ Email sent to real address:', recipientEmail);
+      console.log('   ⚠️  Check spam/junk folder if not received');
+      console.log('   ⚠️  If email fails, domain verification may be required');
+      console.log('');
+      console.log('💡 Template Development Setup:');
+      console.log('   • For testing, use: npm run test:email (sends to delivered@resend.dev)');
+      console.log('   • No domain setup needed for template testing');
+      console.log('   • Check test emails at: https://resend.com/emails');
+    }
     console.log('');
   } else {
     console.error('❌ Unexpected response from Resend API');

@@ -9,15 +9,24 @@ This directory contains utility scripts for the NextSaaS backend.
 Tests if the Resend API key is valid by sending a test email to Resend's test inbox.
 
 **Usage:**
+
+Test with Resend's test inbox (recommended for template testing):
 ```bash
 cd backend
 npm run test:email
+```
+
+Test with a real email address:
+```bash
+cd backend
+npm run test:email your-email@example.com
 ```
 
 Or directly:
 ```bash
 cd backend
 npx tsx scripts/test-email-resend.ts
+npx tsx scripts/test-email-resend.ts your-email@example.com
 ```
 
 **What it does:**
