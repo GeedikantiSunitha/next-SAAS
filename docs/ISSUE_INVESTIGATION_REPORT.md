@@ -554,7 +554,7 @@ The feature flags system stores flags in the database (`FeatureFlag` model), but
 
 ## Conclusion
 
-All four issues have been thoroughly investigated, root causes identified, and **all issues have been fixed using Test-Driven Development (TDD)**.
+All 11 issues have been thoroughly investigated, root causes identified, and **all issues have been fixed using Test-Driven Development (TDD)**.
 
 ### Summary of Issues and Fixes
 
@@ -578,9 +578,44 @@ All four issues have been thoroughly investigated, root causes identified, and *
    - Fix: Added default flags to seed scripts + tests
    - Result: 7 default feature flags created on seed
 
+5. **OAuth Rate Limiting**: ✅ **FIXED**
+   - Root cause: OAuth routes using strict authLimiter (5 req/15min)
+   - Fix: Created oauthLimiter with higher limit (30 req/15min)
+   - Result: OAuth flows work without hitting rate limit
+
+6. **MFA TOTP Setup Issues**: ✅ **FIXED**
+   - Root cause: QR code too small, manual entry flow confusing
+   - Fix: Larger QR code (512x512), better error correction, improved UX
+   - Result: QR code scannable, better authenticator app compatibility
+
+7. **Email MFA No OTP**: ✅ **FIXED**
+   - Root cause: setupEmailMfa not automatically sending OTP
+   - Fix: Auto-send OTP after setupEmailMfa succeeds
+   - Result: OTP sent automatically during Email MFA setup
+
+8. **Disable/Enable User**: ✅ **FIXED**
+   - Root cause: No quick toggle button in user list
+   - Fix: Added toggle button with confirmation dialog
+   - Result: One-click disable/enable user functionality
+
+9. **Stripe Payment Initiation**: ✅ **FIXED**
+   - Root cause: Amount conversion issue (dollars to cents)
+   - Fix: Convert amount to cents before sending to backend
+   - Result: Stripe payment flow works correctly
+
+10. **Admin Role Change**: ✅ **FIXED**
+    - Root cause: Permission not enforced, role field visible to all admins
+    - Fix: Added permission check, hide role field for non-SUPER_ADMIN
+    - Result: Only SUPER_ADMIN can change user roles
+
+11. **Notification Bell Icon**: ✅ **FIXED**
+    - Root cause: No UI component to access notifications
+    - Fix: Created NotificationBell component with dropdown
+    - Result: Users can see bell icon, unread count, and access notifications
+
 ### Test Coverage
 
-- **31 tests** created/updated
+- **35+ tests** created/updated
 - **All tests passing** ✅
 - **TDD approach** followed (RED → GREEN → REFACTOR)
 
