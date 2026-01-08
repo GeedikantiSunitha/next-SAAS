@@ -29,6 +29,7 @@ const isLocalhost = (ip: string): boolean => {
 /**
  * Extract IP address from X-Forwarded-For header
  * Handles multiple IPs (proxy chain) - takes first one
+ * Note: Localhost filtering is handled in getClientIp based on environment
  */
 const getIpFromForwardedFor = (header: string | string[] | undefined): string | null => {
   if (!header) return null;
@@ -40,8 +41,9 @@ const getIpFromForwardedFor = (header: string | string[] | undefined): string | 
   // We want the first (original client) IP
   const firstIp = forwardedFor.split(',')[0].trim();
   
-  // Validate IP format (basic check) and filter out localhost
-  if (isValidIp(firstIp) && !isLocalhost(firstIp)) {
+  // Validate IP format (basic check)
+  // Note: Localhost filtering is handled in getClientIp based on environment
+  if (isValidIp(firstIp)) {
     return firstIp;
   }
   
@@ -83,26 +85,37 @@ const isValidIp = (ip: string): boolean => {
 /**
  * Get client IP address from request
  * 
+ * In development mode, localhost IPs are allowed and returned.
+ * In production mode, localhost IPs are filtered out (return null).
+ * 
  * @param req - Express request object
  * @returns Client IP address or null if not available
  */
 export const getClientIp = (req: Request): string | null => {
+  const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV !== 'production';
+  
   // Priority 1: X-Forwarded-For header (most reliable for proxied requests)
   const forwardedFor = getIpFromForwardedFor(req.headers['x-forwarded-for']);
   if (forwardedFor) {
-    return forwardedFor;
+    // In development, allow localhost; in production, filter it out
+    if (isDevelopment || !isLocalhost(forwardedFor)) {
+      return forwardedFor;
+    }
   }
   
   // Priority 2: X-Real-IP header (common in nginx)
   const realIp = req.headers['x-real-ip'];
-  if (realIp && typeof realIp === 'string' && isValidIp(realIp) && !isLocalhost(realIp)) {
-    return realIp;
+  if (realIp && typeof realIp === 'string' && isValidIp(realIp)) {
+    // In development, allow localhost; in production, filter it out
+    if (isDevelopment || !isLocalhost(realIp)) {
+      return realIp;
+    }
   }
   
   // Priority 3: req.ip (Express trust proxy - already processed)
-  if (req.ip && req.ip !== '::1' && req.ip !== '127.0.0.1' && isValidIp(req.ip)) {
-    // Filter out localhost IPv6 representation
-    if (req.ip !== '::ffff:127.0.0.1') {
+  if (req.ip && isValidIp(req.ip)) {
+    // In development, allow localhost; in production, filter it out
+    if (isDevelopment || !isLocalhost(req.ip)) {
       return req.ip;
     }
   }
@@ -110,8 +123,8 @@ export const getClientIp = (req: Request): string | null => {
   // Priority 4: req.connection.remoteAddress (fallback)
   const remoteAddress = req.socket?.remoteAddress || req.connection?.remoteAddress;
   if (remoteAddress && isValidIp(remoteAddress)) {
-    // Filter out localhost
-    if (remoteAddress !== '::1' && remoteAddress !== '127.0.0.1' && remoteAddress !== '::ffff:127.0.0.1') {
+    // In development, allow localhost; in production, filter it out
+    if (isDevelopment || !isLocalhost(remoteAddress)) {
       return remoteAddress;
     }
   }

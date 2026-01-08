@@ -125,34 +125,82 @@ describe('getClientIp', () => {
       expect(ip).toBe('192.168.1.50');
     });
 
-    it('should filter out localhost IPv4 from req.ip', () => {
-      const req = createMockRequest({
+    it('should handle localhost IPv4 from req.ip based on environment', () => {
+      const originalEnv = process.env.NODE_ENV;
+      
+      // In development, localhost should be allowed
+      process.env.NODE_ENV = 'development';
+      const devReq = createMockRequest({
         ip: '127.0.0.1',
         headers: {},
       });
-
-      const ip = getClientIp(req as Request);
-      expect(ip).toBeNull();
+      const devIp = getClientIp(devReq as Request);
+      
+      // In production, localhost should be filtered
+      process.env.NODE_ENV = 'production';
+      const prodReq = createMockRequest({
+        ip: '127.0.0.1',
+        headers: {},
+      });
+      const prodIp = getClientIp(prodReq as Request);
+      
+      process.env.NODE_ENV = originalEnv;
+      
+      // In development, localhost is allowed; in production, it's filtered
+      expect(devIp).toBe('127.0.0.1');
+      expect(prodIp).toBeNull();
     });
 
-    it('should filter out localhost IPv6 from req.ip', () => {
-      const req = createMockRequest({
+    it('should handle localhost IPv6 from req.ip based on environment', () => {
+      const originalEnv = process.env.NODE_ENV;
+      
+      // In development, localhost should be allowed
+      process.env.NODE_ENV = 'development';
+      const devReq = createMockRequest({
         ip: '::1',
         headers: {},
       });
-
-      const ip = getClientIp(req as Request);
-      expect(ip).toBeNull();
+      const devIp = getClientIp(devReq as Request);
+      
+      // In production, localhost should be filtered
+      process.env.NODE_ENV = 'production';
+      const prodReq = createMockRequest({
+        ip: '::1',
+        headers: {},
+      });
+      const prodIp = getClientIp(prodReq as Request);
+      
+      process.env.NODE_ENV = originalEnv;
+      
+      // In development, localhost is allowed; in production, it's filtered
+      expect(devIp).toBe('::1');
+      expect(prodIp).toBeNull();
     });
 
-    it('should filter out IPv4-mapped IPv6 localhost from req.ip', () => {
-      const req = createMockRequest({
+    it('should handle IPv4-mapped IPv6 localhost from req.ip based on environment', () => {
+      const originalEnv = process.env.NODE_ENV;
+      
+      // In development, localhost should be allowed
+      process.env.NODE_ENV = 'development';
+      const devReq = createMockRequest({
         ip: '::ffff:127.0.0.1',
         headers: {},
       });
-
-      const ip = getClientIp(req as Request);
-      expect(ip).toBeNull();
+      const devIp = getClientIp(devReq as Request);
+      
+      // In production, localhost should be filtered
+      process.env.NODE_ENV = 'production';
+      const prodReq = createMockRequest({
+        ip: '::ffff:127.0.0.1',
+        headers: {},
+      });
+      const prodIp = getClientIp(prodReq as Request);
+      
+      process.env.NODE_ENV = originalEnv;
+      
+      // In development, localhost is allowed; in production, it's filtered
+      expect(devIp).toBe('::ffff:127.0.0.1');
+      expect(prodIp).toBeNull();
     });
   });
 
@@ -181,16 +229,34 @@ describe('getClientIp', () => {
       expect(ip).toBe('192.168.1.80');
     });
 
-    it('should filter out localhost from remoteAddress', () => {
-      const req = createMockRequest({
+    it('should handle localhost from remoteAddress based on environment', () => {
+      const originalEnv = process.env.NODE_ENV;
+      
+      // In development, localhost should be allowed
+      process.env.NODE_ENV = 'development';
+      const devReq = createMockRequest({
         socket: {
           remoteAddress: '127.0.0.1',
         } as any,
         headers: {},
       });
-
-      const ip = getClientIp(req as Request);
-      expect(ip).toBeNull();
+      const devIp = getClientIp(devReq as Request);
+      
+      // In production, localhost should be filtered
+      process.env.NODE_ENV = 'production';
+      const prodReq = createMockRequest({
+        socket: {
+          remoteAddress: '127.0.0.1',
+        } as any,
+        headers: {},
+      });
+      const prodIp = getClientIp(prodReq as Request);
+      
+      process.env.NODE_ENV = originalEnv;
+      
+      // In development, localhost is allowed; in production, it's filtered
+      expect(devIp).toBe('127.0.0.1');
+      expect(prodIp).toBeNull();
     });
   });
 
@@ -228,17 +294,34 @@ describe('getClientIp', () => {
       expect(ip).toBeNull();
     });
 
-    it('should return null when all IPs are localhost', () => {
-      const req = createMockRequest({
+    it('should handle localhost IPs based on environment', () => {
+      const originalEnv = process.env.NODE_ENV;
+      
+      // In development, localhost should be allowed
+      process.env.NODE_ENV = 'development';
+      const devReq = createMockRequest({
         headers: {
           'x-forwarded-for': '127.0.0.1',
         },
         ip: '::1',
       });
-
-      const ip = getClientIp(req as Request);
-      // Should filter out localhost
-      expect(ip).toBeNull();
+      const devIp = getClientIp(devReq as Request);
+      
+      // In production, localhost should be filtered
+      process.env.NODE_ENV = 'production';
+      const prodReq = createMockRequest({
+        headers: {
+          'x-forwarded-for': '127.0.0.1',
+        },
+        ip: '::1',
+      });
+      const prodIp = getClientIp(prodReq as Request);
+      
+      process.env.NODE_ENV = originalEnv;
+      
+      // In development, should return first localhost IP; in production, should be null
+      expect(devIp).toBe('127.0.0.1');
+      expect(prodIp).toBeNull();
     });
 
     it('should handle empty X-Forwarded-For header', () => {

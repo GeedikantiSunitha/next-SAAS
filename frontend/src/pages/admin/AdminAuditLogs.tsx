@@ -131,7 +131,9 @@ export const AdminAuditLogs = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{log.action}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{log.resource}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{log.ipAddress || 'N/A'}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {log.ipAddress || 'Localhost'}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

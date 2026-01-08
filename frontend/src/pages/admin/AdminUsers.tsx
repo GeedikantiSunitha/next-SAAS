@@ -31,7 +31,7 @@ import {
   ModalCloseButton,
 } from '../../components/ui/modal';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
-import { PasswordStrengthIndicator } from '../../components/ui/password-strength-indicator';
+import { PasswordStrengthIndicator } from '../../components/PasswordStrengthIndicator';
 
 interface User {
   id: string;
