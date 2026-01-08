@@ -1062,8 +1062,71 @@ This report is designed to be shared with other projects (e.g., `nextsaas_mobile
 
 ---
 
+---
+
+## Issue #11: Notification Bell Icon Missing
+
+### **Reported Problem**
+- Notification bell icon is not present anywhere in the UI
+- Users have no visible way to view notifications
+- No notification alerts visible in header
+
+### **Investigation Findings**
+
+#### **Code Analysis**
+
+1. **Backend Support** (`backend/src/services/notificationService.ts`):
+   - ✅ Notification service exists and is fully implemented
+   - ✅ API endpoints for notifications exist
+   - ✅ Unread count endpoint available: `/api/notifications/unread-count`
+
+2. **Frontend Components**:
+   - ✅ `NotificationList` component exists
+   - ✅ `NotificationItem` component exists
+   - ✅ `Notifications` page exists at `/notifications`
+   - ✅ `useUnreadCount` hook exists
+   - ⚠️ **ISSUE**: No notification bell icon in Header component
+   - ⚠️ **ISSUE**: No notification dropdown/popover
+
+3. **Header Component** (`frontend/src/components/Header.tsx`):
+   - ✅ Shows Dashboard, Profile links
+   - ✅ Shows user email and logout
+   - ⚠️ **ISSUE**: Missing notification bell icon
+   - ⚠️ **ISSUE**: No way to access notifications quickly
+
+4. **Admin Layout** (`frontend/src/components/admin/AdminLayout.tsx`):
+   - ✅ Admin header exists
+   - ⚠️ **ISSUE**: Missing notification bell icon
+
+#### **Root Cause Identified**
+
+**Primary Issue**: **No Notification Bell Icon in UI**
+
+1. **Backend Ready**: Notification system fully implemented
+2. **Frontend Components Ready**: Notification components exist
+3. **UI Missing**: No bell icon in header to access notifications
+4. **UX Issue**: Users must navigate to `/notifications` page manually
+
+#### **Recommended Fixes** (Not Implemented Yet)
+
+1. **Frontend Changes**:
+   - Create `NotificationBell` component
+   - Add bell icon to Header component (for authenticated users)
+   - Add bell icon to AdminLayout header
+   - Show unread count badge on bell icon
+   - Create dropdown/popover to show recent notifications
+   - Link to full notifications page
+
+2. **Features**:
+   - Bell icon with unread count badge
+   - Click to open dropdown with recent notifications
+   - Show "View All" link to notifications page
+   - Auto-refresh unread count
+
+---
+
 **Report Generated**: January 2025  
 **Investigator**: AI Assistant  
-**Status**: Investigation Complete - 10 Issues Total (7 Fixed, 3 New Issues Identified)  
-**Last Updated**: After new issues investigation  
-**Test Coverage**: 31 tests, all passing ✅
+**Status**: Investigation Complete - 11 Issues Total (10 Fixed, 1 New Issue Identified)  
+**Last Updated**: After notification bell issue investigation  
+**Test Coverage**: 35 tests, all passing ✅

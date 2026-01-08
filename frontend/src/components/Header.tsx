@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom';
 import { Button } from './ui/button';
 import { LogOut, User } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { NotificationBell } from './NotificationBell';
 
 interface HeaderProps {
   isAuthenticated?: boolean;
@@ -59,6 +60,7 @@ export const Header = ({
                 <Button asChild variant="ghost">
                   <Link to="/profile">Profile</Link>
                 </Button>
+                <NotificationBell />
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <User className="h-4 w-4" />
                   <span>{userEmail}</span>
