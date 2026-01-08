@@ -87,18 +87,39 @@ Three issues were reported by testers that were previously thought to be working
 
 #### **Root Cause Identified**
 
-**Primary Issue**: **Missing or Invalid Resend API Key Configuration**
+**Primary Issue**: **API Key Present But Email Sending May Still Fail**
 
-The code is working correctly, but:
-1. **Environment Variable Not Set**: `RESEND_API_KEY` may not be configured in `.env`
-2. **Invalid API Key**: API key may be set but invalid or expired
-3. **Silent Failure**: Code logs warnings but doesn't fail - user sees "success" but no email
-4. **Documentation Gap**: Setup instructions don't emphasize that email is required for core features
+After further investigation, the API key IS being read correctly from `.env`. However, emails may still not be sent due to:
+
+1. **Invalid/Expired API Key**: The API key format looks correct (`re_...`), but it may be:
+   - Invalid (wrong key)
+   - Expired or revoked
+   - Not activated in Resend dashboard
+
+2. **FROM_EMAIL Domain Not Verified**: 
+   - Current `FROM_EMAIL=onboarding@resend.dev` (Resend test domain)
+   - This only works for testing to `delivered@resend.dev`
+   - Real email addresses won't receive emails from unverified domains
+   - Need to verify a custom domain in Resend dashboard
+
+3. **Silent Error Handling**: 
+   - `sendEmail()` throws `InternalServerError` when Resend API fails
+   - But `forgotPassword()` catches the error and doesn't throw
+   - User sees "success" message but no email is sent
+   - Error is only logged, not visible to user
+
+4. **Resend API Errors Not Visible**:
+   - When Resend returns an error (e.g., invalid API key, rate limit, domain not verified)
+   - Error is caught and logged: `logger.error('Failed to send password reset email', {...})`
+   - But user still sees success message
+   - Need to check backend logs to see actual error
 
 **Evidence**:
-- Code logs: `'Email not sent - Resend not configured'` when API key missing
-- Code returns success even when email fails (security feature)
-- Tests mock Resend, so they pass even without real API key
+- ✅ API key is being read: `RESEND_API_KEY: SET (re_MpYK9CH...)`
+- ✅ FROM_EMAIL is set: `onboarding@resend.dev`
+- ⚠️ Code catches errors silently in password reset flow
+- ⚠️ No user-visible error when email fails
+- ⚠️ Need to check backend logs for actual Resend API errors
 
 #### **Why Tests Passed**
 
@@ -109,20 +130,30 @@ The code is working correctly, but:
 
 #### **Recommended Fixes** (Not Implemented Yet)
 
-1. **Code Changes**:
-   - Add clearer error messages in logs
-   - Add health check endpoint to verify email configuration
-   - Consider throwing error in development mode when API key missing
+1. **Immediate Diagnostic Steps**:
+   - ✅ Check backend logs for actual Resend API errors
+   - ✅ Verify API key is valid in Resend dashboard
+   - ✅ Verify FROM_EMAIL domain is verified in Resend
+   - ✅ Test with Resend's test email: `delivered@resend.dev`
+   - ✅ Check if emails are going to spam folder
 
-2. **Documentation Changes**:
-   - Move Resend setup to "Required" section in INSTALLATION.md
-   - Add warning in USER_GUIDE.md about email setup
-   - Add troubleshooting section for email issues
+2. **Code Changes**:
    - Add email configuration validation on startup
+   - Add health check endpoint that tests email sending
+   - Add better error logging with Resend API error details
+   - Consider showing error to user in development mode
+   - Add email test endpoint for debugging
 
-3. **Test Changes**:
+3. **Documentation Changes**:
+   - Add troubleshooting guide for "emails not received"
+   - Document Resend domain verification requirement
+   - Explain that `onboarding@resend.dev` only works for testing
+   - Add steps to verify API key and domain in Resend dashboard
+
+4. **Test Changes**:
    - Add integration test that verifies email sending (when API key configured)
-   - Add test that verifies proper error handling when API key missing
+   - Add test that verifies proper error handling when API key invalid
+   - Add test for domain verification errors
 
 ---
 
