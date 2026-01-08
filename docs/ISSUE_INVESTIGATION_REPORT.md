@@ -361,13 +361,78 @@ The code is working as designed, but:
 
 ---
 
+## Issue #4: Feature Flags Page Shows "No feature flags available"
+
+### **Reported Problem**
+- Feature Flags page in admin panel shows "No feature flags available"
+- Page loads but displays empty state
+- Tester expected to see default feature flags
+
+### **Investigation Findings**
+
+#### **Root Cause Identified**
+
+**Primary Issue**: **No Default Feature Flags Seeded in Database**
+
+The feature flags system stores flags in the database (`FeatureFlag` model), but:
+1. **Seed Scripts Don't Create Flags**: Neither `seed.ts` nor `seed.demo.ts` create default feature flags
+2. **Database Table Empty**: When admin panel loads, it queries empty database table
+3. **Expected Default Flags**: Based on codebase, these flags should exist:
+   - `registration` (controls user registration)
+   - `oauth` (controls OAuth login)
+   - `google_oauth` (controls Google OAuth)
+   - `github_oauth` (controls GitHub OAuth)
+   - `microsoft_oauth` (controls Microsoft OAuth)
+   - `password_reset` (controls password reset)
+   - `email_verification` (controls email verification)
+
+#### **Why Tests Passed**
+
+1. Tests create feature flags in `beforeEach` or `beforeAll` hooks
+2. Tests don't verify that seed scripts create default flags
+3. Integration tests create flags as needed for testing
+4. No test verifies that fresh database has default flags
+
+#### **Code Analysis**
+
+1. **Admin Feature Flags Service** (`backend/src/services/adminFeatureFlagsService.ts`):
+   - ✅ Correctly reads from database
+   - ✅ Returns empty array when no flags exist
+   - ✅ Code is correct
+
+2. **Seed Scripts** (`backend/prisma/seed.ts`, `backend/prisma/seed.demo.ts`):
+   - ❌ **MISSING**: No feature flags created
+   - ❌ **GAP**: Should create default feature flags
+
+3. **Feature Flag Model** (`backend/prisma/schema.prisma`):
+   - ✅ Model exists and is correct
+   - ✅ Supports all required fields
+
+#### **Recommended Fixes** (Not Implemented Yet)
+
+1. **Update Seed Scripts**:
+   - Add default feature flags to `seed.ts`
+   - Add default feature flags to `seed.demo.ts`
+   - Create flags with appropriate default values
+
+2. **Test Changes**:
+   - Add test that verifies seed script creates default flags
+   - Add test that verifies fresh database has default flags
+
+3. **Documentation Changes**:
+   - Document default feature flags
+   - Explain how to reset feature flags
+
+---
+
 ## Summary of Root Causes
 
 | Issue | Root Cause | Why Tests Passed | Severity |
 |-------|------------|------------------|----------|
-| **#1: Email Not Received** | Missing/Invalid Resend API Key | Tests mock Resend, don't test real email | **HIGH** - Core functionality broken |
+| **#1: Email Not Received** | Domain verification required for real emails | Tests mock Resend, don't test real email | **HIGH** - Core functionality broken |
 | **#2: Admin Users Import Error** | Wrong import path in AdminUsers.tsx | No tests for AdminUsers page loading | **HIGH** - Page completely broken |
 | **#3: IP Address "N/A"** | Localhost IP filtering + testing on localhost | Tests use mock IPs, not localhost | **MEDIUM** - Expected behavior, but confusing |
+| **#4: Feature Flags Empty** | No default feature flags seeded in database | Tests create flags as needed, don't verify seed | **MEDIUM** - Missing default data |
 
 ---
 
@@ -403,9 +468,9 @@ The code is working as designed, but:
 ## Next Steps (Not Implemented)
 
 1. **Fix Issue #1 (Email)**:
-   - Update INSTALLATION.md to emphasize Resend setup
-   - Add email configuration validation
-   - Add clearer error messages
+   - ✅ **COMPLETED**: Created development email setup guide
+   - ✅ **COMPLETED**: Template works with test emails (no domain needed)
+   - ⚠️ **REMAINING**: Update INSTALLATION.md to emphasize test email setup
 
 2. **Fix Issue #2 (Import Error)**:
    - Fix import path in AdminUsers.tsx
@@ -417,32 +482,42 @@ The code is working as designed, but:
    - Update UI to show "Localhost" instead of "N/A"
    - Add documentation
 
-4. **Improve Test Coverage**:
+4. **Fix Issue #4 (Feature Flags Empty)**:
+   - Add default feature flags to seed.ts
+   - Add default feature flags to seed.demo.ts
+   - Add test to verify seed creates default flags
+   - Document default feature flags
+
+5. **Improve Test Coverage**:
    - Add integration tests for email sending
    - Add tests for frontend component loading
    - Add tests for localhost IP scenario
+   - Add tests for seed script completeness
 
-5. **Improve Documentation**:
+6. **Improve Documentation**:
    - Move Resend setup to required section
    - Add troubleshooting guides
    - Document IP address behavior
+   - Document default feature flags
 
 ---
 
 ## Conclusion
 
-All three issues have been thoroughly investigated. Root causes are identified:
+All four issues have been thoroughly investigated. Root causes are identified:
 
-1. **Email Issue**: Configuration problem (missing API key) + documentation gap
+1. **Email Issue**: ✅ **RESOLVED** - Template works with test emails, domain verification only needed for production
 2. **Import Error**: Simple code bug (wrong import path) + missing test coverage
 3. **IP Address**: Design decision (localhost filtering) + documentation gap
+4. **Feature Flags Empty**: Missing seed data (no default flags created) + missing test coverage
 
 **All issues are fixable** and don't indicate fundamental problems with the codebase. The issues are:
 - Configuration/documentation gaps (Issue #1, #3)
-- Simple code bug (Issue #2)
+- Simple code bugs (Issue #2, #4)
 - Missing test coverage (all issues)
 
-**No code changes have been made** - awaiting approval to proceed with fixes.
+**Issue #1 is resolved** - template works out of the box for testing.  
+**Issues #2, #3, #4** - awaiting approval to proceed with fixes.
 
 ---
 

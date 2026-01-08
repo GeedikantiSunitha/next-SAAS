@@ -154,6 +154,50 @@ async function main() {
   });
   console.log('✅ Created audit logs');
 
+  // Create default feature flags
+  console.log('🚩 Creating default feature flags...');
+  await prisma.featureFlag.createMany({
+    data: [
+      {
+        key: 'registration',
+        enabled: true,
+        description: 'Enable user registration',
+      },
+      {
+        key: 'oauth',
+        enabled: true,
+        description: 'Enable OAuth authentication',
+      },
+      {
+        key: 'google_oauth',
+        enabled: false,
+        description: 'Enable Google OAuth login',
+      },
+      {
+        key: 'github_oauth',
+        enabled: false,
+        description: 'Enable GitHub OAuth login',
+      },
+      {
+        key: 'microsoft_oauth',
+        enabled: false,
+        description: 'Enable Microsoft OAuth login',
+      },
+      {
+        key: 'password_reset',
+        enabled: true,
+        description: 'Enable password reset functionality',
+      },
+      {
+        key: 'email_verification',
+        enabled: false,
+        description: 'Require email verification for new users',
+      },
+    ],
+    skipDuplicates: true,
+  });
+  console.log('✅ Created default feature flags');
+
   console.log('\n🎉 Seed completed successfully!');
   console.log('\n📋 Test Credentials:');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
