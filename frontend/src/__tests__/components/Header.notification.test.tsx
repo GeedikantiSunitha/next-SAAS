@@ -7,39 +7,45 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { BrowserRouter } from 'react-router-dom';
 import { Header } from '../../components/Header';
-import { notificationApi } from '../../api/notifications';
+import { useUnreadCount } from '../../hooks/useNotifications';
 
-// Mock notification API
-vi.mock('../../../api/notifications', () => ({
-  notificationApi: {
-    getUnreadCount: vi.fn(),
-  },
+// Mock notification hooks
+vi.mock('../../hooks/useNotifications', () => ({
+  useUnreadCount: vi.fn(),
+  useNotifications: vi.fn(() => ({
+    data: [],
+    isLoading: false,
+  })),
 }));
-
-// Mock useQuery hook
-vi.mock('@tanstack/react-query', async () => {
-  const actual = await vi.importActual('@tanstack/react-query');
-  return {
-    ...actual,
-    useQuery: vi.fn(),
-  };
-});
 
 describe('Header - Notification Bell Icon', () => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
 
+  const renderWithProviders = (component: React.ReactElement) => {
+    return render(
+      <BrowserRouter>
+        <QueryClientProvider client={queryClient}>
+          {component}
+        </QueryClientProvider>
+      </BrowserRouter>
+    );
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
+    (useUnreadCount as any).mockReturnValue({
+      data: 0,
+      isLoading: false,
+    });
   });
 
   it('should show notification bell icon when user is authenticated', () => {
-    render(
-      <QueryClientProvider client={queryClient}>
-        <Header isAuthenticated={true} userEmail="test@example.com" />
-      </QueryClientProvider>
+    renderWithProviders(
+      <Header isAuthenticated={true} userEmail="test@example.com" />
     );
 
     // Should have bell icon
@@ -47,10 +53,8 @@ describe('Header - Notification Bell Icon', () => {
   });
 
   it('should not show notification bell when user is not authenticated', () => {
-    render(
-      <QueryClientProvider client={queryClient}>
-        <Header isAuthenticated={false} />
-      </QueryClientProvider>
+    renderWithProviders(
+      <Header isAuthenticated={false} />
     );
 
     // Should not have bell icon
@@ -58,16 +62,13 @@ describe('Header - Notification Bell Icon', () => {
   });
 
   it('should show unread count badge when there are unread notifications', async () => {
-    const { useQuery } = await import('@tanstack/react-query');
-    (useQuery as any).mockReturnValue({
-      data: { unreadCount: 5 },
+    (useUnreadCount as any).mockReturnValue({
+      data: 5,
       isLoading: false,
     });
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <Header isAuthenticated={true} userEmail="test@example.com" />
-      </QueryClientProvider>
+    renderWithProviders(
+      <Header isAuthenticated={true} userEmail="test@example.com" />
     );
 
     await waitFor(() => {
@@ -76,16 +77,13 @@ describe('Header - Notification Bell Icon', () => {
   });
 
   it('should not show badge when unread count is 0', async () => {
-    const { useQuery } = await import('@tanstack/react-query');
-    (useQuery as any).mockReturnValue({
-      data: { unreadCount: 0 },
+    (useUnreadCount as any).mockReturnValue({
+      data: 0,
       isLoading: false,
     });
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <Header isAuthenticated={true} userEmail="test@example.com" />
-      </QueryClientProvider>
+    renderWithProviders(
+      <Header isAuthenticated={true} userEmail="test@example.com" />
     );
 
     await waitFor(() => {
