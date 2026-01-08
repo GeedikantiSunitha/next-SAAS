@@ -20,7 +20,7 @@ const mockPrisma = {
   },
   mfaBackupCode: {
     updateMany: jest.fn(),
-    createMany: jest.fn(),
+    create: jest.fn(),
   },
 };
 
@@ -52,7 +52,7 @@ describe('MFA TOTP - QR Code Quality', () => {
       isEnabled: false,
     });
     (mockPrisma.mfaBackupCode.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
-    (mockPrisma.mfaBackupCode.createMany as jest.Mock).mockResolvedValue({ count: 8 });
+    (mockPrisma.mfaBackupCode.create as jest.Mock).mockResolvedValue({ id: 'code-1' });
   });
 
   it('should generate QR code with proper size (512x512)', async () => {

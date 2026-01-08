@@ -5,6 +5,7 @@
  */
 
 import { prisma } from '../../config/database';
+import * as mfaService from '../../services/mfaService';
 
 // Mock dependencies
 jest.mock('../../config/database', () => ({
@@ -27,14 +28,8 @@ jest.mock('../../services/auditService', () => ({
   createAuditLog: jest.fn(),
 }));
 
-// Mock sendEmailOtp to verify it's called
-jest.mock('../../services/mfaService', () => {
-  const actual = jest.requireActual('../../services/mfaService');
-  return {
-    ...actual,
-    sendEmailOtp: jest.fn(),
-  };
-});
+// Spy on sendEmailOtp
+const sendEmailOtpSpy = jest.spyOn(mfaService, 'sendEmailOtp');
 
 describe('MFA Email Setup - Auto-send OTP', () => {
   const mockUser = {
@@ -60,39 +55,37 @@ describe('MFA Email Setup - Auto-send OTP', () => {
     });
   });
 
+  afterEach(() => {
+    sendEmailOtpSpy.mockRestore();
+  });
+
   it('should automatically call sendEmailOtp after creating Email MFA method', async () => {
-    const mfaService = require('../../services/mfaService');
-    const { setupEmailMfa, sendEmailOtp } = mfaService;
-    
     // Mock sendEmailOtp to succeed
-    (sendEmailOtp as jest.Mock).mockResolvedValue({ success: true, otp: '123456' });
+    sendEmailOtpSpy.mockResolvedValue({ success: true, otp: '123456' });
     process.env.RESEND_API_KEY = 'test-key';
     process.env.FROM_EMAIL = 'test@example.com';
 
-    const result = await setupEmailMfa(mockUser.id);
+    const result = await mfaService.setupEmailMfa(mockUser.id);
 
     // Verify MFA method was created
     expect(prisma.mfaMethod.upsert).toHaveBeenCalled();
     
     // Verify sendEmailOtp was called automatically
-    expect(sendEmailOtp).toHaveBeenCalledWith(mockUser.id);
+    expect(sendEmailOtpSpy).toHaveBeenCalledWith(mockUser.id);
     expect(result.method).toBe('EMAIL');
   });
 
   it('should handle email sending errors gracefully during setup', async () => {
-    const mfaService = require('../../services/mfaService');
-    const { setupEmailMfa, sendEmailOtp } = mfaService;
-    
     // Mock sendEmailOtp to fail
-    (sendEmailOtp as jest.Mock).mockRejectedValue(new Error('Email sending failed'));
+    sendEmailOtpSpy.mockRejectedValue(new Error('Email sending failed'));
 
     // Setup should still succeed even if email sending fails
-    const result = await setupEmailMfa(mockUser.id);
+    const result = await mfaService.setupEmailMfa(mockUser.id);
 
     expect(result.method).toBe('EMAIL');
     // MFA method should still be created
     expect(prisma.mfaMethod.upsert).toHaveBeenCalled();
     // sendEmailOtp should have been attempted
-    expect(sendEmailOtp).toHaveBeenCalledWith(mockUser.id);
+    expect(sendEmailOtpSpy).toHaveBeenCalledWith(mockUser.id);
   });
 });
