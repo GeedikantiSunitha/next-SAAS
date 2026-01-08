@@ -16,6 +16,7 @@ import {
 import { Button } from '../ui/button';
 import { useToast } from '../../hooks/use-toast';
 import { authApi } from '../../api/auth';
+import { NotificationBell } from '../NotificationBell';
 
 interface AdminLayoutProps {
   children: ReactNode;
