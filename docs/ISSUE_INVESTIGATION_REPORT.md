@@ -606,8 +606,292 @@ This report is designed to be shared with other projects (e.g., `nextsaas_mobile
 
 ---
 
+---
+
+## Issue #5: OAuth Rate Limiting (429 Error)
+
+### **Reported Problem**
+- Google OAuth and GitHub OAuth showing 429 error (rate limit)
+- Error message: "ratelimit-5"
+- OAuth providers "stopping" after rate limit
+
+### **Investigation Findings**
+
+#### **Code Analysis**
+
+1. **Rate Limiter Configuration** (`backend/src/middleware/security.ts:62-70`):
+   ```typescript
+   export const authLimiter = rateLimit({
+     windowMs: config.rateLimit.windowMs, // 15 minutes (900000ms)
+     max: config.rateLimit.authMaxRequests, // 5 requests
+     message: 'Too many authentication attempts, please try again later',
+     standardHeaders: true,
+     legacyHeaders: false,
+     skipSuccessfulRequests: true,
+     skip: () => config.nodeEnv === 'test',
+   });
+   ```
+   - ✅ Rate limiter is correctly configured
+   - ⚠️ **ISSUE**: Only 5 requests per 15 minutes is very strict for development
+   - ⚠️ **ISSUE**: OAuth routes use `authLimiter` which is meant for login/register
+
+2. **OAuth Routes** (`backend/src/routes/auth.ts:736-808`):
+   - ✅ OAuth routes use `authLimiter` middleware
+   - ⚠️ **ISSUE**: OAuth setup/testing requires multiple attempts, hitting rate limit quickly
+   - ⚠️ **ISSUE**: Rate limit applies to all OAuth providers (Google, GitHub, Microsoft)
+
+3. **Configuration** (`backend/src/config/index.ts:62-67`):
+   ```typescript
+   rateLimit: {
+     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10), // 15 minutes
+     maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10),
+     authMaxRequests: parseInt(process.env.AUTH_RATE_LIMIT_MAX || '5', 10), // Only 5!
+   },
+   ```
+   - ⚠️ **ISSUE**: Default is 5 requests per 15 minutes (too strict for development)
+
+#### **Root Cause Identified**
+
+**Primary Issue**: **OAuth Routes Use Strict Authentication Rate Limiter**
+
+1. **Rate Limit Too Strict**: 5 requests per 15 minutes is appropriate for login/register but too strict for OAuth setup/testing
+2. **OAuth Needs Multiple Attempts**: OAuth setup requires:
+   - Testing token exchange
+   - Testing profile retrieval
+   - Testing user creation/update
+   - Multiple providers (Google, GitHub, Microsoft)
+3. **No Development Override**: Rate limiting doesn't have a development mode override (only test mode)
+
+#### **Why Tests Passed**
+
+1. **Test Mode Skips Rate Limiting**: `skip: () => config.nodeEnv === 'test'` - tests don't hit rate limits
+2. **Tests Use Mocks**: OAuth tests mock the external providers, so they don't make real requests
+3. **No Integration Tests**: No tests that verify OAuth works with rate limiting enabled
+
+#### **Recommended Fixes** (Not Implemented Yet)
+
+1. **Code Changes**:
+   - Create separate rate limiter for OAuth routes (more lenient)
+   - Or add environment variable to disable rate limiting for OAuth in development
+   - Or increase OAuth rate limit to 20-30 requests per 15 minutes
+
+2. **Configuration Changes**:
+   - Add `OAUTH_RATE_LIMIT_MAX` environment variable
+   - Default to higher limit (20-30) for OAuth
+   - Allow disabling in development mode
+
+3. **Documentation Changes**:
+   - Document rate limiting behavior
+   - Explain how to disable for development
+   - Add troubleshooting guide for 429 errors
+
+---
+
+## Issue #6: MFA TOTP Setup Issues
+
+### **Reported Problem**
+1. **QR Code Not Detected**: QR code shown but not detected by authenticator app scanner
+2. **Manual Key Entry**: When using manual key entry, generates 6-digit TOTP but no button/field to verify it
+3. **Verification Flow**: Confusion about when/how to verify the TOTP code
+
+### **Investigation Findings**
+
+#### **Code Analysis**
+
+1. **TOTP Setup Service** (`backend/src/services/mfaService.ts:24-79`):
+   ```typescript
+   export const setupTotp = async (userId: string) => {
+     // Generate secret
+     const secret = speakeasy.generateSecret({
+       name: `${config.appName} (${user.email})`,
+       length: 32,
+     });
+     
+     // Generate QR code URL
+     const qrCodeUrl = await QRCode.toDataURL(secret.otpauth_url!);
+     
+     return {
+       secret: secret.base32,
+       qrCodeUrl,
+       backupCodes,
+     };
+   };
+   ```
+   - ✅ Secret generation is correct
+   - ✅ QR code generation uses `speakeasy` and `qrcode` libraries
+   - ⚠️ **POTENTIAL ISSUE**: QR code format might not be compatible with all authenticator apps
+
+2. **TOTP Setup Modal** (`frontend/src/components/TotpSetupModal.tsx`):
+   - ✅ Shows QR code correctly
+   - ✅ Shows secret key for manual entry
+   - ✅ Has verification code input field
+   - ✅ Has "Verify & Enable" button
+   - ⚠️ **ISSUE**: Button only appears when verification code is entered (line 232-243)
+   - ⚠️ **ISSUE**: No clear indication that user needs to scan QR code first, then enter code
+
+3. **QR Code Format**:
+   - Uses `QRCode.toDataURL()` which generates base64 PNG
+   - Uses `secret.otpauth_url!` from speakeasy
+   - ⚠️ **POTENTIAL ISSUE**: QR code might be too small or low quality
+   - ⚠️ **POTENTIAL ISSUE**: QR code might not include proper issuer/account name
+
+#### **Root Cause Identified**
+
+**Primary Issues**:
+
+1. **QR Code Format/Quality**: 
+   - QR code might be generated with incorrect format
+   - QR code size might be too small (64x64 pixels)
+   - QR code might not include proper metadata (issuer, account name)
+
+2. **UX Flow Confusion**:
+   - User sees QR code and secret key
+   - User scans QR code (or enters manual key)
+   - User needs to enter 6-digit code from authenticator app
+   - But button only appears after code is entered (confusing)
+   - No clear step-by-step instructions
+
+3. **Manual Entry Flow**:
+   - Secret key is shown for manual entry
+   - But user might not understand they need to:
+     a. Enter secret in authenticator app
+     b. Wait for 6-digit code
+     c. Enter code in the input field
+     d. Click "Verify & Enable" button
+
+#### **Why Tests Passed**
+
+1. **Tests Mock QR Code**: Tests don't verify actual QR code format
+2. **Tests Don't Test UX Flow**: Tests verify API works, not user experience
+3. **No Integration Tests**: No tests that verify QR code can be scanned by real authenticator apps
+
+#### **Recommended Fixes** (Not Implemented Yet)
+
+1. **Code Changes**:
+   - Increase QR code size (e.g., 256x256 or 512x512)
+   - Ensure QR code includes proper issuer and account name
+   - Add explicit step-by-step instructions in UI
+   - Make "Verify & Enable" button always visible (disabled until code entered)
+   - Add visual indicators for each step (1. Scan QR, 2. Enter Code, 3. Verify)
+
+2. **QR Code Generation**:
+   - Verify `otpauth_url` format is correct
+   - Add issuer name explicitly: `otpauth://totp/Issuer:Account?secret=...&issuer=Issuer`
+   - Increase QR code DPI/quality
+
+3. **UX Improvements**:
+   - Add numbered steps (Step 1: Scan QR, Step 2: Enter Code, Step 3: Verify)
+   - Show button always (disabled state when no code)
+   - Add tooltip/help text explaining the flow
+   - Add success indicator when QR is scanned (if possible)
+
+---
+
+## Issue #7: Email MFA Not Sending OTP
+
+### **Reported Problem**
+- When setting up Email MFA, no OTP code or setup link is received
+- User clicks "Setup Email MFA" but nothing happens
+
+### **Investigation Findings**
+
+#### **Code Analysis**
+
+1. **Email MFA Setup Service** (`backend/src/services/mfaService.ts:342-382`):
+   ```typescript
+   export const setupEmailMfa = async (userId: string) => {
+     // Create or update email MFA method
+     const mfaMethod = await prisma.mfaMethod.upsert({
+       // ... creates MFA method record
+     });
+     
+     return {
+       method: mfaMethod.method,
+       isEnabled: mfaMethod.isEnabled,
+     };
+   };
+   ```
+   - ⚠️ **ISSUE**: `setupEmailMfa` only creates the MFA method record
+   - ⚠️ **ISSUE**: Does NOT send OTP email
+   - ⚠️ **ISSUE**: OTP is only sent by separate `sendEmailOtp()` function
+
+2. **Email MFA Setup Modal** (`frontend/src/components/EmailMfaSetupModal.tsx:40-62`):
+   ```typescript
+   useEffect(() => {
+     if (open) {
+       setupEmailMfaMutation.mutate(); // Only calls setupEmailMfa
+       setOtpSent(false);
+       setOtp('');
+     }
+   }, [open]);
+   
+   useEffect(() => {
+     if (setupEmailMfaMutation.isSuccess) {
+       setOtpSent(true); // Marks OTP as sent, but it wasn't!
+     }
+   }, [setupEmailMfaMutation.isSuccess]);
+   ```
+   - ⚠️ **ISSUE**: Modal calls `setupEmailMfa` when opened
+   - ⚠️ **ISSUE**: Sets `otpSent = true` when setup succeeds, but no OTP was sent
+   - ⚠️ **ISSUE**: User sees "OTP sent" message but no email received
+   - ⚠️ **ISSUE**: User can only get OTP by clicking "Resend Code" button
+
+3. **Send Email OTP Service** (`backend/src/services/mfaService.ts:387-471`):
+   - ✅ `sendEmailOtp()` function exists and works correctly
+   - ✅ Sends OTP email with 6-digit code
+   - ⚠️ **ISSUE**: Not called automatically during setup
+
+4. **Email Sending** (`backend/src/services/mfaService.ts:416-448`):
+   - ✅ Uses Resend API correctly
+   - ✅ Handles test mode gracefully
+   - ⚠️ **ISSUE**: Same email configuration issues as Issue #1 (domain verification)
+
+#### **Root Cause Identified**
+
+**Primary Issue**: **Email MFA Setup Doesn't Automatically Send OTP**
+
+1. **Setup Flow Missing Step**: `setupEmailMfa` only creates database record, doesn't send email
+2. **UI Misleading**: Modal shows "OTP sent" but no email was actually sent
+3. **User Confusion**: User expects OTP immediately after clicking "Setup Email MFA"
+4. **Workaround Required**: User must click "Resend Code" to actually get OTP
+
+#### **Why Tests Passed**
+
+1. **Tests Mock Email Sending**: Tests don't verify actual email delivery
+2. **Tests Test Functions Separately**: Tests verify `setupEmailMfa` and `sendEmailOtp` separately
+3. **No Integration Tests**: No tests that verify complete setup flow sends email
+
+#### **Recommended Fixes** (Not Implemented Yet)
+
+1. **Code Changes**:
+   - **Option A**: Modify `setupEmailMfa` to automatically call `sendEmailOtp` after creating MFA method
+   - **Option B**: Update frontend to call `sendEmailOtp` immediately after `setupEmailMfa` succeeds
+   - **Option C**: Combine setup and send into single endpoint
+
+2. **Frontend Changes**:
+   - Call `sendEmailOtp` automatically after `setupEmailMfa` succeeds
+   - Update UI to show "Sending OTP..." instead of "OTP sent" immediately
+   - Only show "OTP sent" after `sendEmailOtp` succeeds
+
+3. **UX Improvements**:
+   - Add loading state while sending OTP
+   - Show clear message: "Setting up Email MFA and sending verification code..."
+   - Handle email sending errors gracefully
+
+---
+
+## Summary of New Root Causes
+
+| Issue | Root Cause | Why Tests Passed | Severity |
+|-------|------------|------------------|----------|
+| **#5: OAuth Rate Limiting** | OAuth routes use strict auth limiter (5 req/15min) | Tests skip rate limiting | **MEDIUM** - Development blocker |
+| **#6: MFA TOTP Issues** | QR code format/quality + UX flow confusion | Tests mock QR code, don't test UX | **MEDIUM** - User experience issue |
+| **#7: Email MFA No OTP** | Setup doesn't automatically send OTP | Tests don't verify email delivery | **HIGH** - Core functionality broken |
+
+---
+
 **Report Generated**: January 2025  
 **Investigator**: AI Assistant  
-**Status**: All Issues Fixed ✅  
-**Last Updated**: After TDD fixes applied  
+**Status**: Investigation Complete - 7 Issues Total (4 Fixed, 3 New Issues Identified)  
+**Last Updated**: After new issues investigation  
 **Test Coverage**: 31 tests, all passing ✅

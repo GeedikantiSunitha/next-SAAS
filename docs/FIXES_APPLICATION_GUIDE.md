@@ -16,6 +16,9 @@
 | #2: Import Error | HIGH | 2 files | 1 test file | ✅ Fixed |
 | #3: IP Address | MEDIUM | 4 files | 2 test files | ✅ Fixed |
 | #4: Feature Flags | MEDIUM | 3 files | 1 test file | ✅ Fixed |
+| #5: OAuth Rate Limiting | MEDIUM | 2 files | 0 test files | ⚠️ Pending |
+| #6: MFA TOTP Issues | MEDIUM | 2 files | 0 test files | ⚠️ Pending |
+| #7: Email MFA No OTP | HIGH | 2 files | 0 test files | ⚠️ Pending |
 
 ---
 
@@ -488,6 +491,270 @@ npm run seed
 
 ---
 
+## Issue #5: OAuth Rate Limiting (429 Error)
+
+### Problem
+Google OAuth and GitHub OAuth showing 429 error (rate limit exceeded) after 5 requests.
+
+### Root Cause
+OAuth routes use strict authentication rate limiter (5 requests per 15 minutes), which is too strict for development/testing.
+
+### Fix Steps
+
+1. **Create Separate OAuth Rate Limiter**:
+   - **File**: `backend/src/middleware/security.ts`
+   - **Add**: New rate limiter for OAuth routes
+   ```typescript
+   /**
+    * OAuth rate limiter (more lenient for development)
+    * 30 requests per 15 minutes per IP
+    */
+   export const oauthLimiter = rateLimit({
+     windowMs: config.rateLimit.windowMs,
+     max: parseInt(process.env.OAUTH_RATE_LIMIT_MAX || '30', 10),
+     message: 'Too many OAuth requests, please try again later',
+     standardHeaders: true,
+     legacyHeaders: false,
+     skipSuccessfulRequests: true,
+     skip: () => config.nodeEnv === 'test' || config.nodeEnv === 'development',
+   });
+   ```
+
+2. **Update OAuth Routes**:
+   - **File**: `backend/src/routes/auth.ts`
+   - **Change**: Replace `authLimiter` with `oauthLimiter` for OAuth routes
+   ```typescript
+   // BEFORE:
+   router.post('/oauth/:provider', authLimiter, ...);
+   router.post('/oauth/google/exchange', authLimiter, ...);
+   router.post('/oauth/github/exchange', authLimiter, ...);
+   
+   // AFTER:
+   import { oauthLimiter } from '../middleware/security';
+   router.post('/oauth/:provider', oauthLimiter, ...);
+   router.post('/oauth/google/exchange', oauthLimiter, ...);
+   router.post('/oauth/github/exchange', oauthLimiter, ...);
+   ```
+
+3. **Add Environment Variable** (Optional):
+   - **File**: `backend/.env.example`
+   - **Add**: `OAUTH_RATE_LIMIT_MAX=30`
+   - **File**: `backend/.env`
+   - **Add**: `OAUTH_RATE_LIMIT_MAX=30` (or higher for development)
+
+4. **For Development** (Quick Fix):
+   - Set `NODE_ENV=development` in `.env`
+   - OAuth rate limiter will be skipped in development mode
+
+### Files to Change
+- `backend/src/middleware/security.ts` (add oauthLimiter)
+- `backend/src/routes/auth.ts` (replace authLimiter with oauthLimiter for OAuth routes)
+
+### Verification
+```bash
+# Test OAuth multiple times (should not hit rate limit)
+# Make 10+ OAuth requests - should all succeed
+```
+
+---
+
+## Issue #6: MFA TOTP Setup Issues
+
+### Problem
+1. QR code not detected by authenticator app scanner
+2. Manual key entry flow is confusing (no clear verification step)
+3. User doesn't understand when/how to verify TOTP code
+
+### Root Cause
+1. QR code might be too small or low quality
+2. QR code format might not include proper issuer metadata
+3. UX flow is confusing - button only appears after code is entered
+
+### Fix Steps
+
+#### Backend Changes
+
+1. **Improve QR Code Generation**:
+   - **File**: `backend/src/services/mfaService.ts`
+   - **Function**: `setupTotp()`
+   - **Change**: Increase QR code size and ensure proper format
+   ```typescript
+   // BEFORE (around line 40):
+   const qrCodeUrl = await QRCode.toDataURL(secret.otpauth_url!);
+   
+   // AFTER:
+   // Ensure otpauth_url includes issuer
+   const otpauthUrl = secret.otpauth_url || 
+     `otpauth://totp/${encodeURIComponent(config.appName)}:${encodeURIComponent(user.email)}?secret=${secret.base32}&issuer=${encodeURIComponent(config.appName)}`;
+   
+   // Generate larger, higher quality QR code
+   const qrCodeUrl = await QRCode.toDataURL(otpauthUrl, {
+     width: 512, // Increased from default
+     margin: 2,
+     errorCorrectionLevel: 'M',
+   });
+   ```
+
+#### Frontend Changes
+
+2. **Improve UX Flow**:
+   - **File**: `frontend/src/components/TotpSetupModal.tsx`
+   - **Change**: Add step indicators and make button always visible
+   ```typescript
+   // Add step indicator state
+   const [currentStep, setCurrentStep] = useState<'scan' | 'verify'>('scan');
+   
+   // Update button to always be visible
+   // BEFORE (line 232):
+   {step === 'setup' && setupTotpMutation.isSuccess && (
+     <Button onClick={handleVerify} ...>
+   
+   // AFTER:
+   {setupTotpMutation.isSuccess && (
+     <>
+       {/* Step indicators */}
+       <div className="flex items-center justify-center space-x-2 mb-4">
+         <div className={`flex items-center ${currentStep === 'scan' ? 'text-primary' : 'text-muted-foreground'}`}>
+           <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep === 'scan' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+             1
+           </div>
+           <span className="ml-2">Scan QR Code</span>
+         </div>
+         <div className="w-8 h-0.5 bg-muted"></div>
+         <div className={`flex items-center ${currentStep === 'verify' ? 'text-primary' : 'text-muted-foreground'}`}>
+           <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep === 'verify' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+             2
+           </div>
+           <span className="ml-2">Enter Code</span>
+         </div>
+       </div>
+       
+       {/* Button always visible */}
+       <Button
+         onClick={handleVerify}
+         disabled={!verificationCode || verificationCode.length !== 6 || enableMfaMutation.isPending}
+         className="w-full"
+       >
+         {enableMfaMutation.isPending ? 'Verifying...' : 'Verify & Enable'}
+       </Button>
+     </>
+   )}
+   ```
+
+3. **Add Clear Instructions**:
+   - Add help text explaining the flow
+   - Add tooltip for manual entry option
+   - Show example of what the code looks like
+
+### Files to Change
+- `backend/src/services/mfaService.ts` (improve QR code generation)
+- `frontend/src/components/TotpSetupModal.tsx` (improve UX flow)
+
+### Verification
+```bash
+# Test QR code scanning:
+# 1. Open TOTP setup modal
+# 2. Scan QR code with authenticator app
+# 3. Verify QR code is detected correctly
+# 4. Enter 6-digit code
+# 5. Verify MFA is enabled
+```
+
+---
+
+## Issue #7: Email MFA Not Sending OTP
+
+### Problem
+When setting up Email MFA, no OTP code is received. User clicks "Setup Email MFA" but nothing happens.
+
+### Root Cause
+`setupEmailMfa` only creates the MFA method record but doesn't send OTP. OTP is only sent by separate `sendEmailOtp()` function, which is not called automatically.
+
+### Fix Steps
+
+#### Option A: Backend Fix (Recommended)
+
+1. **Modify setupEmailMfa to Send OTP**:
+   - **File**: `backend/src/services/mfaService.ts`
+   - **Function**: `setupEmailMfa()`
+   - **Change**: Call `sendEmailOtp` after creating MFA method
+   ```typescript
+   // AFTER (around line 377):
+   export const setupEmailMfa = async (userId: string) => {
+     // ... existing code to create MFA method ...
+     
+     // Automatically send OTP after setup
+     try {
+       await sendEmailOtp(userId);
+     } catch (error: any) {
+       // Log error but don't fail setup
+       logger.warn('Failed to send OTP during setup', { userId, error: error.message });
+     }
+     
+     return {
+       method: mfaMethod.method,
+       isEnabled: mfaMethod.isEnabled,
+     };
+   };
+   ```
+
+#### Option B: Frontend Fix
+
+2. **Update EmailMfaSetupModal**:
+   - **File**: `frontend/src/components/EmailMfaSetupModal.tsx`
+   - **Change**: Call `sendEmailOtp` after `setupEmailMfa` succeeds
+   ```typescript
+   // Update useEffect (around line 57):
+   useEffect(() => {
+     if (setupEmailMfaMutation.isSuccess) {
+       // Automatically send OTP after setup
+       sendEmailOtpMutation.mutate();
+     }
+   }, [setupEmailMfaMutation.isSuccess]);
+   
+   // Update otpSent logic:
+   useEffect(() => {
+     if (sendEmailOtpMutation.isSuccess) {
+       setOtpSent(true);
+     }
+   }, [sendEmailOtpMutation.isSuccess]);
+   ```
+
+3. **Update UI Messages**:
+   - Change "Setting up Email MFA..." to "Setting up and sending verification code..."
+   - Only show "OTP sent" after `sendEmailOtp` succeeds
+   - Show error if OTP sending fails
+
+### Files to Change
+- **Option A**: `backend/src/services/mfaService.ts` (modify setupEmailMfa)
+- **Option B**: `frontend/src/components/EmailMfaSetupModal.tsx` (call sendEmailOtp automatically)
+
+### Verification
+```bash
+# Test Email MFA setup:
+# 1. Open Email MFA setup modal
+# 2. Verify OTP is sent automatically
+# 3. Check email inbox for OTP code
+# 4. Enter OTP code
+# 5. Verify MFA is enabled
+```
+
+---
+
+## Testing Checklist (Updated)
+
+After applying fixes, verify:
+
+- [ ] **Issue #1**: Test email script works (`npm run test:email`)
+- [ ] **Issue #2**: AdminUsers page loads without errors
+- [ ] **Issue #3**: Audit logs show IP addresses (development) or "Localhost" (when null)
+- [ ] **Issue #4**: Feature Flags page shows 7 default flags after seed
+- [ ] **Issue #5**: OAuth works without hitting rate limit (make 10+ requests)
+- [ ] **Issue #6**: TOTP QR code can be scanned by authenticator app
+- [ ] **Issue #7**: Email MFA automatically sends OTP during setup
+
+---
+
 ## Support
 
 If you encounter issues when applying these fixes:
@@ -499,4 +766,4 @@ If you encounter issues when applying these fixes:
 ---
 
 **Last Updated**: January 2025  
-**Status**: All fixes tested and verified ✅
+**Status**: 4 fixes tested and verified ✅, 3 new issues identified ⚠️
