@@ -4,7 +4,6 @@
  * Tests to verify Email MFA setup automatically sends OTP.
  */
 
-import { setupEmailMfa } from '../../services/mfaService';
 import { prisma } from '../../config/database';
 
 // Mock dependencies
@@ -62,7 +61,8 @@ describe('MFA Email Setup - Auto-send OTP', () => {
   });
 
   it('should automatically call sendEmailOtp after creating Email MFA method', async () => {
-    const { setupEmailMfa, sendEmailOtp } = require('../../services/mfaService');
+    const mfaService = require('../../services/mfaService');
+    const { setupEmailMfa, sendEmailOtp } = mfaService;
     
     // Mock sendEmailOtp to succeed
     (sendEmailOtp as jest.Mock).mockResolvedValue({ success: true, otp: '123456' });
@@ -80,7 +80,8 @@ describe('MFA Email Setup - Auto-send OTP', () => {
   });
 
   it('should handle email sending errors gracefully during setup', async () => {
-    const { setupEmailMfa, sendEmailOtp } = require('../../services/mfaService');
+    const mfaService = require('../../services/mfaService');
+    const { setupEmailMfa, sendEmailOtp } = mfaService;
     
     // Mock sendEmailOtp to fail
     (sendEmailOtp as jest.Mock).mockRejectedValue(new Error('Email sending failed'));

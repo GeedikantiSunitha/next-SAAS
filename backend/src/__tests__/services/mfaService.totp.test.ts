@@ -6,7 +6,6 @@
  */
 
 import { setupTotp } from '../../services/mfaService';
-import { prisma } from '../../config/database';
 import speakeasy from 'speakeasy';
 import QRCode from 'qrcode';
 import config from '../../config';
