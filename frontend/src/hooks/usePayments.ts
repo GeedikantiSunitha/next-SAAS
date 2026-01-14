@@ -5,7 +5,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as paymentApi from '../api/payments';
 import type {
-  Payment,
   CreatePaymentData,
   GetPaymentsParams,
 } from '../api/payments';

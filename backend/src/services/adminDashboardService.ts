@@ -12,6 +12,7 @@ import config from '../config';
 export interface DashboardStats {
   totalUsers: number;
   activeSessions: number;
+  totalPayments: number;
   recentActivity: Array<{
     id: string;
     userId: string | null;
@@ -20,6 +21,11 @@ export interface DashboardStats {
     resourceId: string | null;
     createdAt: Date;
     details?: any;
+    user?: {
+      id: string;
+      email: string;
+      name: string | null;
+    };
   }>;
   systemHealth: {
     status: string;
@@ -43,7 +49,8 @@ export interface DashboardStats {
  * Returns:
  * - Total users count
  * - Active sessions count
- * - Recent activity (last 10 audit log entries)
+ * - Total payments count
+ * - Recent activity (last 10 audit log entries with user info)
  * - System health status
  */
 export const getDashboardStats = async (): Promise<DashboardStats> => {
@@ -60,6 +67,9 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
       },
     });
 
+    // Get total payments count
+    const totalPayments = await prisma.payment.count();
+
     // Get recent activity (last 10 audit log entries, ordered by createdAt desc)
     const recentActivity = await prisma.auditLog.findMany({
       take: 10,
@@ -74,6 +84,13 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
         resourceId: true,
         createdAt: true,
         details: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        },
       },
     });
 
@@ -110,10 +127,23 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
       };
     }
 
+    // Map recentActivity to match interface (convert null user to undefined)
+    const mappedRecentActivity = recentActivity.map((activity) => ({
+      id: activity.id,
+      userId: activity.userId,
+      action: activity.action,
+      resource: activity.resource,
+      resourceId: activity.resourceId,
+      createdAt: activity.createdAt,
+      details: activity.details,
+      user: activity.user || undefined, // Convert null to undefined
+    }));
+
     return {
       totalUsers,
       activeSessions,
-      recentActivity,
+      totalPayments,
+      recentActivity: mappedRecentActivity,
       systemHealth,
     };
   } catch (error: any) {

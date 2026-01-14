@@ -51,7 +51,6 @@
     "@prisma/client": "^5.9.0",
     "@sentry/node": "^10.32.1",
     "@sentry/profiling-node": "^10.32.1",
-    "@types/handlebars": "^4.0.40",
     "@types/passport": "^1.0.17",
     "@types/passport-github2": "^1.2.9",
     "@types/passport-google-oauth20": "^2.0.17",

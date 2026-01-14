@@ -8,7 +8,6 @@ import { useState } from 'react';
 import { Layout } from '../components/Layout';
 import { NotificationList } from '../components/NotificationList';
 import { NotificationPreferences } from '../components/NotificationPreferences';
-import { Button } from '../components/ui/button';
 import { Bell, Settings } from 'lucide-react';
 import { cn } from '../lib/utils';
 

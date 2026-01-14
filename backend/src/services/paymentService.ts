@@ -11,6 +11,7 @@ import { PaymentStatus, PaymentProvider, Currency } from '@prisma/client';
 import logger from '../utils/logger';
 import { AppError, NotFoundError } from '../utils/errors';
 import { createAuditLog } from './auditService';
+import { createNotification } from './notificationService';
 
 /**
  * Create a new payment with the configured payment provider
@@ -82,6 +83,37 @@ export const createPayment = async (params: CreatePaymentParams & { provider?: P
         provider: provider.name,
       },
     });
+
+    // Create notification for payment creation
+    try {
+      const amountFormatted = new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: params.currency,
+        minimumFractionDigits: 2,
+      }).format(Number(params.amount) / 100);
+
+      await createNotification({
+        userId: params.userId,
+        type: 'INFO',
+        channel: 'IN_APP',
+        title: 'Payment Initiated',
+        message: `A payment of ${amountFormatted} has been initiated.`,
+        data: {
+          action: 'PAYMENT_CREATED',
+          paymentId: payment.id,
+          amount: params.amount,
+          currency: params.currency,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    } catch (error: any) {
+      // Log error but don't fail payment creation
+      logger.warn('Failed to create payment notification', {
+        userId: params.userId,
+        paymentId: payment.id,
+        error: error.message,
+      });
+    }
 
     logger.info('Payment created', {
       paymentId: payment.id,
@@ -184,6 +216,39 @@ export const capturePayment = async (paymentId: string, userId: string, amount?:
       paymentId: payment.id,
       userId,
     });
+
+    // Create notification when payment is successfully completed
+    if (updatedPayment.status === PaymentStatus.SUCCEEDED) {
+      try {
+        const amountFormatted = new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: updatedPayment.currency,
+          minimumFractionDigits: 2,
+        }).format(Number(updatedPayment.amount) / 100);
+
+        await createNotification({
+          userId,
+          type: 'SUCCESS',
+          channel: 'IN_APP',
+          title: 'Payment Successful',
+          message: `Your payment of ${amountFormatted} has been successfully processed.`,
+          data: {
+            action: 'PAYMENT_COMPLETED',
+            paymentId: payment.id,
+            amount: updatedPayment.amount,
+            currency: updatedPayment.currency,
+            timestamp: new Date().toISOString(),
+          },
+        });
+      } catch (error: any) {
+        // Log error but don't fail payment capture
+        logger.warn('Failed to create payment notification', {
+          userId,
+          paymentId: payment.id,
+          error: error.message,
+        });
+      }
+    }
 
     return updatedPayment;
   } catch (error: any) {

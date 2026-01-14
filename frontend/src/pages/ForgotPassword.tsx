@@ -33,6 +33,8 @@ export const ForgotPassword = () => {
     formState: { errors },
   } = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
+    mode: 'onBlur', // Validate on blur for better UX
+    reValidateMode: 'onChange', // Re-validate on change after first submit
   });
 
   const onSubmit = async (data: ForgotPasswordFormData) => {
@@ -52,7 +54,7 @@ export const ForgotPassword = () => {
       toast({
         title: 'Error',
         description: errorMessage,
-        variant: 'destructive',
+        variant: 'error',
       });
     } finally {
       setIsSubmitting(false);

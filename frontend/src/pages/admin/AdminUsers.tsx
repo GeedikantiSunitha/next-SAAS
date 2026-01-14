@@ -12,12 +12,8 @@ import {
   Edit,
   Trash2,
   Eye,
-  Filter,
   X,
   User as UserIcon,
-  Mail,
-  Shield,
-  Clock,
   CheckCircle,
   XCircle,
 } from 'lucide-react';
@@ -27,7 +23,6 @@ import {
   ModalHeader,
   ModalFooter,
   ModalTitle,
-  ModalDescription,
   ModalCloseButton,
 } from '../../components/ui/modal';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
@@ -58,7 +53,6 @@ export const AdminUsers = () => {
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { user: currentUser } = useAuth();
 
   const limit = 20;
 
@@ -96,7 +90,7 @@ export const AdminUsers = () => {
       toast({
         title: 'Error',
         description: error.response?.data?.error || 'Failed to create user',
-        variant: 'destructive',
+        variant: 'error',
       });
     },
   });
@@ -118,7 +112,7 @@ export const AdminUsers = () => {
       toast({
         title: 'Error',
         description: error.response?.data?.error || 'Failed to update user',
-        variant: 'destructive',
+        variant: 'error',
       });
     },
   });
@@ -139,7 +133,7 @@ export const AdminUsers = () => {
       toast({
         title: 'Error',
         description: error.response?.data?.error || 'Failed to delete user',
-        variant: 'destructive',
+        variant: 'error',
       });
     },
   });
@@ -159,7 +153,7 @@ export const AdminUsers = () => {
       toast({
         title: 'Error',
         description: error.response?.data?.error || 'Failed to update user status',
-        variant: 'destructive',
+        variant: 'error',
       });
     },
   });

@@ -38,16 +38,36 @@ export const errorHandler = (
   }
 
   // Log error with context
-  logger.error('Request error', {
-    error: err.message,
-    stack: err.stack,
-    requestId,
-    userId,
-    method: req.method,
-    path: req.path,
-    statusCode,
-    isOperational,
-  });
+  // In test environment, suppress operational errors (expected errors) to reduce log noise
+  // Only log non-operational errors (unexpected errors) in test environment
+  const shouldLog = config.nodeEnv !== 'test' || !isOperational;
+  
+  if (shouldLog) {
+    // Use appropriate log level based on error type
+    if (isOperational && config.nodeEnv !== 'test') {
+      // Expected errors: log at warn level in non-test environments
+      logger.warn('Request error (expected)', {
+        error: err.message,
+        requestId,
+        userId,
+        method: req.method,
+        path: req.path,
+        statusCode,
+      });
+    } else {
+      // Unexpected errors or non-test environment: log at error level
+      logger.error('Request error', {
+        error: err.message,
+        stack: err.stack,
+        requestId,
+        userId,
+        method: req.method,
+        path: req.path,
+        statusCode,
+        isOperational,
+      });
+    }
+  }
 
   // Send to Sentry for non-operational errors (unexpected errors)
   if (!isOperational && Sentry) {

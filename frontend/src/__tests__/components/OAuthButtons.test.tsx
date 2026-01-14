@@ -52,14 +52,14 @@ describe('OAuthButtons Component', () => {
   it('should render OAuth buttons', () => {
     vi.stubEnv('VITE_GOOGLE_CLIENT_ID', 'test-google-id');
     vi.stubEnv('VITE_GITHUB_CLIENT_ID', 'test-github-id');
-    vi.stubEnv('VITE_MICROSOFT_CLIENT_ID', 'test-microsoft-id');
+    // Note: Microsoft OAuth is commented out in component (coming soon)
 
     render(<OAuthButtons />, { wrapper: createWrapper() });
 
     expect(screen.getByText(/or continue with/i)).toBeInTheDocument();
     expect(screen.getByText(/google/i)).toBeInTheDocument();
     expect(screen.getByText(/github/i)).toBeInTheDocument();
-    expect(screen.getByText(/microsoft/i)).toBeInTheDocument();
+    // Microsoft button is not rendered (commented out in component)
   });
 
   it('should call initiateOAuth when Google button is clicked', async () => {
@@ -90,7 +90,9 @@ describe('OAuthButtons Component', () => {
     expect(initiateOAuth).toHaveBeenCalledWith('github');
   });
 
-  it('should call initiateOAuth when Microsoft button is clicked', async () => {
+  // Note: Microsoft OAuth button is commented out in component (coming soon)
+  // This test is skipped until Microsoft OAuth is implemented
+  it.skip('should call initiateOAuth when Microsoft button is clicked', async () => {
     const user = userEvent.setup();
     vi.stubEnv('VITE_MICROSOFT_CLIENT_ID', 'test-microsoft-id');
 
@@ -117,7 +119,7 @@ describe('OAuthButtons Component', () => {
       expect(mockToast).toHaveBeenCalledWith(
         expect.objectContaining({
           title: 'OAuth Not Configured',
-          variant: 'destructive',
+          variant: 'error',
         })
       );
     });

@@ -7,6 +7,7 @@ import requestId from '../../middleware/requestId';
 import cookieParser from 'cookie-parser';
 import * as authService from '../../services/authService';
 import adminRoutes from '../../routes/admin';
+import bcrypt from 'bcryptjs';
 
 const app = express();
 app.use(express.json());
@@ -213,9 +214,11 @@ describe('Admin User Management Routes', () => {
 
   describe('PUT /api/admin/users/:id', () => {
     it('should update user details', async () => {
+      // NOTE: Only SUPER_ADMIN can change roles (see adminUserService.updateUser line 254)
+      // ADMIN can update name, email, password, isActive but not role
       const updateData = {
         name: 'Updated Name',
-        role: 'ADMIN',
+        // Removed role: 'ADMIN' - requires SUPER_ADMIN to change roles
       };
 
       const response = await request(app)
@@ -226,7 +229,39 @@ describe('Admin User Management Routes', () => {
 
       expect(response.body.success).toBe(true);
       expect(response.body.data.user.name).toBe(updateData.name);
-      expect(response.body.data.user.role).toBe(updateData.role);
+      expect(response.body.data.user.role).toBe(regularUser.role); // Role unchanged (ADMIN cannot change roles)
+    });
+
+    it('should update user role (SUPER_ADMIN only)', async () => {
+      // Create SUPER_ADMIN user for role change test
+      const superAdminPassword = await bcrypt.hash('SuperAdmin123!', 10);
+      const superAdmin = await prisma.user.create({
+        data: {
+          email: 'superadmin@example.com',
+          password: superAdminPassword,
+          name: 'Super Admin',
+          role: 'SUPER_ADMIN',
+        },
+      });
+
+      const superAdminTokens = authService.generateTokens(superAdmin.id);
+      const superAdminToken = superAdminTokens.accessToken;
+
+      const updateData = {
+        role: 'ADMIN',
+      };
+
+      const response = await request(app)
+        .put(`/api/admin/users/${regularUser.id}`)
+        .set('Cookie', `accessToken=${superAdminToken}`)
+        .send(updateData)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.user.role).toBe('ADMIN');
+
+      // Cleanup super admin
+      await prisma.user.deleteMany({ where: { id: superAdmin.id } });
     });
 
     it('should update user password', async () => {

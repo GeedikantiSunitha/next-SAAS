@@ -7,6 +7,7 @@ import { ConflictError, UnauthorizedError, NotFoundError, ValidationError } from
 import { shouldRejectPassword, checkPasswordStrength } from '../utils/passwordStrength';
 import { sendPasswordResetEmail } from './emailService';
 import logger from '../utils/logger';
+import { createNotification } from './notificationService';
 
 /**
  * Hash password
@@ -249,6 +250,12 @@ export const login = async (
   // Generate tokens
   const { accessToken, refreshToken } = generateTokens(user.id);
 
+  // Delete existing sessions for this user before creating new one
+  // This prevents unique constraint violations and ensures one active session per user
+  await prisma.session.deleteMany({
+    where: { userId: user.id },
+  });
+
   // Save refresh token in database
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 30); // 30 days
@@ -284,6 +291,7 @@ export const login = async (
       name: user.name,
       role: user.role,
     },
+    requiresMfa: false, // Explicitly set to false when MFA is not enabled
     accessToken,
     refreshToken,
   };
@@ -517,6 +525,27 @@ export const resetPassword = async (token: string, newPassword: string) => {
     userId: passwordReset.userId,
     email: passwordReset.user.email,
   });
+
+  // Create notification for password reset
+  try {
+    await createNotification({
+      userId: passwordReset.userId,
+      type: 'SUCCESS',
+      channel: 'IN_APP',
+      title: 'Password Reset Successful',
+      message: 'Your password has been successfully reset. If you did not make this change, please contact support immediately.',
+      data: {
+        action: 'PASSWORD_RESET',
+        timestamp: new Date().toISOString(),
+      },
+    });
+  } catch (error: any) {
+    // Log error but don't fail password reset
+    logger.warn('Failed to create password reset notification', {
+      userId: passwordReset.userId,
+      error: error.message,
+    });
+  }
 
   return {
     message: 'Password reset successfully. You can now login with your new password.',

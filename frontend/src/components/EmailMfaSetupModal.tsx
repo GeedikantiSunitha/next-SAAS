@@ -21,7 +21,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { useSetupEmailMfa, useEnableMfa, useSendEmailOtp } from '../hooks/useMfa';
 import { useToast } from '../hooks/use-toast';
-import { Mail, RefreshCw } from 'lucide-react';
+import { Mail, RefreshCw, AlertCircle, Info } from 'lucide-react';
 
 interface EmailMfaSetupModalProps {
   open: boolean;
@@ -57,6 +57,7 @@ export const EmailMfaSetupModal = ({ open, onOpenChange }: EmailMfaSetupModalPro
   // Mark OTP as sent when setup succeeds
   useEffect(() => {
     if (setupEmailMfaMutation.isSuccess) {
+      // If setup succeeded, OTP was sent
       setOtpSent(true);
     }
   }, [setupEmailMfaMutation.isSuccess]);
@@ -70,7 +71,7 @@ export const EmailMfaSetupModal = ({ open, onOpenChange }: EmailMfaSetupModalPro
       toast({
         title: 'Invalid Code',
         description: 'Please enter the 6-digit code from your email',
-        variant: 'destructive',
+        variant: 'error',
       });
       return;
     }
@@ -122,7 +123,11 @@ export const EmailMfaSetupModal = ({ open, onOpenChange }: EmailMfaSetupModalPro
               <p className="text-center text-sm text-muted-foreground">
                 We've sent a verification code to your email address.
                 <br />
-                Please check your inbox and enter the code below.
+                Please check your inbox (and spam folder) and enter the code below.
+                <br />
+                <span className="text-xs text-muted-foreground mt-1 block">
+                  The code expires in 10 minutes.
+                </span>
               </p>
 
               <div className="space-y-2">
@@ -162,17 +167,54 @@ export const EmailMfaSetupModal = ({ open, onOpenChange }: EmailMfaSetupModalPro
 
           {setupEmailMfaMutation.isError && (
             <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
-              <p className="text-sm text-destructive">
-                Failed to setup Email MFA. Please try again.
-              </p>
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-destructive mb-1">
+                    Failed to setup Email MFA
+                  </p>
+                  <p className="text-sm text-destructive/90">
+                    {setupEmailMfaMutation.error?.response?.data?.error?.toLowerCase().includes('email') ||
+                    setupEmailMfaMutation.error?.response?.data?.error?.toLowerCase().includes('resend') ||
+                    setupEmailMfaMutation.error?.response?.data?.error?.toLowerCase().includes('configure')
+                      ? 'Email service is not configured. Please contact your administrator or use TOTP MFA instead.'
+                      : setupEmailMfaMutation.error?.response?.data?.error || 'Please try again or use TOTP MFA as an alternative.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!setupEmailMfaMutation.isError && !setupEmailMfaMutation.isPending && !otpSent && (
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+              <div className="flex items-start gap-3">
+                <Info className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-blue-900 mb-1">
+                    How Email MFA Works
+                  </p>
+                  <p className="text-sm text-blue-800">
+                    We'll send a 6-digit verification code to your email address. 
+                    You'll need to enter this code to complete setup and use it for future logins.
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 
           {enableMfaMutation.isError && (
             <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
-              <p className="text-sm text-destructive">
-                Invalid verification code. Please try again.
-              </p>
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-destructive mb-1">
+                    Verification Failed
+                  </p>
+                  <p className="text-sm text-destructive/90">
+                    {enableMfaMutation.error?.response?.data?.error || 'Invalid verification code. Please check the code and try again, or request a new code.'}
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>

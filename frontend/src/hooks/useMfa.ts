@@ -5,7 +5,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { mfaApi, type MfaMethod } from '../api/mfa';
+import { mfaApi } from '../api/mfa';
 import { useToast } from './use-toast';
 
 /**
@@ -41,7 +41,7 @@ export const useSetupTotp = () => {
       toast({
         title: 'Error',
         description: error.response?.data?.error || 'Failed to setup TOTP',
-        variant: 'destructive',
+        variant: 'error',
       });
     },
   });
@@ -67,7 +67,7 @@ export const useSetupEmailMfa = () => {
       toast({
         title: 'Error',
         description: error.response?.data?.error || 'Failed to setup Email MFA',
-        variant: 'destructive',
+        variant: 'error',
       });
     },
   });
@@ -94,7 +94,7 @@ export const useEnableMfa = () => {
       toast({
         title: 'Error',
         description: error.response?.data?.error || 'Failed to enable MFA',
-        variant: 'destructive',
+        variant: 'error',
       });
     },
   });
@@ -120,7 +120,7 @@ export const useDisableMfa = () => {
       toast({
         title: 'Error',
         description: error.response?.data?.error || 'Failed to disable MFA',
-        variant: 'destructive',
+        variant: 'error',
       });
     },
   });
@@ -144,7 +144,7 @@ export const useGenerateBackupCodes = () => {
       toast({
         title: 'Error',
         description: error.response?.data?.error || 'Failed to generate backup codes',
-        variant: 'destructive',
+        variant: 'error',
       });
     },
   });
@@ -168,7 +168,7 @@ export const useSendEmailOtp = () => {
       toast({
         title: 'Error',
         description: error.response?.data?.error || 'Failed to send OTP',
-        variant: 'destructive',
+        variant: 'error',
       });
     },
   });

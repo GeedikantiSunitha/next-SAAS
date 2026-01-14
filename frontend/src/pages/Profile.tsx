@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -7,36 +7,36 @@ import { z } from 'zod';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
 import { LoadingButton } from '../components/ui/loading';
 import { Skeleton } from '../components/ui/skeleton';
-import { PasswordStrengthIndicator } from '../components/PasswordStrengthIndicator';
 import { Layout } from '../components/Layout';
 import { useToast } from '../hooks/use-toast';
 import { useProfile, useUpdateProfile, useChangePassword } from '../hooks/useProfile';
 import { MfaSettings } from '../components/MfaSettings';
-import { User as UserIcon } from 'lucide-react';
+import { ConnectedAccounts } from '../components/ConnectedAccounts';
+import { Shield } from 'lucide-react';
 
 // Profile update schema - email validation when provided
-const profileSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(100, 'Name must be less than 100 characters').optional(),
-  email: z
-    .string()
-    .email('Invalid email address')
-    .optional()
-    .or(z.literal('')),
-}).refine(
-  (data) => {
-    // If email is provided (not empty), validate it
-    if (data.email && data.email !== '') {
-      return z.string().email().safeParse(data.email).success;
+const profileSchema = z
+  .object({
+    name: z.string().min(1, 'Name is required').max(100, 'Name must be less than 100 characters').optional(),
+    email: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      // If email is provided and not empty, validate format
+      if (data.email && data.email.trim() !== '') {
+        return z.string().email().safeParse(data.email).success;
+      }
+      // Empty string or undefined is valid (optional field)
+      return true;
+    },
+    {
+      message: 'Invalid email address',
+      path: ['email'],
     }
-    return true;
-  },
-  {
-    message: 'Invalid email address',
-    path: ['email'],
-  }
-);
+  );
 
 // Password change schema
 const passwordSchema = z.object({
@@ -55,7 +55,7 @@ type PasswordFormData = z.infer<typeof passwordSchema>;
 
 export const Profile = () => {
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { toast } = useToast();
   
   // React Query hooks
@@ -71,10 +71,9 @@ export const Profile = () => {
     handleSubmit: handleSubmitProfile,
     formState: { errors: profileErrors },
     reset: resetProfile,
-    trigger: triggerProfile,
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
-    mode: 'onSubmit', // Validate on submit
+    mode: 'onBlur', // Validate on blur for better UX
     reValidateMode: 'onChange', // Re-validate on change after first submit
   });
 
@@ -83,15 +82,12 @@ export const Profile = () => {
     handleSubmit: handleSubmitPassword,
     formState: { errors: passwordErrors },
     reset: resetPassword,
-    watch: watchPassword,
   } = useForm<PasswordFormData>({
     resolver: zodResolver(passwordSchema),
-    mode: 'onSubmit',
+    mode: 'onBlur', // Validate on blur for better UX
     reValidateMode: 'onChange',
   });
 
-  // Watch new password field for strength indicator
-  const newPasswordValue = watchPassword('newPassword');
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -167,6 +163,14 @@ export const Profile = () => {
         errorMessage = err.response.data.message;
       } else if (err.message) {
         errorMessage = err.message;
+      }
+      
+      // Reset form to original profile data after error
+      if (profileData) {
+        resetProfile({
+          name: profileData.name,
+          email: profileData.email,
+        });
       }
       
       // Show error toast
@@ -362,6 +366,27 @@ export const Profile = () => {
 
             {/* MFA Settings Card */}
             <MfaSettings />
+
+            {/* Connected Accounts Card */}
+            <ConnectedAccounts />
+
+            {/* GDPR Settings Card */}
+            <Card className="animate-fade-in">
+              <CardHeader>
+                <CardTitle>Privacy & Data Rights</CardTitle>
+                <CardDescription>
+                  Manage your GDPR rights: data export, deletion, and consent preferences
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button asChild variant="outline" className="w-full sm:w-auto">
+                  <Link to="/gdpr" className="flex items-center gap-2">
+                    <Shield className="h-4 w-4" />
+                    GDPR Settings
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
             </div>
           </div>
         </div>

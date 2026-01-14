@@ -46,12 +46,31 @@ apiClient.interceptors.request.use(
 
 /**
  * Response Interceptor
- * Handles token refresh on 401 errors
+ * Handles token refresh on 401 errors and network errors
  */
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+    // Handle network errors (offline, timeout, etc.)
+    if (!error.response) {
+      // Network error (offline, timeout, connection refused, etc.)
+      const networkError = {
+        message: error.message || 'Network error',
+        code: error.code,
+        isNetworkError: true,
+        isTimeout: error.code === 'ECONNABORTED' || error.message?.includes('timeout'),
+        isOffline: !navigator.onLine,
+      };
+
+      // Dispatch custom event for network error handling
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('network-error', { detail: networkError }));
+      }
+
+      return Promise.reject(networkError);
+    }
 
     // Handle 401 (unauthorized) - try to refresh token
     // BUT: Don't try to refresh for auth endpoints - they don't need refresh

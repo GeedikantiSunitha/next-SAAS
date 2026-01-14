@@ -5,11 +5,11 @@ import { adminApi } from '../../api/admin';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Skeleton } from '../../components/ui/skeleton';
-import { Download, Search, Filter, X } from 'lucide-react';
+import { Download, Search, X } from 'lucide-react';
 
 export const AdminAuditLogs = () => {
   const [search, setSearch] = useState('');
-  const [actionFilter, setActionFilter] = useState('');
+  const [actionFilter] = useState('');
   const [resourceFilter, setResourceFilter] = useState('');
   const [page, setPage] = useState(1);
   const limit = 50;

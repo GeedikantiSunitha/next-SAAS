@@ -17,7 +17,7 @@ import { cn } from '../lib/utils';
 
 export const NotificationBell = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { data: unreadCount = 0, isLoading: countLoading } = useUnreadCount();
+  const { data: unreadCount = 0 } = useUnreadCount();
   const { data: notifications, isLoading: notificationsLoading } = useNotifications({ limit: 5 });
 
   return (

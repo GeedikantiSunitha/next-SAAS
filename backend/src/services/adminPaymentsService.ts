@@ -48,13 +48,6 @@ export const getPayments = async (filters: PaymentFilters, adminUserId: string) 
             name: true,
           },
         },
-        subscription: {
-          select: {
-            id: true,
-            plan: true,
-            status: true,
-          },
-        },
       },
     }),
     prisma.payment.count({ where }),

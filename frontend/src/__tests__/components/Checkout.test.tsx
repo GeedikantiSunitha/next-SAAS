@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as paymentHooks from '../../hooks/usePayments';
@@ -35,9 +35,20 @@ vi.mock('@stripe/stripe-js', () => ({
   }),
 }));
 
-// Mock hooks
+// Mock hooks - Fix: Create mock mutation object (similar to Issue #4)
+const mockCreatePaymentMutation = {
+  mutate: vi.fn(),
+  mutateAsync: vi.fn(),
+  isPending: false,
+  isError: false,
+  isSuccess: false,
+  error: null,
+  data: null,
+  reset: vi.fn(),
+};
+
 vi.mock('../../hooks/usePayments', () => ({
-  useCreatePayment: vi.fn(),
+  useCreatePayment: vi.fn(() => mockCreatePaymentMutation),
 }));
 
 // Import component after mocks
@@ -57,21 +68,21 @@ const createWrapper = () => {
 };
 
 describe('Checkout', () => {
-  const mockUseCreatePayment = vi.fn();
-
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(paymentHooks.useCreatePayment).mockReturnValue(mockUseCreatePayment as any);
+    // Reset mock mutation object properties
+    vi.mocked(paymentHooks.useCreatePayment).mockReturnValue(mockCreatePaymentMutation);
+    mockCreatePaymentMutation.mutate.mockClear();
+    mockCreatePaymentMutation.mutateAsync.mockClear();
+    mockCreatePaymentMutation.isPending = false;
+    mockCreatePaymentMutation.isError = false;
+    mockCreatePaymentMutation.isSuccess = false;
+    mockCreatePaymentMutation.error = null;
+    mockCreatePaymentMutation.data = null;
   });
 
   it('should render checkout form', () => {
-    mockUseCreatePayment.mockReturnValue({
-      mutate: vi.fn(),
-      mutateAsync: vi.fn(),
-      isPending: false,
-      isError: false,
-    });
-
+    // Default mocks are already set in beforeEach
     render(<Checkout />, { wrapper: createWrapper() });
 
     expect(screen.getByLabelText(/amount/i)).toBeInTheDocument();
@@ -82,65 +93,83 @@ describe('Checkout', () => {
   it('should show validation error for invalid amount', async () => {
     const user = userEvent.setup();
 
-    mockUseCreatePayment.mockReturnValue({
-      mutate: vi.fn(),
-      mutateAsync: vi.fn(),
-      isPending: false,
-      isError: false,
-    });
-
     render(<Checkout />, { wrapper: createWrapper() });
 
-    const amountInput = screen.getByLabelText(/amount/i);
-    const submitButton = screen.getByRole('button', { name: /pay/i });
-
-    await user.type(amountInput, '0');
-    await user.click(submitButton);
-
+    // Wait for form to render
     await waitFor(() => {
-      expect(screen.getByText(/amount must be greater than 0/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/amount/i)).toBeInTheDocument();
     });
+
+    const amountInput = screen.getByLabelText(/amount/i) as HTMLInputElement;
+    const form = amountInput.closest('form') as HTMLFormElement;
+
+    // Type invalid amount (0)
+    await user.type(amountInput, '0');
+    
+    // Submit form using fireEvent to ensure react-hook-form validation runs
+    fireEvent.submit(form);
+
+    // Wait for validation error to appear
+    // Input component renders error with test ID "amount-error" (based on input id="amount")
+    await waitFor(() => {
+      const errorElement = screen.getByTestId('amount-error');
+      expect(errorElement).toBeInTheDocument();
+      expect(errorElement).toHaveTextContent(/amount must be greater than 0/i);
+    }, { timeout: 3000 });
+    
+    // Also verify input has error styling
+    expect(amountInput).toHaveClass('border-destructive');
   });
 
   it('should submit payment form', async () => {
     const user = userEvent.setup();
-    const mockMutateAsync = vi.fn().mockResolvedValue({
+    
+    // Mock mutateAsync to return payment data
+    mockCreatePaymentMutation.mutateAsync.mockResolvedValue({
       id: 'pay-1',
       clientSecret: 'pi_secret_123',
-    });
-
-    mockUseCreatePayment.mockReturnValue({
-      mutate: vi.fn(),
-      mutateAsync: mockMutateAsync,
-      isPending: false,
-      isError: false,
+      amount: 10000,
+      currency: 'USD',
     });
 
     render(<Checkout />, { wrapper: createWrapper() });
 
+    // Wait for form to render
+    await waitFor(() => {
+      expect(screen.getByLabelText(/amount/i)).toBeInTheDocument();
+    });
+
     const amountInput = screen.getByLabelText(/amount/i);
-    const submitButton = screen.getByRole('button', { name: /pay/i });
+    const submitButton = await waitFor(() => {
+      const button = screen.getByRole('button', { name: /pay/i });
+      expect(button).not.toBeDisabled();
+      return button;
+    });
 
     await user.type(amountInput, '100');
     await user.click(submitButton);
 
+    // Wait for mutateAsync to be called
     await waitFor(() => {
-      expect(mockMutateAsync).toHaveBeenCalled();
-    });
+      expect(mockCreatePaymentMutation.mutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          amount: 10000, // Should be converted to cents
+          currency: 'USD',
+          provider: 'STRIPE',
+        })
+      );
+    }, { timeout: 3000 });
   });
 
   it('should show loading state during payment', () => {
-    mockUseCreatePayment.mockReturnValue({
-      mutate: vi.fn(),
-      mutateAsync: vi.fn(),
-      isPending: true,
-      isError: false,
-    });
+    // Set isPending before rendering
+    mockCreatePaymentMutation.isPending = true;
 
     render(<Checkout />, { wrapper: createWrapper() });
 
     // Button should show "Processing..." text when pending
     const button = screen.getByRole('button');
+    expect(button).toBeDisabled();
     expect(button.textContent).toContain('Processing');
   });
 });

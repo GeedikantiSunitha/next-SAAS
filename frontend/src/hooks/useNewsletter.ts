@@ -5,8 +5,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as newsletterApi from '../api/newsletter';
 import type {
-  Newsletter,
-  NewsletterSubscription,
   CreateNewsletterData,
   UpdateNewsletterData,
   GetNewslettersParams,

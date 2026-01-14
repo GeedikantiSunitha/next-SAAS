@@ -22,7 +22,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 export const Login = () => {
   const navigate = useNavigate();
-  const { login, isAuthenticated, refreshUser } = useAuth();
+  const { isAuthenticated, refreshUser } = useAuth();
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -37,7 +37,7 @@ export const Login = () => {
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-    mode: 'onSubmit', // Validate on submit (default, but explicit)
+    mode: 'onBlur', // Validate on blur for better UX
     reValidateMode: 'onChange', // Re-validate on change after first submit
   });
 
@@ -66,8 +66,10 @@ export const Login = () => {
         }
       }
       
-      // No MFA required - complete login
-      await login(data.email, data.password);
+      // No MFA required - backend has set cookies and returned user
+      // Refresh auth state to verify cookie is set and update user state
+      // This ensures isAuthenticated is true before navigating to dashboard
+      await refreshUser();
       
       // Show success toast
       toast({
@@ -76,6 +78,8 @@ export const Login = () => {
         variant: 'success',
       });
       
+      // Navigate to dashboard after auth state is updated
+      // The ProtectedRoute will now see isAuthenticated = true
       navigate('/dashboard', { replace: true });
     } catch (err: any) {
       let errorMessage = 'Login failed. Please try again.';

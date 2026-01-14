@@ -17,7 +17,7 @@ import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { CreditCard, Loader2, DollarSign } from 'lucide-react';
 import { useToast } from '../hooks/use-toast';
-import type { Currency } from '../api/payments';
+// Currency type imported but not used directly in this file
 
 const checkoutSchema = z.object({
   amount: z.number().min(0.01, 'Amount must be greater than 0'),
@@ -59,7 +59,7 @@ const CheckoutForm = () => {
       toast({
         title: 'Stripe not loaded',
         description: 'Please wait for Stripe to initialize.',
-        variant: 'destructive',
+        variant: 'error',
       });
       return;
     }
@@ -97,7 +97,7 @@ const CheckoutForm = () => {
         toast({
           title: 'Payment failed',
           description: error.message || 'Payment could not be processed.',
-          variant: 'destructive',
+          variant: 'error',
         });
       } else if (paymentIntent && paymentIntent.status === 'succeeded') {
         toast({
@@ -111,7 +111,7 @@ const CheckoutForm = () => {
       toast({
         title: 'Payment failed',
         description: error.message || 'An error occurred during payment.',
-        variant: 'destructive',
+        variant: 'error',
       });
     } finally {
       setIsProcessing(false);
@@ -208,6 +208,7 @@ export const Checkout = () => {
   const options: StripeElementsOptions = {
     mode: 'payment',
     currency: 'usd',
+    amount: 0, // Amount will be set dynamically when payment is created
   };
 
   return (

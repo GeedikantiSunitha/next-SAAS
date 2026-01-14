@@ -75,7 +75,7 @@ export const getAuditLogs = async (filters: AuditLogFilters, adminUserId: string
       userId: adminUserId,
       action: 'AUDIT_LOGS_VIEWED',
       resource: 'audit_logs',
-      details: { filters },
+      details: { filters } as any, // Cast to any for Prisma JSON field
     },
   });
 

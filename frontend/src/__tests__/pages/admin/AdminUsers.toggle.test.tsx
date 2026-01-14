@@ -56,6 +56,12 @@ describe('AdminUsers - Toggle Active Status', () => {
         pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
       },
     });
+
+    // Setup default toggleUserActive mock
+    mockAdminApi.toggleUserActive = vi.fn().mockResolvedValue({
+      success: true,
+      data: { user: { id: 'user-1', isActive: false } },
+    });
   });
 
   it('should show toggle button for each user', async () => {
@@ -74,7 +80,11 @@ describe('AdminUsers - Toggle Active Status', () => {
   });
 
   it('should call toggleUserActive when disable button is clicked', async () => {
-    mockAdminApi.toggleUserActive = vi.fn().mockResolvedValue({
+    const user = userEvent.setup();
+    
+    // Ensure mock is set up (already done in beforeEach, but make sure it's fresh)
+    mockAdminApi.toggleUserActive.mockClear();
+    mockAdminApi.toggleUserActive.mockResolvedValue({
       success: true,
       data: { user: { id: 'user-1', isActive: false } },
     });
@@ -85,14 +95,44 @@ describe('AdminUsers - Toggle Active Status', () => {
       </QueryClientProvider>
     );
 
+    // Wait for users to load
     await waitFor(() => {
       expect(screen.getByText('test@example.com')).toBeInTheDocument();
     });
 
-    const disableButton = screen.getByText(/disable/i);
-    await userEvent.click(disableButton);
+    // Wait for disable button to be available
+    const disableButton = await waitFor(() => {
+      const button = screen.getByText(/disable/i);
+      expect(button).toBeInTheDocument();
+      return button;
+    });
 
-    expect(mockAdminApi.toggleUserActive).toHaveBeenCalledWith('user-1', false);
+    // Click disable button - this will show a confirmation dialog
+    await user.click(disableButton);
+
+    // Wait for confirmation dialog and confirm
+    await waitFor(() => {
+      // The component uses window.confirm, which we need to mock
+      // But since we can't easily mock window.confirm in this test,
+      // we need to check if the mutation was called after confirmation
+      // Actually, let's check if the button click triggers the confirm
+    });
+
+    // Since window.confirm is used, we need to mock it to return true
+    const originalConfirm = window.confirm;
+    window.confirm = vi.fn(() => true);
+
+    try {
+      // Click again after mocking confirm
+      await user.click(disableButton);
+
+      // Wait for mutation to be called
+      await waitFor(() => {
+        expect(mockAdminApi.toggleUserActive).toHaveBeenCalledWith('user-1', false);
+      }, { timeout: 3000 });
+    } finally {
+      window.confirm = originalConfirm;
+    }
   });
 
   it('should show enable button for inactive users', async () => {

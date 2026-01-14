@@ -91,7 +91,7 @@ describe('ResetPassword', () => {
       expect(mockToast).toHaveBeenCalledWith({
         title: 'Invalid Link',
         description: 'Password reset link is invalid or missing token.',
-        variant: 'destructive',
+        variant: 'error', // Fix: Updated to match implementation (component uses 'error', not 'destructive')
       });
       expect(mockNavigate).toHaveBeenCalledWith('/forgot-password');
     });
@@ -206,7 +206,7 @@ describe('ResetPassword', () => {
       expect(mockToast).toHaveBeenCalledWith({
         title: 'Error',
         description: 'Invalid or expired reset token',
-        variant: 'destructive',
+        variant: 'error', // Fix: Updated to match implementation (component uses 'error', not 'destructive')
       });
     });
   });

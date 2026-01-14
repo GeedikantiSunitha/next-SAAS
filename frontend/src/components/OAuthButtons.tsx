@@ -13,7 +13,7 @@ import { Button } from './ui/button';
 import { useToast } from '../hooks/use-toast';
 import { authApi } from '../api/auth';
 import { useAuth } from '../contexts/AuthContext';
-import { Chrome, Github, Mail } from 'lucide-react';
+import { Chrome, Github } from 'lucide-react';
 import { initiateOAuth } from '../utils/oauth';
 
 interface OAuthButtonsProps {
@@ -21,11 +21,9 @@ interface OAuthButtonsProps {
   mode?: 'login' | 'register';
 }
 
-export const OAuthButtons = ({ onSuccess, mode = 'login' }: OAuthButtonsProps) => {
+export const OAuthButtons = ({}: OAuthButtonsProps) => {
   const [loading, setLoading] = useState<'google' | 'github' | 'microsoft' | null>(null);
-  const { setUser, refreshUser } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   /**
    * Handle OAuth flow with provider
@@ -43,7 +41,7 @@ export const OAuthButtons = ({ onSuccess, mode = 'login' }: OAuthButtonsProps) =
         toast({
           title: 'OAuth Not Configured',
           description: `${provider} OAuth is not configured. Please set ${clientIdEnvVar} environment variable.`,
-          variant: 'destructive',
+          variant: 'error',
         });
         setLoading(null);
         return;
@@ -55,7 +53,7 @@ export const OAuthButtons = ({ onSuccess, mode = 'login' }: OAuthButtonsProps) =
       toast({
         title: 'OAuth Error',
         description: error.message || `Failed to initiate ${provider} OAuth`,
-        variant: 'destructive',
+        variant: 'error',
       });
       setLoading(null);
     }
@@ -150,7 +148,7 @@ export const OAuthButtons = ({ onSuccess, mode = 'login' }: OAuthButtonsProps) =
  * Should be mounted on callback routes
  */
 export const OAuthCallbackHandler = () => {
-  const { setUser, refreshUser } = useAuth();
+  const { refreshUser } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -170,7 +168,7 @@ export const OAuthCallbackHandler = () => {
       }
 
       // Send token to backend for authentication
-      const response = await authApi.oauthLogin(provider, token);
+      await authApi.oauthLogin(provider, token);
 
       // Backend sets cookies and returns user
       // Refresh auth state
@@ -187,11 +185,12 @@ export const OAuthCallbackHandler = () => {
       toast({
         title: 'OAuth Error',
         description: error.response?.data?.error || error.message || `Failed to authenticate with ${provider}`,
-        variant: 'destructive',
+        variant: 'error',
       });
       navigate('/login', { replace: true });
     }
   };
 
-  return null; // This component doesn't render anything
+  // Export handleOAuthCallback for use in callback pages
+  return { handleOAuthCallback };
 };

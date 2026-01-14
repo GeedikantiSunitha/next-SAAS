@@ -99,5 +99,82 @@ export const handlers = [
   http.post('http://localhost:3001/api/auth/logout', () => {
     return HttpResponse.json({ success: true });
   }),
+
+  // Notifications - Unread Count
+  http.get('http://localhost:3001/api/notifications/unread-count', () => {
+    return HttpResponse.json({
+      success: true,
+      data: {
+        count: 0, // Default to 0 unread notifications
+      },
+    });
+  }),
+
+  // Notifications - List
+  http.get('http://localhost:3001/api/notifications', ({ request }) => {
+    const url = new URL(request.url);
+    const limit = url.searchParams.get('limit');
+    const unreadOnly = url.searchParams.get('unreadOnly') === 'true';
+
+    // Return empty array by default, or mock notifications if needed
+    const notifications: any[] = [];
+
+    return HttpResponse.json({
+      success: true,
+      data: notifications,
+    });
+  }),
+
+  // Notifications - Mark as Read
+  http.put('http://localhost:3001/api/notifications/:id/read', () => {
+    return HttpResponse.json({
+      success: true,
+      data: {
+        id: 'notification-1',
+        status: 'READ',
+      },
+    });
+  }),
+
+  // Notifications - Mark All as Read
+  http.put('http://localhost:3001/api/notifications/read-all', () => {
+    return HttpResponse.json({
+      success: true,
+      data: {
+        count: 0,
+      },
+    });
+  }),
+
+  // Notifications - Delete
+  http.delete('http://localhost:3001/api/notifications/:id', () => {
+    return HttpResponse.json({
+      success: true,
+    });
+  }),
+
+  // Notifications - Preferences
+  http.get('http://localhost:3001/api/notifications/preferences', () => {
+    return HttpResponse.json({
+      success: true,
+      data: {
+        email: true,
+        push: false,
+        sms: false,
+      },
+    });
+  }),
+
+  // Notifications - Update Preferences
+  http.put('http://localhost:3001/api/notifications/preferences', () => {
+    return HttpResponse.json({
+      success: true,
+      data: {
+        email: true,
+        push: false,
+        sms: false,
+      },
+    });
+  }),
 ];
 

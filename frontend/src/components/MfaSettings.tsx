@@ -13,13 +13,11 @@ import { TotpSetupModal } from './TotpSetupModal';
 import { EmailMfaSetupModal } from './EmailMfaSetupModal';
 import { ConfirmDialog } from './ConfirmDialog';
 import { BackupCodesManagement } from './BackupCodesManagement';
-import { useToast } from '../hooks/use-toast';
-import { Shield, Smartphone, Mail, CheckCircle, XCircle } from 'lucide-react';
+import { Shield, Smartphone, Mail, CheckCircle } from 'lucide-react';
 
 export const MfaSettings = () => {
   const { data: methods, isLoading, error } = useMfaMethods();
   const disableMfaMutation = useDisableMfa();
-  const { toast } = useToast();
   
   const [showTotpSetup, setShowTotpSetup] = useState(false);
   const [showEmailSetup, setShowEmailSetup] = useState(false);

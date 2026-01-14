@@ -15,9 +15,9 @@ export const getSettings = async (adminUserId: string) => {
   // In a real implementation, these would be stored in database
   const settings = {
     app: {
-      name: config.app.name,
-      url: config.app.url,
-      environment: config.app.env,
+      name: config.appName,
+      url: config.frontendUrl,
+      environment: config.nodeEnv,
     },
     features: {
       registration: config.features.registration,
@@ -33,7 +33,7 @@ export const getSettings = async (adminUserId: string) => {
     },
     email: {
       enabled: !!config.email?.apiKey,
-      provider: config.email?.provider || 'resend',
+      provider: 'resend', // Email provider is always Resend in this implementation
     },
   };
 

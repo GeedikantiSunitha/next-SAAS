@@ -160,7 +160,7 @@ describe('ForgotPassword', () => {
       expect(mockToast).toHaveBeenCalledWith({
         title: 'Error',
         description: 'Failed to send email',
-        variant: 'destructive',
+        variant: 'error',
       });
     });
   });

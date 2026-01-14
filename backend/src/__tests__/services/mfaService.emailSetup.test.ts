@@ -40,6 +40,9 @@ describe('MFA Email Setup - Auto-send OTP', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Reset spy implementation but keep the spy attached
+    sendEmailOtpSpy.mockReset();
+    
     (prisma.user.findUnique as jest.Mock).mockResolvedValue(mockUser);
     (prisma.mfaMethod.upsert as jest.Mock).mockResolvedValue({
       id: 'mfa-123',
@@ -55,7 +58,8 @@ describe('MFA Email Setup - Auto-send OTP', () => {
     });
   });
 
-  afterEach(() => {
+  afterAll(() => {
+    // Only restore once after all tests complete
     sendEmailOtpSpy.mockRestore();
   });
 

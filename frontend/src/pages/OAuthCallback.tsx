@@ -11,6 +11,7 @@ import { Layout } from '../components/Layout';
 import { authApi } from '../api/auth';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../hooks/use-toast';
+import { useLinkOAuth } from '../hooks/useOAuth';
 import {
   getGoogleTokenFromCallback,
   getGitHubCodeFromCallback,
@@ -23,6 +24,7 @@ export const OAuthCallback = () => {
   const navigate = useNavigate();
   const { refreshUser } = useAuth();
   const { toast } = useToast();
+  const linkOAuthMutation = useLinkOAuth();
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
   const [error, setError] = useState<string | null>(null);
 
@@ -63,24 +65,49 @@ export const OAuthCallback = () => {
           throw new Error(`Unsupported provider: ${provider}`);
         }
 
-        // Send token to backend for authentication
-        const response = await authApi.oauthLogin(provider, token);
+        // Check if we're in linking mode
+        const isLinkingMode = sessionStorage.getItem('oauth_linking_mode') === 'true';
+        const linkingProvider = sessionStorage.getItem('oauth_linking_provider');
 
-        // Backend sets cookies and returns user
-        // Refresh auth state
-        await refreshUser();
+        if (isLinkingMode && linkingProvider === provider && (provider === 'google' || provider === 'github')) {
+          // Link OAuth account to existing user (only Google and GitHub supported for linking)
+          await linkOAuthMutation.mutateAsync({ provider: provider as 'google' | 'github', token });
 
-        setStatus('success');
-        toast({
-          title: 'Login Successful',
-          description: `Successfully logged in with ${provider}`,
-          variant: 'success',
-        });
+          // Clean up sessionStorage
+          sessionStorage.removeItem('oauth_linking_mode');
+          sessionStorage.removeItem('oauth_linking_provider');
 
-        // Redirect to dashboard
-        setTimeout(() => {
-          navigate('/dashboard', { replace: true });
-        }, 1000);
+          setStatus('success');
+          toast({
+            title: 'Account Linked',
+            description: `Successfully linked your ${provider} account`,
+            variant: 'success',
+          });
+
+          // Redirect to profile page
+          setTimeout(() => {
+            navigate('/profile', { replace: true });
+          }, 1000);
+        } else {
+          // Normal OAuth login flow
+          await authApi.oauthLogin(provider, token);
+
+          // Backend sets cookies and returns user
+          // Refresh auth state
+          await refreshUser();
+
+          setStatus('success');
+          toast({
+            title: 'Login Successful',
+            description: `Successfully logged in with ${provider}`,
+            variant: 'success',
+          });
+
+          // Redirect to dashboard
+          setTimeout(() => {
+            navigate('/dashboard', { replace: true });
+          }, 1000);
+        }
       } catch (err: any) {
         const errorMessage = err.response?.data?.error || err.message || `Failed to authenticate with ${provider}`;
         setError(errorMessage);
@@ -88,7 +115,7 @@ export const OAuthCallback = () => {
         toast({
           title: 'OAuth Error',
           description: errorMessage,
-          variant: 'destructive',
+          variant: 'error',
         });
 
         // Redirect to login after delay

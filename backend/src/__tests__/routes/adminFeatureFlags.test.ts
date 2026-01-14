@@ -38,6 +38,10 @@ describe('Admin Feature Flags Routes - Integration Tests', () => {
   beforeEach(async () => {
     const timestamp = Date.now();
 
+    // Clean feature flags FIRST (before creating users) to prevent unique constraint violations
+    // Global setup.ts doesn't clean feature flags, so we need to clean them here
+    await prisma.featureFlag.deleteMany({});
+
     // Create admin user
     adminEmail = `admin-${timestamp}@test.com`;
     const adminPassword = await bcrypt.hash('Admin123!', 10);
@@ -79,13 +83,20 @@ describe('Admin Feature Flags Routes - Integration Tests', () => {
 
   describe('GET /api/admin/feature-flags', () => {
     it('should return all feature flags for admin user', async () => {
-      // Arrange: Create feature flags
-      await prisma.featureFlag.createMany({
-        data: [
-          { key: 'registration', enabled: true, description: 'User registration' },
-          { key: 'oauth', enabled: false, description: 'OAuth authentication' },
-        ],
-      });
+      // Arrange: Create feature flags using upsert to handle potential duplicates
+      // (Flags might exist from seed script or previous test runs)
+      await Promise.all([
+        prisma.featureFlag.upsert({
+          where: { key: 'registration' },
+          update: { enabled: true, description: 'User registration' },
+          create: { key: 'registration', enabled: true, description: 'User registration' },
+        }),
+        prisma.featureFlag.upsert({
+          where: { key: 'oauth' },
+          update: { enabled: false, description: 'OAuth authentication' },
+          create: { key: 'oauth', enabled: false, description: 'OAuth authentication' },
+        }),
+      ]);
 
       // Act
       const response = await request(app)
@@ -154,9 +165,11 @@ describe('Admin Feature Flags Routes - Integration Tests', () => {
 
   describe('PUT /api/admin/feature-flags/:key', () => {
     it('should update existing feature flag', async () => {
-      // Arrange: Create flag
-      await prisma.featureFlag.create({
-        data: {
+      // Arrange: Create or update flag (use upsert to handle potential duplicates)
+      await prisma.featureFlag.upsert({
+        where: { key: 'registration' },
+        update: { enabled: false },
+        create: {
           key: 'registration',
           enabled: false,
         },
@@ -204,9 +217,11 @@ describe('Admin Feature Flags Routes - Integration Tests', () => {
     });
 
     it('should disable feature flag', async () => {
-      // Arrange
-      await prisma.featureFlag.create({
-        data: {
+      // Arrange: Use upsert to handle potential duplicates
+      await prisma.featureFlag.upsert({
+        where: { key: 'test_flag' },
+        update: { enabled: true },
+        create: {
           key: 'test_flag',
           enabled: true,
         },
@@ -272,9 +287,11 @@ describe('Admin Feature Flags Routes - Integration Tests', () => {
     });
 
     it('should create audit log when updating feature flag', async () => {
-      // Arrange
-      await prisma.featureFlag.create({
-        data: {
+      // Arrange: Use upsert to handle potential duplicates
+      await prisma.featureFlag.upsert({
+        where: { key: 'test_flag' },
+        update: { enabled: false },
+        create: {
           key: 'test_flag',
           enabled: false,
         },
@@ -306,9 +323,11 @@ describe('Admin Feature Flags Routes - Integration Tests', () => {
     });
 
     it('should handle multiple rapid updates', async () => {
-      // Arrange
-      await prisma.featureFlag.create({
-        data: {
+      // Arrange: Use upsert to handle potential duplicates
+      await prisma.featureFlag.upsert({
+        where: { key: 'test_flag' },
+        update: { enabled: false },
+        create: {
           key: 'test_flag',
           enabled: false,
         },

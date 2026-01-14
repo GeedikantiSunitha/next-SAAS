@@ -88,3 +88,15 @@ export const parseCookies = (cookieString: string): Record<string, string> => {
   
   return cookies;
 };
+
+// Jest requires at least one test in test files
+// This file contains utility functions for tests, not actual tests
+describe('Cookie Utility Functions', () => {
+  it('should export cookie utility functions', () => {
+    expect(extractCookies).toBeDefined();
+    expect(findCookie).toBeDefined();
+    expect(hasCookie).toBeDefined();
+    expect(getCookieNames).toBeDefined();
+    expect(parseCookies).toBeDefined();
+  });
+});

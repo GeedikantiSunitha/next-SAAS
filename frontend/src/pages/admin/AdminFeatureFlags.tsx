@@ -29,7 +29,7 @@ export const AdminFeatureFlags = () => {
       toast({
         title: 'Error',
         description: error.response?.data?.error || 'Failed to update feature flag',
-        variant: 'destructive',
+        variant: 'error',
       });
     },
   });
@@ -56,21 +56,34 @@ export const AdminFeatureFlags = () => {
               ))}
             </div>
           ) : flags.length === 0 ? (
-            <p className="text-gray-600">No feature flags available</p>
+            <div className="text-center py-12">
+              <p className="text-gray-600 mb-2">No feature flags available</p>
+              <p className="text-sm text-gray-500">
+                Feature flags may need to be seeded in the database. Run the seed script to create default flags.
+              </p>
+            </div>
           ) : (
             <div className="space-y-4">
               {flags.map((flag: any) => (
                 <div
                   key={flag.key}
-                  className="flex items-center justify-between p-4 border rounded-lg"
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  <div>
+                  <div className="flex-1">
                     <h3 className="font-medium text-gray-900">{flag.key}</h3>
-                    <p className="text-sm text-gray-500">
+                    {flag.description && (
+                      <p className="text-sm text-gray-500 mt-1">{flag.description}</p>
+                    )}
+                    <p className="text-xs text-gray-400 mt-1">
                       {flag.enabled ? 'Enabled' : 'Disabled'}
+                      {flag.updatedAt && (
+                        <span className="ml-2">
+                          • Last updated: {new Date(flag.updatedAt).toLocaleDateString()}
+                        </span>
+                      )}
                     </p>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 ml-4">
                     {flag.enabled ? (
                       <CheckCircle className="h-5 w-5 text-green-600" />
                     ) : (

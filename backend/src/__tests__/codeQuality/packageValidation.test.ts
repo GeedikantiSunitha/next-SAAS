@@ -9,29 +9,15 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 describe('Code Quality: Package Validation', () => {
-  const rootDir = path.join(__dirname, '../../../../..');
-  const distDir = path.join(rootDir, 'dist');
+  // Fix: __dirname is at src/__tests__/codeQuality, so '../../../../' gives project root
+  // Previously was '../../../../..' which gave one level too high
+  const rootDir = path.join(__dirname, '../../../../');
 
   /**
    * Check if file exists
    */
   function fileExists(filePath: string): boolean {
     return fs.existsSync(filePath);
-  }
-
-  /**
-   * Check if directory exists
-   */
-  function dirExists(dirPath: string): boolean {
-    return fs.existsSync(dirPath) && fs.statSync(dirPath).isDirectory();
-  }
-
-  /**
-   * Get file size in MB
-   */
-  function getFileSizeMB(filePath: string): number {
-    const stats = fs.statSync(filePath);
-    return stats.size / (1024 * 1024);
   }
 
   it('should have .codecanyonignore file', () => {
@@ -139,9 +125,11 @@ describe('Code Quality: Package Validation', () => {
 
     const content = fs.readFileSync(gitignorePath, 'utf-8');
     
+    // Check for required patterns (more flexible matching)
+    // Patterns should match even if they're part of a line (not requiring exact line matches)
     const requiredPatterns = [
       /node_modules/,
-      /\.env$/,
+      /\.env/,  // Changed from /\.env$/ to match .env, .env.local, etc.
       /dist/,
       /build/,
       /logs/,

@@ -15,29 +15,54 @@ const getAuthCookie = async (email: string, password: string): Promise<string> =
     .post('/api/auth/login')
     .send({ email, password });
 
+  // Check if login was successful
+  if (loginResponse.status !== 200) {
+    throw new Error(`Login failed with status ${loginResponse.status}: ${JSON.stringify(loginResponse.body)}`);
+  }
+
   const setCookieHeader = loginResponse.headers['set-cookie'];
+  
+  // Handle undefined set-cookie header (cookie parsing fix)
+  if (!setCookieHeader) {
+    throw new Error('Login succeeded but no cookies were set. Check login endpoint implementation.');
+  }
+  
   const cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader];
-  const accessTokenCookie = cookies.find((c: string) => c.startsWith('accessToken='));
+  const accessTokenCookie = cookies.find((c: string) => c && c.startsWith('accessToken='));
   
   if (!accessTokenCookie) {
-    throw new Error('Failed to get access token cookie');
+    throw new Error('Failed to get access token cookie. Available cookies: ' + cookies.join(', '));
   }
   
   return `accessToken=${accessTokenCookie.split('=')[1].split(';')[0]}`;
 };
 
 describe('Profile API', () => {
+  // Clean up users created by these tests
+  afterEach(async () => {
+    const { prisma } = require('../../config/database');
+    // Delete users created by this test suite (profile-* emails)
+    await prisma.user.deleteMany({
+      where: {
+        email: {
+          startsWith: 'profile-',
+        },
+      },
+    });
+  });
+
   describe('GET /api/profile/me', () => {
     it('should return current user profile when authenticated', async () => {
-      // Create user
+      // Create user with unique email
+      const uniqueEmail = `profile-get-${Date.now()}@example.com`;
       await createTestUser({
-        email: 'profile-get@example.com',
+        email: uniqueEmail,
         password: await require('bcryptjs').hash('Password123!', 12),
         name: 'Profile User',
       });
 
       // Login to get auth cookie
-      const cookie = await getAuthCookie('profile-get@example.com', 'Password123!');
+      const cookie = await getAuthCookie(uniqueEmail, 'Password123!');
 
       // Get profile
       const response = await request(app)
@@ -47,7 +72,7 @@ describe('Profile API', () => {
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.data).toHaveProperty('id');
-      expect(response.body.data.email).toBe('profile-get@example.com');
+      expect(response.body.data.email).toBe(uniqueEmail);
       expect(response.body.data.name).toBe('Profile User');
       expect(response.body.data).not.toHaveProperty('password');
     });
@@ -297,14 +322,15 @@ describe('Profile API', () => {
 
   describe('PUT /api/profile/password', () => {
     it('should change password with correct current password', async () => {
-      // Create user
+      // Create user with unique email
+      const uniqueEmail = `profile-password-change-${Date.now()}@example.com`;
       await createTestUser({
-        email: 'profile-password-change@example.com',
+        email: uniqueEmail,
         password: await require('bcryptjs').hash('OldPassword123!', 12),
       });
 
       // Login to get auth cookie
-      const cookie = await getAuthCookie('profile-password-change@example.com', 'OldPassword123!');
+      const cookie = await getAuthCookie(uniqueEmail, 'OldPassword123!');
 
       // Change password
       const response = await request(app)
@@ -323,7 +349,7 @@ describe('Profile API', () => {
       const newLoginResponse = await request(app)
         .post('/api/auth/login')
         .send({
-          email: 'profile-password-change@example.com',
+          email: uniqueEmail,
           password: 'NewPassword123!',
         });
 
@@ -334,7 +360,7 @@ describe('Profile API', () => {
       const oldLoginResponse = await request(app)
         .post('/api/auth/login')
         .send({
-          email: 'profile-password-change@example.com',
+          email: uniqueEmail,
           password: 'OldPassword123!',
         });
 
@@ -390,14 +416,15 @@ describe('Profile API', () => {
     });
 
     it('should require currentPassword field', async () => {
-      // Create user
+      // Create user with unique email
+      const uniqueEmail = `profile-password-missing-${Date.now()}@example.com`;
       await createTestUser({
-        email: 'profile-password-missing@example.com',
+        email: uniqueEmail,
         password: await require('bcryptjs').hash('OldPassword123!', 12),
       });
 
       // Login to get auth cookie
-      const cookie = await getAuthCookie('profile-password-missing@example.com', 'OldPassword123!');
+      const cookie = await getAuthCookie(uniqueEmail, 'OldPassword123!');
 
       // Try to change password without currentPassword
       const response = await request(app)

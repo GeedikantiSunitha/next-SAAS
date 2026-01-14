@@ -7,6 +7,8 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:full-stack": "playwright test tests/e2e/full-stack-*.spec.ts",
+    "test:e2e:login-fix": "playwright test tests/e2e/login-redirect.focused.spec.ts",
+    "test:e2e:auth": "playwright test tests/e2e/full-stack-auth.spec.ts --grep \"User can login via frontend\"",
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
     "install:all": "cd backend && npm install && cd ../frontend && npm install"

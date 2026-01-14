@@ -260,41 +260,89 @@ describe('Audit Log IP Capture E2E', () => {
       expect(auditLog?.ipAddress).toBe(ipv6);
     });
 
-    it('should not store localhost IPs (127.0.0.1, ::1)', async () => {
-      const email = `ip-e2e-localhost-${Date.now()}@example.com`;
+    it('should not store localhost IPs (127.0.0.1, ::1) in production', async () => {
+      // Note: getClientIp filters localhost IPs only in production mode
+      // In test/development mode, localhost IPs are allowed for local testing
+      const originalEnv = process.env.NODE_ENV;
+      
+      try {
+        // Set to production to test filtering behavior
+        process.env.NODE_ENV = 'production';
+        
+        const email = `ip-e2e-localhost-${Date.now()}@example.com`;
 
-      // Register with localhost IP
-      const registerResponse = await request(app)
-        .post('/api/auth/register')
-        .set('X-Forwarded-For', '127.0.0.1')
-        .send({
-          email,
-          password: 'Password123!',
-          name: 'Localhost Test User',
+        // Register with localhost IP
+        const registerResponse = await request(app)
+          .post('/api/auth/register')
+          .set('X-Forwarded-For', '127.0.0.1')
+          .send({
+            email,
+            password: 'Password123!',
+            name: 'Localhost Test User',
+          });
+
+        expect(registerResponse.status).toBe(201);
+
+        const user = await prisma.user.findUnique({
+          where: { email },
         });
 
-      expect(registerResponse.status).toBe(201);
+        // Verify audit log does not have localhost IP (should be null in production)
+        const auditLog = await prisma.auditLog.findFirst({
+          where: {
+            userId: user!.id,
+            action: 'USER_REGISTERED',
+          },
+          orderBy: { createdAt: 'desc' },
+        });
 
-      const user = await prisma.user.findUnique({
-        where: { email },
-      });
+        expect(auditLog).toBeDefined();
+        // In production mode, localhost IPs should be filtered out (return null)
+        expect(auditLog?.ipAddress).toBeNull();
+      } finally {
+        // Restore original NODE_ENV
+        process.env.NODE_ENV = originalEnv;
+      }
+    });
 
-      // Verify audit log does not have localhost IP
-      const auditLog = await prisma.auditLog.findFirst({
-        where: {
-          userId: user!.id,
-          action: 'USER_REGISTERED',
-        },
-        orderBy: { createdAt: 'desc' },
-      });
+    it('should allow localhost IPs in test/development mode', async () => {
+      // Verify that localhost IPs are allowed in test mode (for local testing)
+      const originalEnv = process.env.NODE_ENV;
+      
+      try {
+        // Ensure test mode
+        process.env.NODE_ENV = 'test';
+        
+        const email = `ip-e2e-localhost-test-${Date.now()}@example.com`;
 
-      expect(auditLog).toBeDefined();
-      // Should be null or a different IP (fallback), not localhost
-      // Note: In test environment, if no valid IP is found, it may be null
-      if (auditLog?.ipAddress) {
-        expect(auditLog.ipAddress).not.toBe('127.0.0.1');
-        expect(auditLog.ipAddress).not.toBe('::1');
-        expect(auditLog.ipAddress).not.toBe('::ffff:127.0.0.1');
+        const registerResponse = await request(app)
+          .post('/api/auth/register')
+          .set('X-Forwarded-For', '127.0.0.1')
+          .send({
+            email,
+            password: 'Password123!',
+            name: 'Localhost Test User',
+          });
+
+        expect(registerResponse.status).toBe(201);
+
+        const user = await prisma.user.findUnique({
+          where: { email },
+        });
+
+        const auditLog = await prisma.auditLog.findFirst({
+          where: {
+            userId: user!.id,
+            action: 'USER_REGISTERED',
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+
+        expect(auditLog).toBeDefined();
+        // In test mode, localhost IPs are allowed
+        expect(auditLog?.ipAddress).toBe('127.0.0.1');
+      } finally {
+        process.env.NODE_ENV = originalEnv;
       }
     });
   });
@@ -306,8 +354,8 @@ describe('Audit Log IP Capture E2E', () => {
       const loginIp = '198.51.100.40';
       const profileIp = '172.16.0.40';
 
-      // Register
-      await request(app)
+      // Register (creates USER_REGISTERED audit log)
+      const registerResponse = await request(app)
         .post('/api/auth/register')
         .set('X-Forwarded-For', registerIp)
         .send({
@@ -316,11 +364,21 @@ describe('Audit Log IP Capture E2E', () => {
           name: 'Multi IP User',
         });
 
+      expect(registerResponse.status).toBe(201);
+
       const user = await prisma.user.findUnique({
         where: { email },
       });
 
-      // Login
+      expect(user).toBeDefined();
+
+      // Clean up any existing sessions for this user before login
+      // (Registration may create a session, and login will try to create another)
+      await prisma.session.deleteMany({
+        where: { userId: user!.id },
+      });
+
+      // Login (creates USER_LOGIN audit log)
       const loginResponse = await request(app)
         .post('/api/auth/login')
         .set('X-Forwarded-For', loginIp)
@@ -329,16 +387,25 @@ describe('Audit Log IP Capture E2E', () => {
           password: 'Password123!',
         });
 
+      expect(loginResponse.status).toBe(200);
+
       const loginCookies = extractCookies(loginResponse.headers);
 
-      // Update profile
-      await request(app)
+      // Update profile with actual change (creates PROFILE_UPDATED audit log)
+      // Note: profileService.updateProfile only creates audit log if there are actual changes
+      // Ensure the name is different from the registration name
+      const profileUpdateResponse = await request(app)
         .put('/api/profile/me')
         .set('Cookie', loginCookies)
         .set('X-Forwarded-For', profileIp)
         .send({
-          name: 'Updated Name',
+          name: 'Updated Multi IP Name', // Different from 'Multi IP User'
         });
+
+      expect(profileUpdateResponse.status).toBe(200);
+
+      // Wait a bit for all audit logs to be created
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Verify all audit logs have correct IPs
       const auditLogs = await prisma.auditLog.findMany({
@@ -348,11 +415,16 @@ describe('Audit Log IP Capture E2E', () => {
         orderBy: { createdAt: 'asc' },
       });
 
+      // Should have at least 3 audit logs: USER_REGISTERED, USER_LOGIN, PROFILE_UPDATED
       expect(auditLogs.length).toBeGreaterThanOrEqual(3);
 
       const registerLog = auditLogs.find(log => log.action === 'USER_REGISTERED');
       const loginLog = auditLogs.find(log => log.action === 'USER_LOGIN');
       const profileLog = auditLogs.find(log => log.action === 'PROFILE_UPDATED');
+
+      expect(registerLog).toBeDefined();
+      expect(loginLog).toBeDefined();
+      expect(profileLog).toBeDefined();
 
       expect(registerLog?.ipAddress).toBe(registerIp);
       expect(loginLog?.ipAddress).toBe(loginIp);

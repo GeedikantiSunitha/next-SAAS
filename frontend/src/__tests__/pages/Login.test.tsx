@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Login } from '../../pages/Login';
 import { AuthProvider } from '../../contexts/AuthContext';
 import { authApi } from '../../api/auth';
@@ -26,6 +27,27 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
+// Create test wrapper with QueryClientProvider for React Query hooks
+// Fix: Login page uses Layout which uses Header which uses NotificationBell (needs QueryClientProvider)
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, refetchOnWindowFocus: false },
+      mutations: { retry: false },
+    },
+  });
+
+  return ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
+  );
+};
+
 describe('Login Page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -38,13 +60,7 @@ describe('Login Page', () => {
   });
 
   it('should render login form', () => {
-    render(
-      <BrowserRouter>
-        <AuthProvider>
-          <Login />
-        </AuthProvider>
-      </BrowserRouter>
-    );
+    render(<Login />, { wrapper: createWrapper() });
 
     expect(screen.getByRole('heading', { name: /login/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
@@ -57,13 +73,7 @@ describe('Login Page', () => {
     const mockLogin = vi.fn();
     (authApi.login as any).mockImplementation(mockLogin);
 
-    render(
-      <BrowserRouter>
-        <AuthProvider>
-          <Login />
-        </AuthProvider>
-      </BrowserRouter>
-    );
+    render(<Login />, { wrapper: createWrapper() });
 
     // Wait for AuthProvider to finish initializing
     await waitFor(() => {
@@ -96,13 +106,7 @@ describe('Login Page', () => {
 
   it('should validate password is required', async () => {
     const user = userEvent.setup();
-    render(
-      <BrowserRouter>
-        <AuthProvider>
-          <Login />
-        </AuthProvider>
-      </BrowserRouter>
-    );
+    render(<Login />, { wrapper: createWrapper() });
 
     const emailInput = screen.getByLabelText(/email/i);
     const submitButton = screen.getByRole('button', { name: /login/i });
@@ -126,13 +130,7 @@ describe('Login Page', () => {
     });
     (authApi.login as any).mockImplementation(mockLogin);
 
-    render(
-      <BrowserRouter>
-        <AuthProvider>
-          <Login />
-        </AuthProvider>
-      </BrowserRouter>
-    );
+    render(<Login />, { wrapper: createWrapper() });
 
     const emailInput = screen.getByLabelText(/email/i);
     const passwordInput = screen.getByLabelText(/password/i);
@@ -154,13 +152,7 @@ describe('Login Page', () => {
     });
     (authApi.login as any).mockImplementation(mockLogin);
 
-    render(
-      <BrowserRouter>
-        <AuthProvider>
-          <Login />
-        </AuthProvider>
-      </BrowserRouter>
-    );
+    render(<Login />, { wrapper: createWrapper() });
 
     const emailInput = screen.getByLabelText(/email/i);
     const passwordInput = screen.getByLabelText(/password/i);
@@ -183,13 +175,7 @@ describe('Login Page', () => {
     });
     (authApi.login as any).mockReturnValue(loginPromise);
 
-    render(
-      <BrowserRouter>
-        <AuthProvider>
-          <Login />
-        </AuthProvider>
-      </BrowserRouter>
-    );
+    render(<Login />, { wrapper: createWrapper() });
 
     const emailInput = screen.getByLabelText(/email/i);
     const passwordInput = screen.getByLabelText(/password/i);
@@ -216,13 +202,7 @@ describe('Login Page', () => {
 
   it('should navigate to dashboard on successful login', async () => {
     const user = userEvent.setup();
-    render(
-      <BrowserRouter>
-        <AuthProvider>
-          <Login />
-        </AuthProvider>
-      </BrowserRouter>
-    );
+    render(<Login />, { wrapper: createWrapper() });
 
     const emailInput = screen.getByLabelText(/email/i);
     const passwordInput = screen.getByLabelText(/password/i);

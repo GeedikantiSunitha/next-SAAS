@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { AdminLayout } from '../../components/admin/AdminLayout';
 import { adminApi } from '../../api/admin';
 import { Skeleton } from '../../components/ui/skeleton';
-import { DollarSign, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, Clock } from 'lucide-react';
 
 export const AdminPayments = () => {
   const [page, setPage] = useState(1);

@@ -176,35 +176,46 @@ describe('Toast Component', () => {
   describe('Auto-dismiss', () => {
     it('should auto-dismiss after default duration', async () => {
       const user = userEvent.setup();
-      render(<TestComponent message="Auto-dismiss toast" duration={100} />); // Use short duration for test
+      render(<TestComponent message="Auto-dismiss toast" duration={300} />); // Use short but reliable duration
 
       const triggerButton = screen.getByTestId('trigger-toast');
       await user.click(triggerButton);
 
+      // Wait for toast to appear - verify it's rendered
       await waitFor(() => {
-        expect(screen.getByText('Auto-dismiss toast')).toBeInTheDocument();
-      });
+        const toasts = screen.getAllByRole('status');
+        const ourToast = toasts.find(t => t.textContent?.includes('Auto-dismiss toast'));
+        expect(ourToast).toBeInTheDocument();
+      }, { timeout: 2000 });
 
-      // Wait for the toast to auto-dismiss (100ms + buffer)
+      // Wait for the toast to auto-dismiss (300ms duration + buffer)
+      // Use a more lenient timeout and check that toast is removed
       await waitFor(() => {
-        expect(screen.queryByText('Auto-dismiss toast')).not.toBeInTheDocument();
+        const toasts = screen.queryAllByRole('status');
+        const ourToast = toasts.find(t => t.textContent?.includes('Auto-dismiss toast'));
+        expect(ourToast).toBeUndefined();
       }, { timeout: 2000 });
     });
 
     it('should auto-dismiss after custom duration', async () => {
       const user = userEvent.setup();
-      render(<TestComponent message="Custom duration toast" duration={100} />); // Use short duration for test
+      render(<TestComponent message="Custom duration toast" duration={300} />); // Use short but reliable duration
 
       const triggerButton = screen.getByTestId('trigger-toast');
       await user.click(triggerButton);
 
+      // Wait for toast to appear - verify it's rendered
       await waitFor(() => {
-        expect(screen.getByText('Custom duration toast')).toBeInTheDocument();
-      });
+        const toasts = screen.getAllByRole('status');
+        const ourToast = toasts.find(t => t.textContent?.includes('Custom duration toast'));
+        expect(ourToast).toBeInTheDocument();
+      }, { timeout: 2000 });
 
-      // Wait for the toast to auto-dismiss (100ms + buffer)
+      // Wait for the toast to auto-dismiss (300ms duration + buffer)
       await waitFor(() => {
-        expect(screen.queryByText('Custom duration toast')).not.toBeInTheDocument();
+        const toasts = screen.queryAllByRole('status');
+        const ourToast = toasts.find(t => t.textContent?.includes('Custom duration toast'));
+        expect(ourToast).toBeUndefined();
       }, { timeout: 2000 });
     });
 

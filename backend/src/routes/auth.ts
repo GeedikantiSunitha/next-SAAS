@@ -144,6 +144,12 @@ router.post(
     // This provides seamless UX - user doesn't need to login separately
     const { accessToken, refreshToken } = authService.generateTokens(user.id);
 
+    // Delete existing sessions for this user before creating new one
+    // This prevents unique constraint violations and ensures one active session per user
+    await prisma.session.deleteMany({
+      where: { userId: user.id },
+    });
+
     // Save refresh token in database for session management
     // Refresh tokens allow users to get new access tokens without re-login
     const expiresAt = new Date();
@@ -766,6 +772,12 @@ router.post(
     // Generate tokens and set cookies (same as login)
     const { accessToken, refreshToken } = authService.generateTokens(user.id);
 
+    // Delete existing sessions for this user before creating new one
+    // This prevents unique constraint violations and ensures one active session per user
+    await prisma.session.deleteMany({
+      where: { userId: user.id },
+    });
+
     // Save refresh token in database
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30); // 30 days
@@ -943,7 +955,14 @@ router.post(
   asyncHandler(async (req, res) => {
     const { code } = req.body;
 
-    if (!config.oauth.github.enabled) {
+    // Check if GitHub OAuth is enabled dynamically (in case env vars changed)
+    // This allows tests to disable OAuth by removing env vars
+    // Check environment variables directly (not cached config) for enabled check
+    const githubClientId = process.env.GITHUB_CLIENT_ID;
+    const githubClientSecret = process.env.GITHUB_CLIENT_SECRET;
+    const githubEnabled = !!(githubClientId && githubClientSecret);
+
+    if (!githubEnabled) {
       res.status(400).json({
         success: false,
         error: 'GitHub OAuth is not enabled',
@@ -957,8 +976,8 @@ router.post(
       const tokenResponse = await axios.post(
         'https://github.com/login/oauth/access_token',
         {
-          client_id: config.oauth.github.clientId,
-          client_secret: config.oauth.github.clientSecret,
+          client_id: githubClientId,
+          client_secret: githubClientSecret,
           code,
         },
         {
@@ -1093,10 +1112,17 @@ router.post(
   authenticate,
   asyncHandler(async (req, res) => {
     const result = await mfaService.setupEmailMfa(req.user!.id);
+    
+    // Check if email service is configured
+    const apiKey = process.env.RESEND_API_KEY || config.email.apiKey;
+    const isEmailConfigured = apiKey && apiKey !== 'your-resend-api-key-here';
 
     res.json({
       success: true,
-      data: result,
+      data: {
+        ...result,
+        emailConfigured: isEmailConfigured, // Let frontend know if email service is configured
+      },
     });
   })
 );
@@ -1531,6 +1557,19 @@ router.post(
     // Generate tokens
     const { accessToken, refreshToken } = authService.generateTokens(userId);
 
+    // Delete temporary session first (before deleting all sessions)
+    await prisma.session.delete({
+      where: {
+        id: tempSession.id,
+      },
+    });
+
+    // Delete existing sessions for this user before creating new one
+    // This prevents unique constraint violations and ensures one active session per user
+    await prisma.session.deleteMany({
+      where: { userId },
+    });
+
     // Save refresh token in database
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30); // 30 days
@@ -1542,13 +1581,6 @@ router.post(
         expiresAt,
         ipAddress,
         userAgent,
-      },
-    });
-
-    // Delete temporary session
-    await prisma.session.delete({
-      where: {
-        id: tempSession.id,
       },
     });
 

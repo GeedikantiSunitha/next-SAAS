@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AdminLayout } from '../../components/admin/AdminLayout';
 import { adminApi } from '../../api/admin';
@@ -5,7 +6,6 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Skeleton } from '../../components/ui/skeleton';
 import { useToast } from '../../hooks/use-toast';
-import { useState } from 'react';
 import { Save } from 'lucide-react';
 
 export const AdminSettings = () => {
@@ -16,10 +16,13 @@ export const AdminSettings = () => {
   const { data, isLoading } = useQuery({
     queryKey: ['admin', 'settings'],
     queryFn: () => adminApi.getSettings(),
-    onSuccess: (data) => {
-      setSettings(data.data.settings);
-    },
   });
+
+  React.useEffect(() => {
+    if (data?.data?.settings) {
+      setSettings(data.data.settings);
+    }
+  }, [data]);
 
   const updateMutation = useMutation({
     mutationFn: (newSettings: any) => adminApi.updateSettings(newSettings),
@@ -34,7 +37,7 @@ export const AdminSettings = () => {
       toast({
         title: 'Error',
         description: error.response?.data?.error || 'Failed to update settings',
-        variant: 'destructive',
+        variant: 'error',
       });
     },
   });

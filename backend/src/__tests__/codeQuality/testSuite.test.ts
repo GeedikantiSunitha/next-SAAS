@@ -11,7 +11,6 @@ import * as path from 'path';
 
 describe('Code Quality: Test Suite Structure Validation', () => {
   const backendTestsDir = path.join(__dirname, '../../__tests__');
-  const frontendTestsDir = path.join(__dirname, '../../../../frontend/src/__tests__');
 
   /**
    * Count test files in directory

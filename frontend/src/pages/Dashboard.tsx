@@ -3,7 +3,7 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Layout } from '../components/Layout';
 import { Link } from 'react-router-dom';
-import { User as UserIcon } from 'lucide-react';
+import { User as UserIcon, CreditCard, History } from 'lucide-react';
 
 export const Dashboard = () => {
   const { user } = useAuth();
@@ -33,15 +33,32 @@ export const Dashboard = () => {
                 </div>
 
                 <div className="pt-4 border-t">
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    <Button asChild>
-                      <Link to="/profile" className="flex items-center gap-2">
-                        <UserIcon className="h-4 w-4" />
-                        View Profile
-                      </Link>
-                    </Button>
-                    <p className="text-sm text-muted-foreground flex items-center">
-                      This is a basic dashboard. You can now build your application features here.
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="font-semibold mb-3 text-foreground">Quick Actions</h3>
+                      <div className="flex flex-wrap gap-3">
+                        <Button asChild>
+                          <Link to="/profile" className="flex items-center gap-2">
+                            <UserIcon className="h-4 w-4" />
+                            View Profile
+                          </Link>
+                        </Button>
+                        <Button asChild variant="default">
+                          <Link to="/payments" className="flex items-center gap-2">
+                            <CreditCard className="h-4 w-4" />
+                            Make Payment
+                          </Link>
+                        </Button>
+                        <Button asChild variant="outline">
+                          <Link to="/payments" className="flex items-center gap-2">
+                            <History className="h-4 w-4" />
+                            Payment History
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Manage your account, make payments, and view your transaction history.
                     </p>
                   </div>
                 </div>

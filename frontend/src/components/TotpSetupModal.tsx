@@ -22,7 +22,7 @@ import { Label } from './ui/label';
 import { Skeleton } from './ui/skeleton';
 import { useSetupTotp, useEnableMfa } from '../hooks/useMfa';
 import { useToast } from '../hooks/use-toast';
-import { Copy, CheckCircle } from 'lucide-react';
+import { Copy, CheckCircle, Info, AlertCircle } from 'lucide-react';
 
 interface TotpSetupModalProps {
   open: boolean;
@@ -61,7 +61,7 @@ export const TotpSetupModal = ({ open, onOpenChange }: TotpSetupModalProps) => {
       toast({
         title: 'Invalid Code',
         description: 'Please enter a 6-digit code from your authenticator app',
-        variant: 'destructive',
+        variant: 'error',
       });
       return;
     }
@@ -102,7 +102,7 @@ export const TotpSetupModal = ({ open, onOpenChange }: TotpSetupModalProps) => {
           <ModalTitle>Setup Authenticator App (TOTP)</ModalTitle>
           <ModalDescription>
             {step === 'setup'
-              ? 'Scan the QR code with your authenticator app, then enter the verification code'
+              ? 'Scan the QR code with your authenticator app (Google Authenticator, Authy, or similar), then enter the verification code'
               : 'Enter the 6-digit code from your authenticator app'}
           </ModalDescription>
         </ModalHeader>
@@ -119,6 +119,22 @@ export const TotpSetupModal = ({ open, onOpenChange }: TotpSetupModalProps) => {
 
               {setupTotpMutation.isSuccess && setupData && (
                 <>
+                  {/* Helpful Instructions */}
+                  <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                    <div className="flex items-start gap-3">
+                      <Info className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-blue-900 mb-1">
+                          First time using MFA?
+                        </p>
+                        <p className="text-sm text-blue-800">
+                          Install an authenticator app like <strong>Google Authenticator</strong> or <strong>Authy</strong> on your phone, 
+                          then scan the QR code below. The app will generate 6-digit codes that change every 30 seconds.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* QR Code */}
                   <div className="flex flex-col items-center space-y-4">
                     <div className="rounded-lg border p-4 bg-white">
@@ -216,9 +232,17 @@ export const TotpSetupModal = ({ open, onOpenChange }: TotpSetupModalProps) => {
 
               {setupTotpMutation.isError && (
                 <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
-                  <p className="text-sm text-destructive">
-                    Failed to setup TOTP. Please try again.
-                  </p>
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-destructive mb-1">
+                        Setup Failed
+                      </p>
+                      <p className="text-sm text-destructive/90">
+                        {setupTotpMutation.error?.response?.data?.error || 'Failed to setup TOTP. Please try again.'}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
             </>

@@ -5,7 +5,7 @@
  */
 
 import * as Sentry from '@sentry/node';
-import { ProfilingIntegration } from '@sentry/profiling-node';
+import { nodeProfilingIntegration } from '@sentry/profiling-node';
 import config from './index';
 import logger from '../utils/logger';
 
@@ -34,7 +34,7 @@ export const initSentry = () => {
     dsn,
     environment: config.nodeEnv,
     integrations: [
-      new ProfilingIntegration(),
+      nodeProfilingIntegration(),
     ],
     // Performance Monitoring
     tracesSampleRate: config.nodeEnv === 'production' ? 0.1 : 1.0, // 10% in production, 100% in dev

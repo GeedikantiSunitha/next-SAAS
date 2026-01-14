@@ -13,6 +13,7 @@ import { Resend } from 'resend';
 import { createAuditLog } from './auditService';
 import logger from '../utils/logger';
 import config from '../config';
+import { createNotification } from './notificationService';
 
 // Store email OTPs temporarily (in production, use Redis)
 const emailOtpStore = new Map<string, { otp: string; expiresAt: number }>();
@@ -36,8 +37,21 @@ export const setupTotp = async (userId: string) => {
     length: 32,
   });
 
-  // Generate QR code URL
-  const qrCodeUrl = await QRCode.toDataURL(secret.otpauth_url!);
+  // Generate otpauth_url if not provided by speakeasy
+  let otpauth_url = secret.otpauth_url;
+  if (!otpauth_url && secret.base32) {
+    // Manually construct otpauth_url if speakeasy didn't generate it
+    const encodedAppName = encodeURIComponent(config.appName);
+    const encodedEmail = encodeURIComponent(user.email);
+    otpauth_url = `otpauth://totp/${encodedAppName}:${encodedEmail}?secret=${secret.base32}&issuer=${encodedAppName}`;
+  }
+
+  // Generate QR code URL with quality options for authenticator apps
+  const qrCodeUrl = await QRCode.toDataURL(otpauth_url!, {
+    width: 512,
+    margin: 2,
+    errorCorrectionLevel: 'M',
+  });
 
   // Generate backup codes
   const backupCodes = await generateBackupCodes(userId);
@@ -190,6 +204,28 @@ export const enableMfa = async (
     details: { method },
   });
 
+  // Create notification for MFA enabled
+  try {
+    await createNotification({
+      userId,
+      type: 'SUCCESS',
+      channel: 'IN_APP',
+      title: 'Multi-Factor Authentication Enabled',
+      message: `${method} MFA has been successfully enabled for your account. You will now be required to enter a verification code when logging in.`,
+      data: {
+        action: 'MFA_ENABLED',
+        method,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  } catch (error: any) {
+    // Log error but don't fail MFA enable
+    logger.warn('Failed to create MFA enabled notification', {
+      userId,
+      error: error.message,
+    });
+  }
+
   logger.info('MFA enabled', { userId, method });
 };
 
@@ -229,6 +265,28 @@ export const disableMfa = async (userId: string, method: 'TOTP' | 'EMAIL') => {
     resource: 'mfa_methods',
     details: { method },
   });
+
+  // Create notification for MFA disabled
+  try {
+    await createNotification({
+      userId,
+      type: 'WARNING',
+      channel: 'IN_APP',
+      title: 'Multi-Factor Authentication Disabled',
+      message: `${method} MFA has been disabled for your account. Your account security has been reduced.`,
+      data: {
+        action: 'MFA_DISABLED',
+        method,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  } catch (error: any) {
+    // Log error but don't fail MFA disable
+    logger.warn('Failed to create MFA disabled notification', {
+      userId,
+      error: error.message,
+    });
+  }
 
   logger.info('MFA disabled', { userId, method });
 };
@@ -385,6 +443,13 @@ export const setupEmailMfa = async (userId: string) => {
       userId, 
       error: error.message 
     });
+    
+    // Check if it's an email service configuration issue
+    const apiKey = process.env.RESEND_API_KEY || config.email.apiKey;
+    if (!apiKey || apiKey === 'your-resend-api-key-here') {
+      // Don't throw error, but the frontend should detect this and show helpful message
+      // The setupEmailMfa will still succeed, but OTP won't be sent
+    }
   }
 
   return {

@@ -11,12 +11,21 @@ import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React, { ReactNode } from 'react';
 import { Login } from '../../pages/Login';
-import * as authApi from '../../api/auth';
+import * as authApiModule from '../../api/auth';
 import * as useAuthHook from '../../contexts/AuthContext';
 import * as useToastHook from '../../hooks/use-toast';
 
 // Mock dependencies
-vi.mock('../../api/auth');
+vi.mock('../../api/auth', async () => {
+  const actual = await vi.importActual('../../api/auth');
+  return {
+    ...actual,
+    authApi: {
+      login: vi.fn(),
+      loginWithMfa: vi.fn(),
+    },
+  };
+});
 vi.mock('../../contexts/AuthContext');
 vi.mock('../../hooks/use-toast');
 vi.mock('react-router-dom', async () => {
@@ -79,6 +88,7 @@ describe('Login Toast Notification', () => {
 
   it('should show success toast on successful login without MFA', async () => {
     const user = userEvent.setup();
+    const mockRefreshUser = vi.fn().mockResolvedValue(undefined);
 
     // Mock successful login response (no MFA)
     const mockUser = {
@@ -88,12 +98,20 @@ describe('Login Toast Notification', () => {
       role: 'USER',
     };
 
-    vi.mocked(authApi.authApi.login).mockResolvedValue({
+    // The Login component calls authApi.login() directly, not useAuth().login()
+    vi.mocked(authApiModule.authApi.login).mockResolvedValue({
       success: true,
       data: mockUser,
     } as any);
 
-    mockLogin.mockResolvedValue(undefined);
+    // Mock refreshUser to resolve (component calls this after login)
+    vi.mocked(useAuthHook.useAuth).mockReturnValue({
+      login: mockLogin,
+      isAuthenticated: false,
+      refreshUser: mockRefreshUser,
+      user: null,
+      loading: false,
+    } as any);
 
     render(<Login />, { wrapper: createWrapper() });
 
@@ -107,9 +125,17 @@ describe('Login Toast Notification', () => {
     const submitButton = screen.getByRole('button', { name: /login/i });
     await user.click(submitButton);
 
-    // Wait for login to complete
+    // Wait for authApi.login to be called (component calls this directly)
     await waitFor(() => {
-      expect(mockLogin).toHaveBeenCalled();
+      expect(authApiModule.authApi.login).toHaveBeenCalledWith({
+        email: 'test@example.com',
+        password: 'Password123!',
+      });
+    });
+
+    // Wait for refreshUser to be called (component calls this after successful login)
+    await waitFor(() => {
+      expect(mockRefreshUser).toHaveBeenCalled();
     });
 
     // Verify toast was called with success message
@@ -128,7 +154,7 @@ describe('Login Toast Notification', () => {
     const mockRefreshUser = vi.fn();
 
     // Mock MFA required response
-    vi.mocked(authApi.authApi.login).mockResolvedValue({
+    vi.mocked(authApiModule.authApi.login).mockResolvedValue({
       success: true,
       data: {
         requiresMfa: true,
@@ -138,7 +164,7 @@ describe('Login Toast Notification', () => {
     } as any);
 
     // Mock MFA verification success
-    vi.mocked(authApi.authApi.loginWithMfa).mockResolvedValue({
+    vi.mocked(authApiModule.authApi.loginWithMfa).mockResolvedValue({
       success: true,
       data: { id: '1', email: 'test@example.com', name: 'Test User' },
     } as any);
@@ -195,7 +221,7 @@ describe('Login Toast Notification', () => {
     const user = userEvent.setup();
 
     // Mock login error
-    vi.mocked(authApi.authApi.login).mockRejectedValue({
+    vi.mocked(authApiModule.authApi.login).mockRejectedValue({
       response: { data: { error: 'Invalid credentials' } },
     });
 

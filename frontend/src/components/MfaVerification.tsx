@@ -10,7 +10,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { LoadingButton } from './ui/loading';
-import { Shield, Smartphone, Mail, Key } from 'lucide-react';
+import { Shield, Key } from 'lucide-react';
 
 interface MfaVerificationProps {
   method: 'TOTP' | 'EMAIL';

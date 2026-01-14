@@ -1,0 +1,268 @@
+/**
+ * Newsletter Authentication Tests (TDD)
+ * 
+ * Focused unit tests to verify authentication cookie extraction and format
+ * Following TDD approach: write test → fix → verify
+ */
+
+import request from 'supertest';
+import express from 'express';
+import cookieParser from 'cookie-parser';
+import { prisma } from '../../config/database';
+import { createTestUserWithPassword } from '../utils/testUsers';
+import { findCookie } from '../utils/cookies';
+import authRoutes from '../../routes/auth';
+
+const app = express();
+app.use(express.json());
+app.use(cookieParser());
+app.use('/api/auth', authRoutes);
+
+jest.setTimeout(10000);
+
+describe('Newsletter Authentication Cookie Extraction', () => {
+  let userEmail: string;
+  let adminEmail: string;
+  let userPassword: string;
+  let adminPassword: string;
+
+  beforeAll(async () => {
+    // Clean up
+    await prisma.session.deleteMany({});
+    await prisma.user.deleteMany({});
+
+    // Create users
+    userEmail = `newsletter-auth-user-${Date.now()}@example.com`;
+    adminEmail = `newsletter-auth-admin-${Date.now()}@example.com`;
+    userPassword = 'TestPassword123!';
+    adminPassword = 'TestPassword123!';
+
+    await createTestUserWithPassword(userEmail, userPassword);
+    await createTestUserWithPassword(adminEmail, adminPassword, { role: 'ADMIN' });
+  });
+
+  afterAll(async () => {
+    await prisma.session.deleteMany({});
+    await prisma.user.deleteMany({});
+  });
+
+  it('should successfully login user and return access token cookie', async () => {
+    const response = await request(app)
+      .post('/api/auth/login')
+      .send({ email: userEmail, password: userPassword });
+
+    // Verify login succeeds
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+
+    // Verify cookie is set
+    const setCookieHeader = response.headers['set-cookie'];
+    expect(setCookieHeader).toBeDefined();
+    expect(Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader]).toBeTruthy();
+
+    // Verify accessToken cookie exists
+    const accessToken = findCookie(response.headers, 'accessToken');
+    expect(accessToken).toBeDefined();
+    expect(accessToken).toBeTruthy();
+    expect(typeof accessToken).toBe('string');
+    expect(accessToken!.length).toBeGreaterThan(0);
+  });
+
+  it('should successfully login admin and return access token cookie', async () => {
+    const response = await request(app)
+      .post('/api/auth/login')
+      .send({ email: adminEmail, password: adminPassword });
+
+    // Verify login succeeds
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+
+    // Verify cookie is set
+    const accessToken = findCookie(response.headers, 'accessToken');
+    expect(accessToken).toBeDefined();
+    expect(accessToken).toBeTruthy();
+    expect(typeof accessToken).toBe('string');
+    expect(accessToken!.length).toBeGreaterThan(0);
+  });
+
+  it('should format cookie correctly for supertest .set() method', async () => {
+    const loginResponse = await request(app)
+      .post('/api/auth/login')
+      .send({ email: userEmail, password: userPassword });
+
+    expect(loginResponse.status).toBe(200);
+
+    // Extract token using findCookie utility
+    const token = findCookie(loginResponse.headers, 'accessToken');
+    expect(token).toBeDefined();
+    expect(token).toBeTruthy();
+
+    // Format cookie as it's done in newsletter.e2e.test.ts
+    const cookieString = token ? `accessToken=${token}` : '';
+    expect(cookieString).toBeTruthy();
+    expect(cookieString).toContain('accessToken=');
+    expect(cookieString.split('=')[1]).toBe(token); // Verify token value is correct
+  });
+
+  it('should verify cookie can be used in authenticated requests', async () => {
+    // Login to get token
+    const loginResponse = await request(app)
+      .post('/api/auth/login')
+      .send({ email: adminEmail, password: adminPassword });
+
+    expect(loginResponse.status).toBe(200);
+
+    const token = findCookie(loginResponse.headers, 'accessToken');
+    expect(token).toBeDefined();
+
+    // Format cookie
+    const cookieString = token ? `accessToken=${token}` : '';
+    expect(cookieString).toBeTruthy();
+
+    // Test authenticated endpoint (use a simple protected route if available)
+    // For now, just verify cookie format is valid
+    // The actual endpoint test will be in the E2E test after fix
+    expect(cookieString).toMatch(/^accessToken=[A-Za-z0-9\-._~+/]+=*$/); // JWT format
+  });
+
+  it('should handle login failures gracefully', async () => {
+    const response = await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'nonexistent@example.com', password: 'WrongPassword123!' });
+
+    // Verify login fails
+    expect(response.status).toBe(401);
+    expect(response.body.success).toBe(false);
+
+    // Verify no cookie is set
+    const accessToken = findCookie(response.headers, 'accessToken');
+    expect(accessToken).toBeUndefined();
+  });
+
+  it('should verify login responses set cookies in correct format', async () => {
+    const response = await request(app)
+      .post('/api/auth/login')
+      .send({ email: userEmail, password: userPassword });
+
+    expect(response.status).toBe(200);
+
+    const setCookieHeader = response.headers['set-cookie'];
+    expect(setCookieHeader).toBeDefined();
+
+    const cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader];
+    const accessTokenCookie = cookies.find((c: string) => c && c.startsWith('accessToken='));
+
+    // Verify cookie format matches what cookie-parser expects
+    expect(accessTokenCookie).toBeDefined();
+    expect(accessTokenCookie).toContain('accessToken=');
+    // Should have HttpOnly, Secure, SameSite attributes (depends on config)
+    // Just verify it has the token value
+    const tokenValue = accessTokenCookie!.split('=')[1]?.split(';')[0];
+    expect(tokenValue).toBeTruthy();
+    expect(tokenValue!.length).toBeGreaterThan(0);
+  });
+});
+
+describe('Newsletter Test BeforeEach Cookie Extraction', () => {
+  it('should verify beforeEach login extraction logic', async () => {
+    // Simulate the beforeEach logic from newsletter.e2e.test.ts
+    const testEmail = `newsletter-beforeeach-${Date.now()}@example.com`;
+    const testPassword = 'TestPassword123!';
+
+    // Create user
+    await prisma.user.deleteMany({ where: { email: testEmail } });
+    const user = await createTestUserWithPassword(testEmail, testPassword);
+
+    try {
+      // Clean sessions
+      await prisma.session.deleteMany({ where: { userId: user.id } });
+
+      // Login (simulate beforeEach)
+      const userLogin = await request(app)
+        .post('/api/auth/login')
+        .send({ email: testEmail, password: testPassword });
+
+      // Verify login succeeds
+      expect(userLogin.status).toBe(200);
+
+      // Extract token (as done in beforeEach)
+      const userToken = findCookie(userLogin.headers, 'accessToken');
+      
+      // Verify token is extracted
+      expect(userToken).toBeDefined();
+      expect(userToken).toBeTruthy();
+
+      // Format cookie (as done in beforeEach)
+      const userTokenCookie = userToken ? `accessToken=${userToken}` : '';
+      
+      // Verify cookie is not empty
+      expect(userTokenCookie).toBeTruthy();
+      expect(userTokenCookie).not.toBe('');
+      expect(userTokenCookie).toContain('accessToken=');
+
+      // Verify it can be used in array format for supertest
+      const cookieArray = [userTokenCookie];
+      expect(cookieArray).toHaveLength(1);
+      expect(cookieArray[0]).toBe(userTokenCookie);
+    } finally {
+      // Cleanup
+      await prisma.session.deleteMany({ where: { userId: user.id } });
+      await prisma.user.deleteMany({ where: { email: testEmail } });
+    }
+  });
+
+  it('should verify parallel login extraction works correctly', async () => {
+    // Simulate parallel logins as done in optimized beforeEach
+    const userEmail = `newsletter-parallel-user-${Date.now()}@example.com`;
+    const adminEmail = `newsletter-parallel-admin-${Date.now()}@example.com`;
+    const password = 'TestPassword123!';
+
+    // Create users
+    await prisma.user.deleteMany({ where: { email: { in: [userEmail, adminEmail] } } });
+    const testUser = await createTestUserWithPassword(userEmail, password);
+    const testAdmin = await createTestUserWithPassword(adminEmail, password, { role: 'ADMIN' });
+
+    try {
+      // Clean sessions
+      await prisma.session.deleteMany({ where: { userId: { in: [testUser.id, testAdmin.id] } } });
+
+      // Parallel login (as done in optimized beforeEach)
+      const [userLogin, adminLogin] = await Promise.all([
+        request(app)
+          .post('/api/auth/login')
+          .send({ email: userEmail, password: password }),
+        request(app)
+          .post('/api/auth/login')
+          .send({ email: adminEmail, password: password })
+      ]);
+
+      // Verify both logins succeed
+      expect(userLogin.status).toBe(200);
+      expect(adminLogin.status).toBe(200);
+
+      // Extract tokens
+      const userToken = findCookie(userLogin.headers, 'accessToken');
+      const adminToken = findCookie(adminLogin.headers, 'accessToken');
+
+      // Verify both tokens are extracted
+      expect(userToken).toBeDefined();
+      expect(userToken).toBeTruthy();
+      expect(adminToken).toBeDefined();
+      expect(adminToken).toBeTruthy();
+
+      // Format cookies
+      const userTokenCookie = userToken ? `accessToken=${userToken}` : '';
+      const adminTokenCookie = adminToken ? `accessToken=${adminToken}` : '';
+
+      // Verify both cookies are formatted correctly
+      expect(userTokenCookie).toBeTruthy();
+      expect(userTokenCookie).not.toBe('');
+      expect(adminTokenCookie).toBeTruthy();
+      expect(adminTokenCookie).not.toBe('');
+    } finally {
+      // Cleanup
+      await prisma.session.deleteMany({ where: { userId: { in: [testUser.id, testAdmin.id] } } });
+      await prisma.user.deleteMany({ where: { email: { in: [userEmail, adminEmail] } } });
+    }
+  });
+});

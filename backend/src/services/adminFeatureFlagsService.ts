@@ -54,6 +54,7 @@ export const updateFeatureFlag = async (
       key,
       enabled,
       updatedBy: adminUserId,
+      description: `Feature flag: ${key}`,
     },
   });
 

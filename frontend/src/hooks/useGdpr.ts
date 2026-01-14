@@ -9,9 +9,6 @@ import {
   gdprApi,
   type ConsentType,
   type DeletionType,
-  type ConsentRecord,
-  type DataDeletionRequest,
-  type DataExportRequest,
 } from '../api/gdpr';
 import { useToast } from './use-toast';
 
@@ -78,7 +75,7 @@ export const useGrantConsent = () => {
       toast({
         title: 'Error',
         description: error.response?.data?.error || 'Failed to grant consent',
-        variant: 'destructive',
+        variant: 'error',
       });
     },
   });
@@ -107,7 +104,7 @@ export const useRevokeConsent = () => {
       toast({
         title: 'Error',
         description: error.response?.data?.error || 'Failed to revoke consent',
-        variant: 'destructive',
+        variant: 'error',
       });
     },
   });
@@ -149,7 +146,7 @@ export const useRequestDeletion = () => {
       toast({
         title: 'Error',
         description: error.response?.data?.error || 'Failed to request data deletion',
-        variant: 'destructive',
+        variant: 'error',
       });
     },
   });
@@ -176,7 +173,7 @@ export const useConfirmDeletion = () => {
       toast({
         title: 'Error',
         description: error.response?.data?.error || 'Failed to confirm deletion',
-        variant: 'destructive',
+        variant: 'error',
       });
     },
   });
@@ -217,7 +214,7 @@ export const useRequestExport = () => {
       toast({
         title: 'Error',
         description: error.response?.data?.error || 'Failed to request data export',
-        variant: 'destructive',
+        variant: 'error',
       });
     },
   });

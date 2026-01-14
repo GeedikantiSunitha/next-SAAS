@@ -53,9 +53,12 @@ describe('OAuth E2E Tests', () => {
 
   describe('POST /api/auth/oauth/github/exchange', () => {
     it('should return error if GitHub OAuth is not enabled', async () => {
-      // Mock GitHub OAuth as disabled
-      const originalEnabled = process.env.GITHUB_CLIENT_ID;
+      // Mock GitHub OAuth as disabled by removing both required env vars
+      const originalClientId = process.env.GITHUB_CLIENT_ID;
+      const originalClientSecret = process.env.GITHUB_CLIENT_SECRET;
+      
       delete process.env.GITHUB_CLIENT_ID;
+      delete process.env.GITHUB_CLIENT_SECRET;
 
       const response = await request(app)
         .post('/api/auth/oauth/github/exchange')
@@ -66,8 +69,11 @@ describe('OAuth E2E Tests', () => {
       expect(response.body.error).toMatch(/not enabled/i);
 
       // Restore
-      if (originalEnabled) {
-        process.env.GITHUB_CLIENT_ID = originalEnabled;
+      if (originalClientId) {
+        process.env.GITHUB_CLIENT_ID = originalClientId;
+      }
+      if (originalClientSecret) {
+        process.env.GITHUB_CLIENT_SECRET = originalClientSecret;
       }
     });
 

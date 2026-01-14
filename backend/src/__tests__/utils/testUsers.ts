@@ -111,3 +111,14 @@ export const cleanupTestUsers = async (emailPattern: string) => {
     },
   });
 };
+
+// Jest requires at least one test in test files
+// This file contains utility functions for tests, not actual tests
+describe('Test User Utilities', () => {
+  it('should export test user utility functions', () => {
+    expect(createTestUserWithPassword).toBeDefined();
+    expect(createTestAdminWithPassword).toBeDefined();
+    expect(createMultipleTestUsers).toBeDefined();
+    expect(cleanupTestUsers).toBeDefined();
+  });
+});

@@ -23,33 +23,23 @@ test.describe('Full-Stack Admin Dashboard E2E', () => {
   });
 
   test('Admin can access dashboard and see statistics', async ({ page, request }) => {
-    // Step 1: Create admin user via backend API
+    // Step 1: Create admin user via test helper endpoint
     const uniqueEmail = `admin-e2e-${Date.now()}@example.com`;
     const password = 'AdminPassword123!';
 
-    // Register admin user
-    const registerResponse = await request.post('http://localhost:3001/api/auth/register', {
+    // Create admin user directly via test helper (test environment only)
+    const createAdminResponse = await request.post('http://localhost:3001/api/test-helpers/users/admin', {
       data: {
         email: uniqueEmail,
         password: password,
         name: 'Admin User',
-      },
-    });
-
-    expect(registerResponse.status()).toBe(201);
-    const registerData = await registerResponse.json();
-    const userId = registerData.data.id;
-
-    // Update user to ADMIN role via direct database call (for testing)
-    // In production, this would be done through proper admin APIs
-    const updateResponse = await request.put(`http://localhost:3001/api/admin/users/${userId}`, {
-      headers: {
-        Cookie: `accessToken=${registerData.data.token || ''}`,
-      },
-      data: {
         role: 'ADMIN',
       },
     });
+
+    expect(createAdminResponse.status()).toBe(201);
+    const adminData = await createAdminResponse.json();
+    expect(adminData.data.role).toBe('ADMIN');
 
     // Step 2: Login as admin via frontend
     await page.goto('/login');
@@ -97,20 +87,22 @@ test.describe('Full-Stack Admin Dashboard E2E', () => {
   });
 
   test('Dashboard shows correct user count', async ({ page, request }) => {
-    // Step 1: Create admin user
+    // Step 1: Create admin user via test helper endpoint
     const uniqueEmail = `admin-count-${Date.now()}@example.com`;
     const password = 'AdminPassword123!';
 
-    const registerResponse = await request.post('http://localhost:3001/api/auth/register', {
+    const createAdminResponse = await request.post('http://localhost:3001/api/test-helpers/users/admin', {
       data: {
         email: uniqueEmail,
         password: password,
         name: 'Admin User',
+        role: 'ADMIN',
       },
     });
 
-    expect(registerResponse.status()).toBe(201);
-    const registerData = await registerResponse.json();
+    expect(createAdminResponse.status()).toBe(201);
+    const adminData = await createAdminResponse.json();
+    expect(adminData.data.role).toBe('ADMIN');
 
     // Step 2: Login
     await page.goto('/login');
@@ -156,18 +148,24 @@ test.describe('Full-Stack Admin Dashboard E2E', () => {
   });
 
   test('Dashboard shows active sessions', async ({ page, request }) => {
-    // Step 1: Create and login as admin
+    // Step 1: Create admin user via test helper endpoint
     const uniqueEmail = `admin-sessions-${Date.now()}@example.com`;
     const password = 'AdminPassword123!';
 
-    await request.post('http://localhost:3001/api/auth/register', {
+    const createAdminResponse = await request.post('http://localhost:3001/api/test-helpers/users/admin', {
       data: {
         email: uniqueEmail,
         password: password,
         name: 'Admin User',
+        role: 'ADMIN',
       },
     });
 
+    expect(createAdminResponse.status()).toBe(201);
+    const adminData = await createAdminResponse.json();
+    expect(adminData.data.role).toBe('ADMIN');
+
+    // Step 2: Login as admin via frontend
     await page.goto('/login');
     await page.fill('input[name="email"]', uniqueEmail);
     await page.fill('input[name="password"]', password);
@@ -231,27 +229,37 @@ test.describe('Full-Stack Admin Dashboard E2E', () => {
   });
 
   test('Dashboard shows recent activity from audit logs', async ({ page, request }) => {
-    // Step 1: Create and login as admin
+    // Step 1: Create admin user via test helper endpoint
     const uniqueEmail = `admin-activity-${Date.now()}@example.com`;
     const password = 'AdminPassword123!';
 
-    await request.post('http://localhost:3001/api/auth/register', {
+    const createAdminResponse = await request.post('http://localhost:3001/api/test-helpers/users/admin', {
       data: {
         email: uniqueEmail,
         password: password,
         name: 'Admin User',
+        role: 'ADMIN',
       },
     });
 
+    expect(createAdminResponse.status()).toBe(201);
+    const adminData = await createAdminResponse.json();
+    expect(adminData.data.role).toBe('ADMIN');
+
+    // Step 2: Login as admin via frontend
     await page.goto('/login');
     await page.fill('input[name="email"]', uniqueEmail);
     await page.fill('input[name="password"]', password);
     await page.click('button[type="submit"]');
     await expect(page).toHaveURL('/dashboard', { timeout: 10000 });
 
-    // Step 2: Perform some actions that create audit logs
-    // Login again to create audit log
-    await page.goto('/login');
+    // Step 3: Perform some actions that create audit logs
+    // Logout first (clear cookies) so we can login again to create audit log
+    await page.context().clearCookies();
+    await page.goto('/login', { waitUntil: 'networkidle' });
+    
+    // Wait for form to be ready before interacting
+    await page.waitForSelector('input[name="email"]', { state: 'visible' });
     await page.fill('input[name="email"]', uniqueEmail);
     await page.fill('input[name="password"]', password);
     await page.click('button[type="submit"]');
@@ -285,18 +293,24 @@ test.describe('Full-Stack Admin Dashboard E2E', () => {
   });
 
   test('Dashboard shows system health information', async ({ page, request }) => {
-    // Step 1: Create and login as admin
+    // Step 1: Create admin user via test helper endpoint
     const uniqueEmail = `admin-health-${Date.now()}@example.com`;
     const password = 'AdminPassword123!';
 
-    await request.post('http://localhost:3001/api/auth/register', {
+    const createAdminResponse = await request.post('http://localhost:3001/api/test-helpers/users/admin', {
       data: {
         email: uniqueEmail,
         password: password,
         name: 'Admin User',
+        role: 'ADMIN',
       },
     });
 
+    expect(createAdminResponse.status()).toBe(201);
+    const adminData = await createAdminResponse.json();
+    expect(adminData.data.role).toBe('ADMIN');
+
+    // Step 2: Login as admin via frontend
     await page.goto('/login');
     await page.fill('input[name="email"]', uniqueEmail);
     await page.fill('input[name="password"]', password);

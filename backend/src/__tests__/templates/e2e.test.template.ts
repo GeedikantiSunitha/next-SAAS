@@ -158,7 +158,6 @@ export const getAuthToken = async (email: string, password: string): Promise<str
     throw new Error(`Failed to get auth token: ${response.body.error || 'Unknown error'}`);
   }
 
-  const cookies = extractCookies(response.headers);
   const accessToken = findCookie(response.headers, 'accessToken');
   
   if (!accessToken) {
@@ -262,6 +261,8 @@ describe('Your Feature E2E Tests', () => {
       expect(step1Response.body.data).toBeDefined();
 
       // Step 2: Verify in database
+      // TODO: Replace 'yourModel' with actual Prisma model name (e.g., 'newsletter', 'subscription', etc.)
+      // @ts-ignore - Template placeholder: replace 'yourModel' with actual model name
       const dbRecord = await prisma.yourModel.findFirst({
         where: { userId: testUser.id },
       });

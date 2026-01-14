@@ -11,11 +11,12 @@ import { useState } from 'react';
 import { Layout } from '../components/Layout';
 import { ConsentManagement } from '../components/ConsentManagement';
 import { DataDeletionRequest } from '../components/DataDeletionRequest';
+import { DataExport } from '../components/gdpr/DataExport';
 import { Shield, CheckCircle, Trash2, Download } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export const GdprSettings = () => {
-  const [activeTab, setActiveTab] = useState<'consent' | 'deletion'>('consent');
+  const [activeTab, setActiveTab] = useState<'consent' | 'deletion' | 'export'>('consent');
 
   return (
     <Layout>
@@ -65,6 +66,20 @@ export const GdprSettings = () => {
                   Data Deletion
                 </div>
               </button>
+              <button
+                onClick={() => setActiveTab('export')}
+                className={cn(
+                  'py-4 px-1 border-b-2 font-medium text-sm transition-colors',
+                  activeTab === 'export'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <Download className="h-4 w-4" />
+                  Data Export
+                </div>
+              </button>
             </nav>
           </div>
 
@@ -72,6 +87,7 @@ export const GdprSettings = () => {
           <div className="mt-6">
             {activeTab === 'consent' && <ConsentManagement />}
             {activeTab === 'deletion' && <DataDeletionRequest />}
+            {activeTab === 'export' && <DataExport />}
           </div>
         </div>
       </div>

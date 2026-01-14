@@ -9,7 +9,21 @@ import apiClient from './client';
 export interface AdminDashboardStats {
   totalUsers: number;
   activeSessions: number;
-  recentActivity: any[];
+  totalPayments: number;
+  recentActivity: Array<{
+    id: string;
+    userId: string | null;
+    action: string;
+    resource: string | null;
+    resourceId: string | null;
+    createdAt: string;
+    details?: any;
+    user?: {
+      id: string;
+      email: string;
+      name: string | null;
+    };
+  }>;
 }
 
 export interface AdminDashboardResponse {

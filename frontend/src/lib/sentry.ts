@@ -5,7 +5,6 @@
  */
 
 import * as Sentry from '@sentry/react';
-import { BrowserTracing } from '@sentry/tracing';
 
 /**
  * Initialize Sentry
@@ -22,10 +21,7 @@ export const initSentry = () => {
     dsn,
     environment: import.meta.env.MODE,
     integrations: [
-      Sentry.browserTracingIntegration({
-        // Set tracing origins
-        tracePropagationTargets: ['localhost', /^\//],
-      }),
+      Sentry.browserTracingIntegration(),
     ],
     // Performance Monitoring
     tracesSampleRate: import.meta.env.MODE === 'production' ? 0.1 : 1.0, // 10% in production

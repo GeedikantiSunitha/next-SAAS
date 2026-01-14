@@ -4,7 +4,7 @@ import { authApi, User } from '../api/auth';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User | { requiresMfa: boolean; mfaMethod: 'TOTP' | 'EMAIL'; user: User } | undefined>;
   register: (email: string, password: string, name?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -46,8 +46,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const response = await authApi.login({ email, password });
     // Backend sets accessToken as HTTP-only cookie automatically
     // No need to store in localStorage - cookie is sent automatically
-    // Backend returns { success: true, data: user } (no accessToken in body)
-    setUser(response.data);
+    // Backend returns { success: true, data: user } or { success: true, data: { requiresMfa: true, ... } }
+    if ('requiresMfa' in response.data) {
+      // MFA required - don't set user yet, MFA flow will handle it
+      return response.data;
+    } else {
+      setUser(response.data);
+    }
   };
 
   const register = async (email: string, password: string, name?: string) => {

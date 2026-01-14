@@ -1,8 +1,28 @@
 import request from 'supertest';
 import app from '../app';
 import { createTestUser } from '../tests/setup';
+import { prisma } from '../config/database';
 
 describe('Auth API', () => {
+  // Clean up users created by these tests
+  afterEach(async () => {
+    // Delete users created by this test suite (various email patterns)
+    await prisma.user.deleteMany({
+      where: {
+        OR: [
+          { email: { startsWith: 'me-header' } },
+          { email: { startsWith: 'me-cookie' } },
+          { email: { startsWith: 'refresh-test' } },
+          { email: { startsWith: 'refresh-no-token' } },
+          { email: { startsWith: 'newuser@' } },
+          { email: { startsWith: 'register-cookie' } },
+          { email: { startsWith: 'register-no-token' } },
+          { email: { startsWith: 'secure-test' } },
+          { email: 'user@example.com' },
+        ],
+      },
+    });
+  });
   describe('POST /api/auth/register', () => {
     it('should register a new user', async () => {
       const response = await request(app)
@@ -230,29 +250,46 @@ describe('Auth API', () => {
 
   describe('GET /api/auth/me', () => {
     it('should get current user with valid token from cookie', async () => {
-      // Create user and login
+      // Create user with unique email
+      const uniqueEmail = `me-cookie-${Date.now()}@example.com`;
       await createTestUser({
-        email: 'me-cookie@example.com',
+        email: uniqueEmail,
         password: await require('bcryptjs').hash('Password123!', 12),
       });
 
       const loginResponse = await request(app)
         .post('/api/auth/login')
         .send({
-          email: 'me-cookie@example.com',
+          email: uniqueEmail,
           password: 'Password123!',
         });
 
-      // Extract access token from cookie
+      // Check if login was successful
+      if (loginResponse.status !== 200) {
+        throw new Error(`Login failed with status ${loginResponse.status}: ${JSON.stringify(loginResponse.body)}`);
+      }
+
+      // Extract access token from cookie (with proper null checking)
       const setCookieHeader = loginResponse.headers['set-cookie'];
+      if (!setCookieHeader) {
+        throw new Error('Login succeeded but no cookies were set');
+      }
+      
       const cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader];
-      const accessTokenCookie = cookies.find((c: string) => c.startsWith('accessToken='));
+      const accessTokenCookie = cookies.find((c: string) => c && c.startsWith('accessToken='));
+      
+      if (!accessTokenCookie) {
+        throw new Error('Failed to get access token cookie. Available cookies: ' + cookies.join(', '));
+      }
+      
       expect(accessTokenCookie).toBeDefined();
       
       // Extract token value from cookie string
-      const tokenMatch = accessTokenCookie!.match(/accessToken=([^;]+)/);
-      expect(tokenMatch).toBeDefined();
-      const accessToken = tokenMatch![1];
+      const tokenMatch = accessTokenCookie.match(/accessToken=([^;]+)/);
+      if (!tokenMatch) {
+        throw new Error('Failed to extract token from cookie: ' + accessTokenCookie);
+      }
+      const accessToken = tokenMatch[1];
 
       // Get current user using cookie (browser sends cookies automatically)
       // For testing, we'll use the cookie directly
@@ -262,29 +299,47 @@ describe('Auth API', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
-      expect(response.body.data.email).toBe('me-cookie@example.com');
+      expect(response.body.data.email).toBe(uniqueEmail);
     });
 
     it('should get current user with valid token from Authorization header (backward compatibility)', async () => {
-      // Create user and login
+      // Create user with unique email
+      const uniqueEmail = `me-header-${Date.now()}@example.com`;
       await createTestUser({
-        email: 'me-header@example.com',
+        email: uniqueEmail,
         password: await require('bcryptjs').hash('Password123!', 12),
       });
 
       const loginResponse = await request(app)
         .post('/api/auth/login')
         .send({
-          email: 'me-header@example.com',
+          email: uniqueEmail,
           password: 'Password123!',
         });
 
-      // Extract access token from cookie
+      // Check if login was successful
+      if (loginResponse.status !== 200) {
+        throw new Error(`Login failed with status ${loginResponse.status}: ${JSON.stringify(loginResponse.body)}`);
+      }
+
+      // Extract access token from cookie (with proper null checking)
       const setCookieHeader = loginResponse.headers['set-cookie'];
+      if (!setCookieHeader) {
+        throw new Error('Login succeeded but no cookies were set');
+      }
+      
       const cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader];
-      const accessTokenCookie = cookies.find((c: string) => c.startsWith('accessToken='));
-      const tokenMatch = accessTokenCookie!.match(/accessToken=([^;]+)/);
-      const accessToken = tokenMatch![1];
+      const accessTokenCookie = cookies.find((c: string) => c && c.startsWith('accessToken='));
+      
+      if (!accessTokenCookie) {
+        throw new Error('Failed to get access token cookie. Available cookies: ' + cookies.join(', '));
+      }
+      
+      const tokenMatch = accessTokenCookie.match(/accessToken=([^;]+)/);
+      if (!tokenMatch) {
+        throw new Error('Failed to extract token from cookie: ' + accessTokenCookie);
+      }
+      const accessToken = tokenMatch[1];
 
       // Get current user using Authorization header (for backward compatibility)
       const response = await request(app)
@@ -293,7 +348,7 @@ describe('Auth API', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
-      expect(response.body.data.email).toBe('me-header@example.com');
+      expect(response.body.data.email).toBe(uniqueEmail);
     });
 
     it('should reject request without token', async () => {
@@ -306,36 +361,58 @@ describe('Auth API', () => {
 
   describe('POST /api/auth/refresh', () => {
     it('should set new access token as HTTP-only cookie', async () => {
-      // Create user and login
+      // Create user with unique email
+      const uniqueEmail = `refresh-test-${Date.now()}@example.com`;
       await createTestUser({
-        email: 'refresh-test@example.com',
+        email: uniqueEmail,
         password: await require('bcryptjs').hash('Password123!', 12),
       });
 
       const loginResponse = await request(app)
         .post('/api/auth/login')
         .send({
-          email: 'refresh-test@example.com',
+          email: uniqueEmail,
           password: 'Password123!',
         });
 
-      // Extract refresh token from cookie
+      // Check if login was successful
+      if (loginResponse.status !== 200) {
+        throw new Error(`Login failed with status ${loginResponse.status}: ${JSON.stringify(loginResponse.body)}`);
+      }
+
+      // Extract refresh token from cookie (with proper null checking)
       const setCookieHeader = loginResponse.headers['set-cookie'];
+      if (!setCookieHeader) {
+        throw new Error('Login succeeded but no cookies were set');
+      }
+      
       const cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader];
-      const refreshTokenCookie = cookies.find((c: string) => c.startsWith('refreshToken='));
+      const refreshTokenCookie = cookies.find((c: string) => c && c.startsWith('refreshToken='));
+      
+      if (!refreshTokenCookie) {
+        throw new Error('Failed to get refresh token cookie. Available cookies: ' + cookies.join(', '));
+      }
+      
       expect(refreshTokenCookie).toBeDefined();
 
       // Call refresh endpoint
       const refreshResponse = await request(app)
         .post('/api/auth/refresh')
-        .set('Cookie', refreshTokenCookie!);
+        .set('Cookie', refreshTokenCookie);
 
       expect(refreshResponse.status).toBe(200);
-      expect(refreshResponse.headers['set-cookie']).toBeDefined();
       
       const refreshSetCookieHeader = refreshResponse.headers['set-cookie'];
+      if (!refreshSetCookieHeader) {
+        throw new Error('Refresh succeeded but no cookies were set');
+      }
+      
       const refreshCookies = Array.isArray(refreshSetCookieHeader) ? refreshSetCookieHeader : [refreshSetCookieHeader];
-      const newAccessTokenCookie = refreshCookies.find((c: string) => c.startsWith('accessToken='));
+      const newAccessTokenCookie = refreshCookies.find((c: string) => c && c.startsWith('accessToken='));
+      
+      if (!newAccessTokenCookie) {
+        throw new Error('Failed to get new access token cookie. Available cookies: ' + refreshCookies.join(', '));
+      }
       
       expect(newAccessTokenCookie).toBeDefined();
       expect(newAccessTokenCookie).toContain('HttpOnly');

@@ -5,7 +5,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { notificationApi, type Notification, type NotificationPreferences } from '../api/notifications';
+import { notificationApi, type NotificationPreferences } from '../api/notifications';
 import { useToast } from './use-toast';
 
 /**
@@ -70,7 +70,7 @@ export const useMarkAsRead = () => {
       toast({
         title: 'Error',
         description: error.response?.data?.error || 'Failed to mark notification as read',
-        variant: 'destructive',
+        variant: 'error',
       });
     },
   });
@@ -101,7 +101,7 @@ export const useMarkAllAsRead = () => {
       toast({
         title: 'Error',
         description: error.response?.data?.error || 'Failed to mark all notifications as read',
-        variant: 'destructive',
+        variant: 'error',
       });
     },
   });
@@ -132,7 +132,7 @@ export const useDeleteNotification = () => {
       toast({
         title: 'Error',
         description: error.response?.data?.error || 'Failed to delete notification',
-        variant: 'destructive',
+        variant: 'error',
       });
     },
   });
@@ -176,7 +176,7 @@ export const useUpdatePreferences = () => {
       toast({
         title: 'Error',
         description: error.response?.data?.error || 'Failed to update preferences',
-        variant: 'destructive',
+        variant: 'error',
       });
     },
   });

@@ -4,6 +4,7 @@
  * User-facing page for payment management
  */
 
+import { Layout } from '../components/Layout';
 import { Checkout } from '../components/Checkout';
 import { PaymentHistory } from '../components/PaymentHistory';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -11,8 +12,10 @@ import { CreditCard, History } from 'lucide-react';
 
 export const PaymentSettings = () => {
   return (
-    <div className="container mx-auto py-8 px-4 max-w-4xl">
-      <h1 className="text-3xl font-bold mb-6">Payment Settings</h1>
+    <Layout>
+      <div className="bg-gradient-to-br from-background to-muted/20 py-6">
+        <div className="container mx-auto py-8 px-4 max-w-4xl">
+          <h1 className="text-3xl font-bold mb-6">Payment Settings</h1>
 
       <Tabs defaultValue="checkout" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
@@ -34,6 +37,8 @@ export const PaymentSettings = () => {
           <PaymentHistory />
         </TabsContent>
       </Tabs>
-    </div>
+        </div>
+      </div>
+    </Layout>
   );
 };

@@ -4,7 +4,6 @@
  * Allows users to subscribe/unsubscribe from newsletter
  */
 
-import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,7 +11,7 @@ import { useSubscribe, useSubscription } from '../hooks/useNewsletter';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent } from './ui/card';
 import { CheckCircle2, Mail, Loader2 } from 'lucide-react';
 import { useToast } from '../hooks/use-toast';
 
@@ -49,7 +48,7 @@ export const NewsletterSubscription = () => {
         toast({
           title: 'Subscription failed',
           description: error.message || 'Failed to subscribe. Please try again.',
-          variant: 'destructive',
+          variant: 'error',
         });
       },
     });

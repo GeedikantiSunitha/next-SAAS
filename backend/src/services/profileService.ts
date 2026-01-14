@@ -9,6 +9,7 @@ import { hashPassword, comparePassword } from './authService';
 import { shouldRejectPassword, checkPasswordStrength } from '../utils/passwordStrength';
 import { createAuditLog } from './auditService';
 import logger from '../utils/logger';
+import { createNotification } from './notificationService';
 
 /**
  * Get user profile by ID
@@ -130,6 +131,28 @@ export const updateProfile = async (
     ipAddress,
     userAgent,
   });
+
+  // Create notification for profile update
+  try {
+    await createNotification({
+      userId: updatedUser.id,
+      type: 'INFO',
+      channel: 'IN_APP',
+      title: 'Profile Updated',
+      message: `Your profile information has been updated. Changes: ${changes.join(', ')}`,
+      data: {
+        action: 'PROFILE_UPDATED',
+        changes: changes,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  } catch (error: any) {
+    // Log error but don't fail profile update
+    logger.warn('Failed to create profile update notification', {
+      userId: updatedUser.id,
+      error: error.message,
+    });
+  }
 
   return updatedUser;
 };

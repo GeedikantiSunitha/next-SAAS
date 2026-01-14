@@ -4,20 +4,6 @@ import { prisma } from '../config/database';
 import config from '../config';
 import { UnauthorizedError, ForbiddenError } from '../utils/errors';
 
-// Extend Request type to include user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: string;
-        email: string;
-        name: string | null;
-        role: string;
-      };
-    }
-  }
-}
-
 /**
  * Authentication middleware
  * Verifies JWT token and attaches user to request

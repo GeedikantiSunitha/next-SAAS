@@ -5,7 +5,6 @@
  */
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { AdminLayout } from '../../components/admin/AdminLayout';
 import { useNewsletters, useCreateNewsletter, useSendNewsletter, useScheduleNewsletter, useSubscriptions } from '../../hooks/useNewsletter';
 import { Button } from '../../components/ui/button';
@@ -63,7 +62,7 @@ export const AdminNewsletters = () => {
         toast({
           title: 'Failed to create newsletter',
           description: error.message || 'Please try again.',
-          variant: 'destructive',
+          variant: 'error',
         });
       },
     });
@@ -81,7 +80,7 @@ export const AdminNewsletters = () => {
         toast({
           title: 'Failed to send newsletter',
           description: error.message || 'Please try again.',
-          variant: 'destructive',
+          variant: 'error',
         });
       },
     });
@@ -92,7 +91,7 @@ export const AdminNewsletters = () => {
       toast({
         title: 'Date required',
         description: 'Please select a date and time for scheduling.',
-        variant: 'destructive',
+        variant: 'error',
       });
       return;
     }
@@ -112,7 +111,7 @@ export const AdminNewsletters = () => {
           toast({
             title: 'Failed to schedule newsletter',
             description: error.message || 'Please try again.',
-            variant: 'destructive',
+            variant: 'error',
           });
         },
       }

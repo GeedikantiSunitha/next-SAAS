@@ -7,6 +7,7 @@ import { Skeleton } from './components/ui/skeleton';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { AdminRoute } from './components/admin/AdminRoute';
 import { Toaster } from './components/ui/toaster';
+import { NetworkErrorBanner } from './components/NetworkErrorBanner';
 
 // Lazy load pages for code splitting
 const Landing = lazy(() => import('./pages/Landing').then(m => ({ default: m.Landing })));
@@ -26,7 +27,9 @@ const Notifications = lazy(() => import('./pages/Notifications').then(m => ({ de
 const GdprSettings = lazy(() => import('./pages/GdprSettings').then(m => ({ default: m.GdprSettings })));
 const NewsletterSettings = lazy(() => import('./pages/NewsletterSettings').then(m => ({ default: m.NewsletterSettings })));
 const AdminNewsletters = lazy(() => import('./pages/admin/AdminNewsletters').then(m => ({ default: m.AdminNewsletters })));
+const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
 const PaymentSettings = lazy(() => import('./pages/PaymentSettings').then(m => ({ default: m.PaymentSettings })));
+const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess').then(m => ({ default: m.PaymentSuccess })));
 const OAuthCallback = lazy(() => import('./pages/OAuthCallback').then(m => ({ default: m.OAuthCallback })));
 
 // Loading fallback component
@@ -114,6 +117,14 @@ function App() {
                   }
                 />
                 <Route
+                  path="/payments/success"
+                  element={
+                    <ProtectedRoute>
+                      <PaymentSuccess />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/admin/dashboard"
                   element={
                     <AdminRoute>
@@ -169,8 +180,14 @@ function App() {
                     </AdminRoute>
                   }
                 />
+                {/* 404 Catch-all route */}
+                <Route
+                  path="*"
+                  element={<NotFound />}
+                />
               </Routes>
             </Suspense>
+            <NetworkErrorBanner />
             <Toaster />
           </BrowserRouter>
         </AuthProvider>

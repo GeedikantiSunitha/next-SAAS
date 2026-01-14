@@ -37,7 +37,7 @@ export const Register = () => {
     watch,
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
-    mode: 'onSubmit', // Validate on submit (default, but explicit)
+    mode: 'onBlur', // Validate on blur for better UX
     reValidateMode: 'onChange', // Re-validate on change after first submit
   });
 

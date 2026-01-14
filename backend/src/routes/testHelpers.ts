@@ -157,6 +157,119 @@ if (config.nodeEnv !== 'test') {
       });
     })
   );
+
+  /**
+   * GET /api/test-helpers/password-reset/email/:email
+   * Get password reset token for a user by email (test only)
+   * Returns the most recent unused reset token
+   */
+  router.get(
+    '/password-reset/email/:email',
+    asyncHandler(async (req, res) => {
+      const { email } = req.params;
+
+      // Find user by email
+      const user = await prisma.user.findUnique({
+        where: { email },
+        select: { id: true },
+      });
+
+      if (!user) {
+        res.status(404).json({
+          success: false,
+          error: 'User not found',
+        });
+        return;
+      }
+
+      // Find most recent unused reset token
+      const passwordReset = await prisma.passwordReset.findFirst({
+        where: {
+          userId: user.id,
+          used: false,
+          expiresAt: {
+            gt: new Date(),
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        select: {
+          token: true,
+          expiresAt: true,
+          createdAt: true,
+        },
+      });
+
+      if (!passwordReset) {
+        res.status(404).json({
+          success: false,
+          error: 'No active password reset token found for this user',
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        data: {
+          token: passwordReset.token,
+          expiresAt: passwordReset.expiresAt,
+          createdAt: passwordReset.createdAt,
+        },
+      });
+    })
+  );
+
+  /**
+   * POST /api/test-helpers/users/:email/mfa/enable
+   * Enable MFA for a user by email (test only)
+   * Creates TOTP MFA method and enables it
+   */
+  router.post(
+    '/users/:email/mfa/enable',
+    asyncHandler(async (req, res) => {
+      const { email } = req.params;
+
+      // Find user by email
+      const user = await prisma.user.findUnique({
+        where: { email },
+        select: { id: true },
+      });
+
+      if (!user) {
+        res.status(404).json({
+          success: false,
+          error: 'User not found',
+        });
+        return;
+      }
+
+      // Import MFA service
+      const { setupTotp } = await import('../services/mfaService');
+      const speakeasy = require('speakeasy');
+
+      // Setup TOTP
+      const { secret } = await setupTotp(user.id);
+
+      // Generate TOTP code for verification
+      const totpCode = speakeasy.totp({
+        secret: secret,
+        encoding: 'base32',
+      });
+
+      // Enable MFA
+      const { enableMfa } = await import('../services/mfaService');
+      await enableMfa(user.id, 'TOTP', totpCode);
+
+      res.json({
+        success: true,
+        data: {
+          message: 'MFA enabled successfully',
+          secret, // Return secret for testing purposes
+        },
+      });
+    })
+  );
 }
 
 export default router;

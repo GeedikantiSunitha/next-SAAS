@@ -10,9 +10,11 @@ import { vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
-import { Checkout } from '../../../components/Checkout';
-import { useCreatePayment } from '../../../hooks/usePayments';
-import { useToast } from '../../../hooks/use-toast';
+// Fix: Corrected import paths - from src/__tests__/components, use ../../ to reach src/
+// Previously was ../../../ which went to frontend/ (one level too high)
+import { Checkout } from '../../components/Checkout';
+import { useCreatePayment } from '../../hooks/usePayments';
+import { useToast } from '../../hooks/use-toast';
 
 // Mock Stripe
 vi.mock('@stripe/stripe-js', () => ({
@@ -35,12 +37,23 @@ vi.mock('@stripe/react-stripe-js', () => ({
   }),
 }));
 
-// Mock hooks
-vi.mock('../../../hooks/usePayments', () => ({
-  useCreatePayment: vi.fn(),
+// Mock hooks - Fix: Use correct path and proper mock setup
+const mockCreatePaymentMutation = {
+  mutateAsync: vi.fn(),
+  mutate: vi.fn(),
+  isPending: false,
+  isError: false,
+  isSuccess: false,
+  error: null,
+  data: null,
+  reset: vi.fn(),
+};
+
+vi.mock('../../hooks/usePayments', () => ({
+  useCreatePayment: vi.fn(() => mockCreatePaymentMutation),
 }));
 
-vi.mock('../../../hooks/use-toast', () => ({
+vi.mock('../../hooks/use-toast', () => ({
   useToast: () => ({ toast: vi.fn() }),
 }));
 
@@ -49,14 +62,18 @@ describe('Checkout - Stripe Payment Initiation', () => {
     defaultOptions: { queries: { retry: false } },
   });
 
-  const mockCreatePayment = {
-    mutateAsync: vi.fn(),
-    isPending: false,
-  };
-
   beforeEach(() => {
     vi.clearAllMocks();
-    (useCreatePayment as any).mockReturnValue(mockCreatePayment);
+    // Reset mock to return the mutation object
+    vi.mocked(useCreatePayment).mockReturnValue(mockCreatePaymentMutation);
+    // Reset mutation mock properties
+    mockCreatePaymentMutation.mutateAsync.mockClear();
+    mockCreatePaymentMutation.mutate.mockClear();
+    mockCreatePaymentMutation.isPending = false;
+    mockCreatePaymentMutation.isError = false;
+    mockCreatePaymentMutation.isSuccess = false;
+    mockCreatePaymentMutation.error = null;
+    mockCreatePaymentMutation.data = null;
   });
 
   it('should render payment form with amount, currency, and card fields', () => {
@@ -67,13 +84,15 @@ describe('Checkout - Stripe Payment Initiation', () => {
     );
 
     expect(screen.getByLabelText(/amount/i)).toBeInTheDocument();
+    // Currency is a select element, find by label
     expect(screen.getByLabelText(/currency/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/card details/i)).toBeInTheDocument();
+    // Card Details label is not associated with input, so use getByText instead
+    expect(screen.getByText(/card details/i)).toBeInTheDocument();
     expect(screen.getByTestId('card-element')).toBeInTheDocument();
   });
 
   it('should convert amount to cents when submitting payment', async () => {
-    mockCreatePayment.mutateAsync.mockResolvedValue({
+    mockCreatePaymentMutation.mutateAsync.mockResolvedValue({
       id: 'payment-123',
       clientSecret: 'pi_test_secret',
       amount: 10000, // $100.00 in cents
@@ -86,14 +105,26 @@ describe('Checkout - Stripe Payment Initiation', () => {
       </QueryClientProvider>
     );
 
-    const amountInput = screen.getByLabelText(/amount/i);
-    await userEvent.type(amountInput, '100.50');
+    // Wait for form to render
+    await waitFor(() => {
+      expect(screen.getByLabelText(/amount/i)).toBeInTheDocument();
+    });
 
-    const submitButton = screen.getByRole('button', { name: /pay/i });
-    await userEvent.click(submitButton);
+    const amountInput = screen.getByLabelText(/amount/i);
+    const user = userEvent.setup();
+    await user.type(amountInput, '100.50');
+
+    // Wait for button to be available and enabled
+    const submitButton = await waitFor(() => {
+      const button = screen.getByRole('button', { name: /pay/i });
+      expect(button).not.toBeDisabled();
+      return button;
+    });
+
+    await user.click(submitButton);
 
     await waitFor(() => {
-      expect(mockCreatePayment.mutateAsync).toHaveBeenCalledWith(
+      expect(mockCreatePaymentMutation.mutateAsync).toHaveBeenCalledWith(
         expect.objectContaining({
           amount: 10050, // Should be converted to cents
           currency: 'USD',
@@ -104,10 +135,11 @@ describe('Checkout - Stripe Payment Initiation', () => {
   });
 
   it('should show processing state during payment', async () => {
-    mockCreatePayment.mutateAsync.mockImplementation(
+    // Set isPending BEFORE rendering so component sees it
+    mockCreatePaymentMutation.isPending = true;
+    mockCreatePaymentMutation.mutateAsync.mockImplementation(
       () => new Promise((resolve) => setTimeout(() => resolve({ id: 'payment-123', clientSecret: 'pi_test' }), 100))
     );
-    mockCreatePayment.isPending = true;
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -115,7 +147,13 @@ describe('Checkout - Stripe Payment Initiation', () => {
       </QueryClientProvider>
     );
 
-    const submitButton = screen.getByRole('button', { name: /pay/i });
+    // Wait for button to render, even if disabled
+    const submitButton = await waitFor(() => {
+      // Button text might be "Pay " or "Processing..." when pending
+      const button = screen.getByRole('button', { name: /pay|processing/i });
+      return button;
+    });
+    
     expect(submitButton).toBeDisabled();
   });
 });

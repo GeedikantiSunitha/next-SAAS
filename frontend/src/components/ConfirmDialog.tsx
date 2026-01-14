@@ -89,10 +89,10 @@ export const ConfirmDialog = ({
           </Button>
           <LoadingButton
             type="button"
-            variant={variant === 'destructive' ? 'destructive' : 'default'}
             onClick={handleConfirm}
             loading={loading}
             disabled={loading}
+            className={variant === 'destructive' ? 'bg-red-600 hover:bg-red-700 text-white' : ''}
           >
             {confirmText}
           </LoadingButton>

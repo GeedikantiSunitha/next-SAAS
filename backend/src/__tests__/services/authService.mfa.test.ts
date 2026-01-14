@@ -4,19 +4,18 @@
  * Tests for MFA requirement during login
  */
 
-import { describe, it, expect, beforeEach, vi } from 'jest';
 import { prisma } from '../../config/database';
 import * as authService from '../../services/authService';
 import * as mfaService from '../../services/mfaService';
 
 // Mock MFA service
-vi.mock('../../services/mfaService');
+jest.mock('../../services/mfaService');
 
 describe('Auth Service - MFA Login', () => {
   beforeEach(async () => {
     await prisma.user.deleteMany();
     await prisma.mfaMethod.deleteMany();
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   it('should return requiresMfa when user has enabled MFA', async () => {
@@ -43,10 +42,10 @@ describe('Auth Service - MFA Login', () => {
 
     // Mock password verification
     const bcrypt = require('bcryptjs');
-    vi.spyOn(bcrypt, 'compare').mockResolvedValue(true);
+    jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
 
     // Mock getMfaMethods to return enabled method
-    vi.mocked(mfaService.getMfaMethods).mockResolvedValue([
+    (mfaService.getMfaMethods as jest.Mock).mockResolvedValue([
       {
         id: '1',
         method: 'TOTP' as const,
@@ -67,7 +66,7 @@ describe('Auth Service - MFA Login', () => {
 
   it('should not return requiresMfa when user has no MFA enabled', async () => {
     // Create user without MFA
-    const user = await prisma.user.create({
+    await prisma.user.create({
       data: {
         email: 'test@example.com',
         password: '$2b$10$hashedpassword',
@@ -78,10 +77,10 @@ describe('Auth Service - MFA Login', () => {
 
     // Mock password verification
     const bcrypt = require('bcryptjs');
-    vi.spyOn(bcrypt, 'compare').mockResolvedValue(true);
+    jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
 
     // Mock getMfaMethods to return empty array
-    vi.mocked(mfaService.getMfaMethods).mockResolvedValue([]);
+    (mfaService.getMfaMethods as jest.Mock).mockResolvedValue([]);
 
     // Attempt login
     const result = await authService.login('test@example.com', 'password123');
@@ -124,10 +123,10 @@ describe('Auth Service - MFA Login', () => {
 
     // Mock password verification
     const bcrypt = require('bcryptjs');
-    vi.spyOn(bcrypt, 'compare').mockResolvedValue(true);
+    jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
 
     // Mock getMfaMethods
-    vi.mocked(mfaService.getMfaMethods).mockResolvedValue([
+    (mfaService.getMfaMethods as jest.Mock).mockResolvedValue([
       {
         id: '1',
         method: 'TOTP' as const,
