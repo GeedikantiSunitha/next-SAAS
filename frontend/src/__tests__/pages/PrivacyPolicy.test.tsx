@@ -158,9 +158,9 @@ describe('PrivacyPolicy Page', () => {
 
     it('should link to terms of service', () => {
       renderWithRouter(<PrivacyPolicy />);
-      const termsLink = screen.getByRole('link', { name: /terms of service|terms/i });
-      expect(termsLink).toBeInTheDocument();
-      expect(termsLink).toHaveAttribute('href', '/terms');
+      const termsLinks = screen.getAllByRole('link', { name: /terms of service|terms/i });
+      expect(termsLinks.length).toBeGreaterThan(0);
+      expect(termsLinks[0]).toHaveAttribute('href', '/terms');
     });
 
     it('should link to GDPR settings page', () => {
