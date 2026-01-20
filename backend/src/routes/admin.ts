@@ -638,5 +638,70 @@ router.put(
   })
 );
 
+/**
+ * POST /api/admin/retention/enforce
+ * Manually trigger retention policy enforcement
+ */
+router.post(
+  '/retention/enforce',
+  asyncHandler(async (_req, res) => {
+    const dataRetentionService = await import('../services/dataRetentionService');
+    const result = await dataRetentionService.enforceRetentionPolicies();
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  })
+);
+
+/**
+ * POST /api/admin/users/:id/legal-hold
+ * Place a user on legal hold
+ */
+router.post(
+  '/users/:id/legal-hold',
+  validate([
+    body('reason')
+      .notEmpty()
+      .withMessage('Legal hold reason is required')
+      .isString()
+      .trim()
+      .isLength({ min: 1 })
+      .withMessage('Legal hold reason cannot be empty'),
+  ]),
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    const dataRetentionService = await import('../services/dataRetentionService');
+    await dataRetentionService.placeOnLegalHold(id, reason);
+
+    res.json({
+      success: true,
+      message: `User placed on legal hold successfully`,
+    });
+  })
+);
+
+/**
+ * DELETE /api/admin/users/:id/legal-hold
+ * Release a user from legal hold
+ */
+router.delete(
+  '/users/:id/legal-hold',
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const dataRetentionService = await import('../services/dataRetentionService');
+    await dataRetentionService.releaseLegalHold(id);
+
+    res.json({
+      success: true,
+      message: `User released from legal hold successfully`,
+    });
+  })
+);
+
 export default router;
 

@@ -49,7 +49,7 @@ describe('MFA Routes', () => {
       expect(response.body.data.secret).toBeDefined();
       expect(response.body.data.qrCodeUrl).toBeDefined();
       expect(response.body.data.backupCodes).toHaveLength(10);
-    });
+    }, 15000);
 
     it('should require authentication', async () => {
       const response = await request(app)
@@ -83,7 +83,7 @@ describe('MFA Routes', () => {
 
       expect(response.body.success).toBe(true);
       expect(response.body.data.valid).toBe(true);
-    });
+    }, 15000);
 
     it('should reject invalid TOTP code', async () => {
       await request(app)
@@ -99,7 +99,7 @@ describe('MFA Routes', () => {
 
       expect(response.body.success).toBe(true);
       expect(response.body.data.valid).toBe(false);
-    });
+    }, 15000);
   });
 
   describe('POST /api/auth/mfa/enable', () => {

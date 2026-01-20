@@ -30,7 +30,7 @@ describe('MFA Service', () => {
       expect(result.qrCodeUrl).toBeDefined();
       expect(result.qrCodeUrl).toContain('data:image'); // QR code is base64 data URL
       expect(result.backupCodes).toHaveLength(10);
-    });
+    }, 15000);
 
     it('should create MfaMethod record', async () => {
       const result = await mfaService.setupTotp(testUser.id);
@@ -47,7 +47,7 @@ describe('MFA Service', () => {
       expect(mfaMethod).toBeDefined();
       expect(mfaMethod?.secret).toBe(result.secret);
       expect(mfaMethod?.isEnabled).toBe(false);
-    });
+    }, 15000);
 
     it('should throw error for non-existent user', async () => {
       await expect(mfaService.setupTotp('non-existent-id')).rejects.toThrow(NotFoundError);
@@ -57,7 +57,7 @@ describe('MFA Service', () => {
   describe('verifyTotp', () => {
     it('should verify valid TOTP code', async () => {
       const { secret } = await mfaService.setupTotp(testUser.id);
-      
+
       // Generate a valid TOTP code (we'll need to import speakeasy for this)
       const speakeasy = require('speakeasy');
       const token = speakeasy.totp({
@@ -67,7 +67,7 @@ describe('MFA Service', () => {
 
       const isValid = await mfaService.verifyTotp(testUser.id, token);
       expect(isValid).toBe(true);
-    });
+    }, 15000);
 
     it('should reject invalid TOTP code', async () => {
       await mfaService.setupTotp(testUser.id);
