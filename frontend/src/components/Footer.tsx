@@ -24,23 +24,29 @@ export const Footer = ({ className }: FooterProps) => {
           <div className="text-sm text-muted-foreground">
             © {currentYear} Your Company. All rights reserved.
           </div>
-          <div className="flex gap-6 text-sm">
+          <nav className="flex flex-wrap gap-6 text-sm justify-center" aria-label="Footer Navigation">
             <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">
               Home
             </Link>
             <Link
-              to="/login"
+              to="/privacy-policy"
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
-              Login
+              Privacy Policy
             </Link>
             <Link
-              to="/register"
+              to="/terms"
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
-              Register
+              Terms of Service
             </Link>
-          </div>
+            <Link
+              to="/cookie-policy"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Cookie Policy
+            </Link>
+          </nav>
         </div>
       </div>
     </footer>

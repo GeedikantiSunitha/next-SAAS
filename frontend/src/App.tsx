@@ -8,6 +8,7 @@ import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { AdminRoute } from './components/admin/AdminRoute';
 import { Toaster } from './components/ui/toaster';
 import { NetworkErrorBanner } from './components/NetworkErrorBanner';
+import { CookieConsentBanner } from './components/gdpr/CookieConsentBanner';
 
 // Lazy load pages for code splitting
 const Landing = lazy(() => import('./pages/Landing').then(m => ({ default: m.Landing })));
@@ -31,6 +32,9 @@ const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.N
 const PaymentSettings = lazy(() => import('./pages/PaymentSettings').then(m => ({ default: m.PaymentSettings })));
 const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess').then(m => ({ default: m.PaymentSuccess })));
 const OAuthCallback = lazy(() => import('./pages/OAuthCallback').then(m => ({ default: m.OAuthCallback })));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
+const TermsOfService = lazy(() => import('./pages/TermsOfService').then(m => ({ default: m.TermsOfService })));
+const CookiePolicy = lazy(() => import('./pages/CookiePolicy').then(m => ({ default: m.CookiePolicy })));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -180,6 +184,15 @@ function App() {
                     </AdminRoute>
                   }
                 />
+                {/* Legal Pages - Public routes */}
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/terms" element={<TermsOfService />} />
+                <Route path="/cookie-policy" element={<CookiePolicy />} />
+                <Route path="/gdpr-settings" element={
+                  <ProtectedRoute>
+                    <GdprSettings />
+                  </ProtectedRoute>
+                } />
                 {/* 404 Catch-all route */}
                 <Route
                   path="*"
@@ -187,6 +200,7 @@ function App() {
                 />
               </Routes>
             </Suspense>
+            <CookieConsentBanner />
             <NetworkErrorBanner />
             <Toaster />
           </BrowserRouter>
