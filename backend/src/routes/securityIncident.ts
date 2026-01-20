@@ -146,7 +146,7 @@ router.get(
         orderBy: { detectedAt: 'desc' },
         include: {
           _count: {
-            select: { breachNotifications: true },
+            select: { notifications: true },
           },
         },
       });
@@ -190,7 +190,7 @@ router.get(
       const incident = await prisma.securityIncident.findUnique({
         where: { id },
         include: {
-          breachNotifications: {
+          notifications: {
             orderBy: { sentAt: 'desc' },
           },
         },

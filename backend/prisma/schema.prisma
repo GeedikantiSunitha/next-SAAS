@@ -10,14 +10,21 @@ datasource db {
 
 // User model
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String? // Optional for OAuth users
-  name      String?
-  role      Role     @default(USER)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String?   // Optional for OAuth users
+  name          String?
+  role          Role      @default(USER)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLoginAt          DateTime?
+  anonymizedAt         DateTime?
+  deletedAt            DateTime?
+  onLegalHold          Boolean   @default(false)
+  legalHoldReason      String?
+  legalHoldAt          DateTime?
+  legalHoldReleasedAt  DateTime?
 
   // OAuth fields
   oauthProvider   String? // 'google', 'github', 'microsoft', null
@@ -42,6 +49,8 @@ model User {
   newsletterSubscriptions NewsletterSubscription[]
   newsletters             Newsletter[]
   policyAcceptances       PolicyAcceptance[]
+  reportedIncidents       SecurityIncident[]       @relation("ReportedIncidents")
+  assignedIncidents       SecurityIncident[]       @relation("AssignedIncidents")
 
   @@unique([oauthProvider, oauthProviderId])
   @@index([email])
@@ -96,7 +105,9 @@ model AuditLog {
   details    Json? // Additional details
   ipAddress  String?
   userAgent  String?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime  @default(now())
+  archived   Boolean   @default(false)
+  archivedAt DateTime?
 
   // Relations
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -430,6 +441,34 @@ enum ConsentType {
   PRIVACY_POLICY
 }
 
+// Security Incident Enums
+enum IncidentType {
+  DATA_BREACH
+  UNAUTHORIZED_ACCESS
+  DATA_LOSS
+  MALWARE
+  PHISHING
+  DDOS
+  INSIDER_THREAT
+  OTHER
+}
+
+enum IncidentSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum IncidentStatus {
+  REPORTED
+  OPEN
+  INVESTIGATING
+  CONTAINED
+  RESOLVED
+  CLOSED
+}
+
 // MFA Method model
 model MfaMethod {
   id        String        @id @default(uuid())
@@ -555,4 +594,63 @@ model PolicyAcceptance {
   @@index([policyType])
   @@index([acceptedAt])
   @@map("policy_acceptances")
+}
+
+// Security Incident Management
+model SecurityIncident {
+  id                      String           @id @default(uuid())
+  title                   String
+  description             String           @db.Text
+  type                    IncidentType
+  severity                IncidentSeverity
+  status                  IncidentStatus   @default(OPEN)
+  detectedAt              DateTime
+  resolvedAt              DateTime?
+  containedAt             DateTime?
+  reportedById            String
+  assignedToId            String?
+  affectedDataTypes       String[]
+  affectedUserCount       Int              @default(0)
+  riskLevel               String?
+  riskAssessment          String?          @db.Text
+  icoNotificationRequired Boolean          @default(false)
+  icoNotifiedAt           DateTime?
+  icoReferenceNumber      String?
+  adminNotifiedAt         DateTime?
+  usersNotifiedAt         DateTime?
+  impactAssessment        String?          @db.Text
+  rootCause               String?          @db.Text
+  remediation             String?          @db.Text
+  remediationSteps        String?          @db.Text
+  lessonsLearned          String?          @db.Text
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
+
+  reporter            User                   @relation("ReportedIncidents", fields: [reportedById], references: [id])
+  assignedTo          User?                  @relation("AssignedIncidents", fields: [assignedToId], references: [id])
+  notifications       BreachNotification[]
+
+  @@index([status])
+  @@index([severity])
+  @@index([type])
+  @@index([detectedAt])
+  @@index([reportedById])
+  @@map("security_incidents")
+}
+
+model BreachNotification {
+  id              String           @id @default(uuid())
+  incidentId      String
+  userId          String?
+  email           String
+  subject         String
+  deliveryStatus  String
+  sentAt          DateTime         @default(now())
+  createdAt       DateTime         @default(now())
+
+  incident SecurityIncident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId])
+  @@index([userId])
+  @@map("breach_notifications")
 }

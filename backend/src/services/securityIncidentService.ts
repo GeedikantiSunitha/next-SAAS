@@ -66,7 +66,7 @@ export async function reportIncident(data: ReportIncidentData) {
       affectedDataTypes: data.affectedDataTypes,
       affectedUserCount: data.affectedUserCount,
       detectedAt: data.detectedAt,
-      reportedBy: data.reportedBy,
+      reportedById: data.reportedBy || 'system', // Map reportedBy to reportedById
       riskLevel: riskAssessment.level,
       riskAssessment: riskAssessment.reasoning,
       icoNotificationRequired: riskAssessment.requiresICONotification,

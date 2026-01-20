@@ -157,6 +157,7 @@ describe('Security Incident API Routes', () => {
             affectedUserCount: 100,
             detectedAt: new Date(),
             status: IncidentStatus.REPORTED,
+            reportedById: adminUser.id,
           },
           {
             type: IncidentType.UNAUTHORIZED_ACCESS,
@@ -167,6 +168,7 @@ describe('Security Incident API Routes', () => {
             affectedUserCount: 50,
             detectedAt: new Date(),
             status: IncidentStatus.INVESTIGATING,
+            reportedById: adminUser.id,
           },
         ],
       });
@@ -226,6 +228,7 @@ describe('Security Incident API Routes', () => {
           affectedUserCount: 100,
           detectedAt: new Date(),
           status: IncidentStatus.REPORTED,
+          reportedById: adminUser.id,
         },
       });
       testIncidentId = incident.id;
@@ -271,6 +274,7 @@ describe('Security Incident API Routes', () => {
           affectedUserCount: 100,
           detectedAt: new Date(),
           status: IncidentStatus.REPORTED,
+          reportedById: adminUser.id,
         },
       });
       testIncidentId = incident.id;
@@ -331,6 +335,7 @@ describe('Security Incident API Routes', () => {
           affectedUserCount: 1,
           detectedAt: new Date(),
           status: IncidentStatus.REPORTED,
+          reportedById: adminUser.id,
         },
       });
       testIncidentId = incident.id;
@@ -383,6 +388,7 @@ describe('Security Incident API Routes', () => {
           affectedUserCount: 1000,
           detectedAt: new Date(),
           status: IncidentStatus.REPORTED,
+          reportedById: adminUser.id,
           icoNotificationRequired: true,
         },
       });
@@ -438,6 +444,7 @@ describe('Security Incident API Routes', () => {
           affectedUserCount: 100,
           detectedAt,
           status: IncidentStatus.REPORTED,
+          reportedById: adminUser.id,
           icoNotificationRequired: true,
         },
       });
