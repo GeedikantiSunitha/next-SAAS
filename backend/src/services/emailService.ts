@@ -219,3 +219,91 @@ export const sendNotificationEmail = async (params: {
   });
 };
 
+/**
+ * Send data export ready email (GDPR)
+ */
+export const sendDataExportReadyEmail = async (params: {
+  to: string;
+  name?: string;
+  downloadUrl: string;
+  expiresAt: Date;
+}) => {
+  const html = renderTemplate('data-export-ready', {
+    name: params.name || 'User',
+    email: params.to,
+    downloadUrl: params.downloadUrl,
+    expiresAt: params.expiresAt.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    }),
+    expiryDays: 7,
+  });
+
+  return sendEmail({
+    to: params.to,
+    subject: 'Data Export Ready',
+    html,
+  });
+};
+
+/**
+ * Send data deletion confirmation email (GDPR)
+ */
+export const sendDataDeletionConfirmationEmail = async (params: {
+  to: string;
+  name?: string;
+  deletedAt: Date;
+}) => {
+  const html = renderTemplate('data-deletion-confirmation', {
+    name: params.name || 'User',
+    email: params.to,
+    deletedAt: params.deletedAt.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    }),
+  });
+
+  return sendEmail({
+    to: params.to,
+    subject: 'Account Deleted',
+    html,
+  });
+};
+
+/**
+ * Send consent update confirmation email (GDPR)
+ */
+export const sendConsentUpdateEmail = async (params: {
+  to: string;
+  name?: string;
+  consents: {
+    analytics: boolean;
+    marketing: boolean;
+    functional: boolean;
+  };
+  updatedAt: Date;
+}) => {
+  const html = renderTemplate('consent-update', {
+    name: params.name || 'User',
+    email: params.to,
+    consents: params.consents,
+    analyticsStatus: params.consents.analytics ? 'Enabled' : 'Disabled',
+    marketingStatus: params.consents.marketing ? 'Enabled' : 'Disabled',
+    functionalStatus: params.consents.functional ? 'Enabled' : 'Disabled',
+    updatedAt: params.updatedAt.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    }),
+    gdprSettingsUrl: `${config.frontendUrl}/gdpr`,
+  });
+
+  return sendEmail({
+    to: params.to,
+    subject: 'Privacy Preferences Updated',
+    html,
+  });
+};
+

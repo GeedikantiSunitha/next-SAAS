@@ -232,5 +232,267 @@ describe('Email Service', () => {
       }).toThrow();
     });
   });
+
+  /**
+   * GDPR Email Templates (TDD)
+   * Following TDD: Write tests FIRST, then implement
+   */
+  describe('sendDataExportReadyEmail', () => {
+    it('should send data export ready email with download link', async () => {
+      const mockSend = jest.fn().mockResolvedValue({ data: { id: 'email-123' } });
+      (Resend as jest.MockedClass<typeof Resend>).mockImplementation(() => ({
+        emails: { send: mockSend },
+      } as any));
+
+      await emailService.sendDataExportReadyEmail({
+        to: 'user@example.com',
+        name: 'John Doe',
+        downloadUrl: 'https://example.com/download/data-export-123.zip',
+        expiresAt: new Date('2026-02-01'),
+      });
+
+      expect(mockSend).toHaveBeenCalledTimes(1);
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: 'user@example.com',
+          subject: expect.stringContaining('Data Export Ready'),
+        })
+      );
+    });
+
+    it('should include download URL in email', async () => {
+      const mockSend = jest.fn().mockResolvedValue({ data: { id: 'email-123' } });
+      (Resend as jest.MockedClass<typeof Resend>).mockImplementation(() => ({
+        emails: { send: mockSend },
+      } as any));
+
+      await emailService.sendDataExportReadyEmail({
+        to: 'user@example.com',
+        name: 'John',
+        downloadUrl: 'https://example.com/download/data-export-123.zip',
+        expiresAt: new Date('2026-02-01'),
+      });
+
+      const callArgs = mockSend.mock.calls[0][0];
+      expect(callArgs.html).toContain('https://example.com/download/data-export-123.zip');
+    });
+
+    it('should include expiration date in email', async () => {
+      const mockSend = jest.fn().mockResolvedValue({ data: { id: 'email-123' } });
+      (Resend as jest.MockedClass<typeof Resend>).mockImplementation(() => ({
+        emails: { send: mockSend },
+      } as any));
+
+      const expiresAt = new Date('2026-02-01');
+      await emailService.sendDataExportReadyEmail({
+        to: 'user@example.com',
+        name: 'John',
+        downloadUrl: 'https://example.com/download/data.zip',
+        expiresAt,
+      });
+
+      const callArgs = mockSend.mock.calls[0][0];
+      expect(callArgs.html).toContain('7 days'); // Should mention expiration period
+    });
+
+    it('should use default name if not provided', async () => {
+      const mockSend = jest.fn().mockResolvedValue({ data: { id: 'email-123' } });
+      (Resend as jest.MockedClass<typeof Resend>).mockImplementation(() => ({
+        emails: { send: mockSend },
+      } as any));
+
+      await emailService.sendDataExportReadyEmail({
+        to: 'user@example.com',
+        downloadUrl: 'https://example.com/download/data.zip',
+        expiresAt: new Date('2026-02-01'),
+      });
+
+      expect(mockSend).toHaveBeenCalled();
+    });
+  });
+
+  describe('sendDataDeletionConfirmationEmail', () => {
+    it('should send data deletion confirmation email', async () => {
+      const mockSend = jest.fn().mockResolvedValue({ data: { id: 'email-123' } });
+      (Resend as jest.MockedClass<typeof Resend>).mockImplementation(() => ({
+        emails: { send: mockSend },
+      } as any));
+
+      await emailService.sendDataDeletionConfirmationEmail({
+        to: 'user@example.com',
+        name: 'John Doe',
+        deletedAt: new Date('2026-01-20'),
+      });
+
+      expect(mockSend).toHaveBeenCalledTimes(1);
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: 'user@example.com',
+          subject: expect.stringContaining('Account Deleted'),
+        })
+      );
+    });
+
+    it('should include deletion date in email', async () => {
+      const mockSend = jest.fn().mockResolvedValue({ data: { id: 'email-123' } });
+      (Resend as jest.MockedClass<typeof Resend>).mockImplementation(() => ({
+        emails: { send: mockSend },
+      } as any));
+
+      const deletedAt = new Date('2026-01-20');
+      await emailService.sendDataDeletionConfirmationEmail({
+        to: 'user@example.com',
+        name: 'John',
+        deletedAt,
+      });
+
+      const callArgs = mockSend.mock.calls[0][0];
+      expect(callArgs.html).toMatch(/January 20, 2026|2026-01-20/); // Should include date
+    });
+
+    it('should list what data was deleted', async () => {
+      const mockSend = jest.fn().mockResolvedValue({ data: { id: 'email-123' } });
+      (Resend as jest.MockedClass<typeof Resend>).mockImplementation(() => ({
+        emails: { send: mockSend },
+      } as any));
+
+      await emailService.sendDataDeletionConfirmationEmail({
+        to: 'user@example.com',
+        name: 'John',
+        deletedAt: new Date('2026-01-20'),
+      });
+
+      const callArgs = mockSend.mock.calls[0][0];
+      expect(callArgs.html).toContain('account'); // Should mention account deletion
+      expect(callArgs.html).toContain('personal data'); // Should mention data deletion
+    });
+
+    it('should use default name if not provided', async () => {
+      const mockSend = jest.fn().mockResolvedValue({ data: { id: 'email-123' } });
+      (Resend as jest.MockedClass<typeof Resend>).mockImplementation(() => ({
+        emails: { send: mockSend },
+      } as any));
+
+      await emailService.sendDataDeletionConfirmationEmail({
+        to: 'user@example.com',
+        deletedAt: new Date('2026-01-20'),
+      });
+
+      expect(mockSend).toHaveBeenCalled();
+    });
+  });
+
+  describe('sendConsentUpdateEmail', () => {
+    it('should send consent update confirmation email', async () => {
+      const mockSend = jest.fn().mockResolvedValue({ data: { id: 'email-123' } });
+      (Resend as jest.MockedClass<typeof Resend>).mockImplementation(() => ({
+        emails: { send: mockSend },
+      } as any));
+
+      await emailService.sendConsentUpdateEmail({
+        to: 'user@example.com',
+        name: 'John Doe',
+        consents: {
+          analytics: true,
+          marketing: false,
+          functional: true,
+        },
+        updatedAt: new Date('2026-01-20'),
+      });
+
+      expect(mockSend).toHaveBeenCalledTimes(1);
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: 'user@example.com',
+          subject: expect.stringContaining('Privacy Preferences Updated'),
+        })
+      );
+    });
+
+    it('should list consent preferences in email', async () => {
+      const mockSend = jest.fn().mockResolvedValue({ data: { id: 'email-123' } });
+      (Resend as jest.MockedClass<typeof Resend>).mockImplementation(() => ({
+        emails: { send: mockSend },
+      } as any));
+
+      await emailService.sendConsentUpdateEmail({
+        to: 'user@example.com',
+        name: 'John',
+        consents: {
+          analytics: true,
+          marketing: false,
+          functional: true,
+        },
+        updatedAt: new Date('2026-01-20'),
+      });
+
+      const callArgs = mockSend.mock.calls[0][0];
+      expect(callArgs.html).toContain('Analytics'); // Should list analytics
+      expect(callArgs.html).toContain('Marketing'); // Should list marketing
+      expect(callArgs.html).toContain('Functional'); // Should list functional
+    });
+
+    it('should show consent status (enabled/disabled)', async () => {
+      const mockSend = jest.fn().mockResolvedValue({ data: { id: 'email-123' } });
+      (Resend as jest.MockedClass<typeof Resend>).mockImplementation(() => ({
+        emails: { send: mockSend },
+      } as any));
+
+      await emailService.sendConsentUpdateEmail({
+        to: 'user@example.com',
+        name: 'John',
+        consents: {
+          analytics: true,
+          marketing: false,
+          functional: true,
+        },
+        updatedAt: new Date('2026-01-20'),
+      });
+
+      const callArgs = mockSend.mock.calls[0][0];
+      expect(callArgs.html).toMatch(/enabled|accepted|✓/i); // Should show enabled status
+      expect(callArgs.html).toMatch(/disabled|rejected|✗/i); // Should show disabled status
+    });
+
+    it('should include link to manage preferences', async () => {
+      const mockSend = jest.fn().mockResolvedValue({ data: { id: 'email-123' } });
+      (Resend as jest.MockedClass<typeof Resend>).mockImplementation(() => ({
+        emails: { send: mockSend },
+      } as any));
+
+      await emailService.sendConsentUpdateEmail({
+        to: 'user@example.com',
+        name: 'John',
+        consents: {
+          analytics: true,
+          marketing: false,
+          functional: true,
+        },
+        updatedAt: new Date('2026-01-20'),
+      });
+
+      const callArgs = mockSend.mock.calls[0][0];
+      expect(callArgs.html).toContain('/gdpr'); // Should link to GDPR settings
+    });
+
+    it('should use default name if not provided', async () => {
+      const mockSend = jest.fn().mockResolvedValue({ data: { id: 'email-123' } });
+      (Resend as jest.MockedClass<typeof Resend>).mockImplementation(() => ({
+        emails: { send: mockSend },
+      } as any));
+
+      await emailService.sendConsentUpdateEmail({
+        to: 'user@example.com',
+        consents: {
+          analytics: true,
+          marketing: false,
+          functional: true,
+        },
+        updatedAt: new Date('2026-01-20'),
+      });
+
+      expect(mockSend).toHaveBeenCalled();
+    });
+  });
 });
 

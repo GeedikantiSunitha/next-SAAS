@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Account Has Been Deleted</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+            <td align="center" style="padding: 20px;">
+                <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <!-- Header -->
+                    <tr>
+                        <td style="padding: 40px 30px; text-align: center; background-color: #EF4444; border-radius: 8px 8px 0 0;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 28px;">Account Deleted</h1>
+                        </td>
+                    </tr>
+
+                    <!-- Body -->
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <p style="margin: 0 0 20px; font-size: 16px; color: #333333;">Hi {{name}},</p>
+
+                            <p style="margin: 0 0 20px; font-size: 16px; color: #333333; line-height: 1.6;">
+                                This email confirms that your account and all associated personal data have been permanently deleted from our systems as of <strong>{{deletedAt}}</strong>.
+                            </p>
+
+                            <p style="margin: 0 0 20px; font-size: 16px; color: #333333; line-height: 1.6;">
+                                The following data has been removed:
+                            </p>
+
+                            <ul style="margin: 0 0 20px 0; padding-left: 20px; font-size: 16px; color: #333333; line-height: 1.8;">
+                                <li>Your user account and profile information</li>
+                                <li>All personal data we collected about you</li>
+                                <li>Your preferences and settings</li>
+                                <li>Your activity history</li>
+                            </ul>
+
+                            <p style="margin: 0 0 20px; font-size: 16px; color: #333333; line-height: 1.6;">
+                                We're sorry to see you go. If you change your mind in the future, you're always welcome to create a new account.
+                            </p>
+
+                            <p style="margin: 20px 0; font-size: 14px; color: #666666; background-color: #f8f8f8; padding: 15px; border-radius: 6px; line-height: 1.6;">
+                                <strong>ℹ️ Note:</strong> Some data may be retained for legal compliance purposes, such as transaction records required for tax or accounting purposes. This data is kept for the minimum period required by law.
+                            </p>
+
+                            <p style="margin: 0; font-size: 16px; color: #333333;">
+                                Best regards,<br>
+                                The {{appName}} Team
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 20px 30px; text-align: center; background-color: #f8f8f8; border-radius: 0 0 8px 8px;">
+                            <p style="margin: 0 0 10px; font-size: 12px; color: #666666;">
+                                This email was sent in accordance with GDPR Article 17 (Right to Erasure).
+                            </p>
+                            <p style="margin: 0; font-size: 12px; color: #666666;">
+                                © {{year}} {{appName}}. All rights reserved.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
