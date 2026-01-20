@@ -504,3 +504,92 @@ export const getUserDeletionRequests = async (userId: string) => {
   });
 };
 
+/**
+ * Save cookie consent preferences (GDPR/PECR compliance)
+ */
+export const saveCookieConsent = async (
+  userId: string,
+  preferences: {
+    essential: boolean;
+    analytics: boolean;
+    marketing: boolean;
+    functional: boolean;
+  },
+  version: string,
+  ipAddress?: string,
+  userAgent?: string
+) => {
+  try {
+    const consent = await prisma.consentRecord.upsert({
+      where: {
+        userId_consentType: {
+          userId,
+          consentType: ConsentType.COOKIES,
+        },
+      },
+      update: {
+        granted: true,
+        grantedAt: new Date(),
+        metadata: preferences,
+        version,
+        ipAddress,
+        userAgent,
+      },
+      create: {
+        userId,
+        consentType: ConsentType.COOKIES,
+        granted: true,
+        grantedAt: new Date(),
+        metadata: preferences,
+        version,
+        ipAddress,
+        userAgent,
+      },
+    });
+
+    // Create audit log
+    await createAuditLog({
+      userId,
+      action: 'COOKIE_CONSENT_SAVED',
+      resource: 'consent_records',
+      resourceId: consent.id,
+      details: { preferences, version },
+      ipAddress,
+      userAgent,
+    });
+
+    logger.info('Cookie consent saved', { userId, preferences });
+
+    return consent;
+  } catch (error: any) {
+    logger.error('Save cookie consent failed', { userId, error: error.message });
+    throw new AppError('Failed to save cookie consent', 500);
+  }
+};
+
+/**
+ * Get cookie consent preferences
+ */
+export const getCookieConsent = async (userId: string) => {
+  try {
+    const consent = await prisma.consentRecord.findUnique({
+      where: {
+        userId_consentType: {
+          userId,
+          consentType: ConsentType.COOKIES,
+        },
+      },
+    });
+
+    if (!consent || !consent.metadata) {
+      return null;
+    }
+
+    // Return just the preferences metadata
+    return consent.metadata;
+  } catch (error: any) {
+    logger.error('Get cookie consent failed', { userId, error: error.message });
+    throw new AppError('Failed to get cookie consent', 500);
+  }
+};
+

@@ -1,0 +1,480 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2026-01-20",
+  "templateName": "nextsaas",
+  "description": "Complete manifest of all syncable files for compliance and core features",
+
+  "categories": {
+    "compliance-core": {
+      "description": "Critical compliance features - always sync",
+      "priority": "critical",
+      "files": [
+        {
+          "path": "backend/src/services/gdprService.ts",
+          "type": "service",
+          "syncBehavior": "replace",
+          "conflicts": "low",
+          "description": "GDPR data export, deletion, consent management",
+          "dependencies": ["prisma", "auditService"],
+          "tests": ["backend/src/__tests__/gdprService.test.ts"],
+          "migrations": ["*_gdpr_*.sql"],
+          "customizable": false,
+          "notes": "Core GDPR implementation - should not be customized"
+        },
+        {
+          "path": "backend/src/services/auditService.ts",
+          "type": "service",
+          "syncBehavior": "replace",
+          "conflicts": "low",
+          "description": "Comprehensive audit logging for compliance",
+          "dependencies": ["prisma", "logger"],
+          "tests": ["backend/src/__tests__/auditService.test.ts"],
+          "customizable": false,
+          "notes": "Core audit system - critical for compliance"
+        },
+        {
+          "path": "backend/src/routes/gdpr.ts",
+          "type": "routes",
+          "syncBehavior": "replace",
+          "conflicts": "low",
+          "description": "GDPR API endpoints",
+          "dependencies": ["gdprService", "authenticate"],
+          "tests": ["backend/src/__tests__/routes/gdpr.*.test.ts"],
+          "customizable": false,
+          "notes": "Standard GDPR endpoints"
+        },
+        {
+          "path": "backend/src/routes/audit.ts",
+          "type": "routes",
+          "syncBehavior": "replace",
+          "conflicts": "low",
+          "description": "Audit log API endpoints",
+          "dependencies": ["auditService", "authenticate"],
+          "tests": ["backend/src/__tests__/routes/audit.*.test.ts"],
+          "customizable": false,
+          "notes": "Standard audit endpoints"
+        }
+      ]
+    },
+
+    "compliance-ui": {
+      "description": "Compliance UI components - may need styling customization",
+      "priority": "high",
+      "files": [
+        {
+          "path": "frontend/src/components/ConsentManagement.tsx",
+          "type": "component",
+          "syncBehavior": "merge",
+          "conflicts": "medium",
+          "description": "Consent management UI (6 consent types)",
+          "dependencies": ["api/gdpr", "ui/button", "ui/switch"],
+          "tests": ["frontend/src/__tests__/components/ConsentManagement.test.tsx"],
+          "customizable": true,
+          "customizationAreas": ["styling", "layout"],
+          "notes": "May need to match product design system"
+        },
+        {
+          "path": "frontend/src/components/DataDeletionRequest.tsx",
+          "type": "component",
+          "syncBehavior": "merge",
+          "conflicts": "medium",
+          "description": "Data deletion request UI",
+          "dependencies": ["api/gdpr", "ui/modal", "ui/button"],
+          "tests": ["frontend/src/__tests__/components/DataDeletionRequest.test.tsx"],
+          "customizable": true,
+          "customizationAreas": ["styling", "wording"],
+          "notes": "May need to match product tone"
+        },
+        {
+          "path": "frontend/src/components/gdpr/DataExport.tsx",
+          "type": "component",
+          "syncBehavior": "merge",
+          "conflicts": "medium",
+          "description": "Data export request UI",
+          "dependencies": ["api/gdpr", "ui/button"],
+          "tests": [],
+          "customizable": true,
+          "customizationAreas": ["styling"],
+          "notes": "Simple component, low risk"
+        },
+        {
+          "path": "frontend/src/pages/GdprSettings.tsx",
+          "type": "page",
+          "syncBehavior": "merge",
+          "conflicts": "high",
+          "description": "GDPR settings page with tabs",
+          "dependencies": ["components/ConsentManagement", "components/DataDeletionRequest", "Layout"],
+          "tests": [],
+          "customizable": true,
+          "customizationAreas": ["layout", "navigation", "styling"],
+          "notes": "May be integrated into product settings differently"
+        }
+      ]
+    },
+
+    "security": {
+      "description": "Security middleware and utilities",
+      "priority": "critical",
+      "files": [
+        {
+          "path": "backend/src/middleware/security.ts",
+          "type": "middleware",
+          "syncBehavior": "review",
+          "conflicts": "medium",
+          "description": "Helmet, CORS, rate limiting",
+          "dependencies": ["helmet", "cors", "express-rate-limit"],
+          "tests": [],
+          "customizable": true,
+          "customizationAreas": ["CORS origins", "rate limits", "CSP policy"],
+          "notes": "Review rate limits and CORS before syncing"
+        },
+        {
+          "path": "backend/src/middleware/auth.ts",
+          "type": "middleware",
+          "syncBehavior": "skip",
+          "conflicts": "high",
+          "description": "Authentication middleware",
+          "dependencies": ["jwt", "prisma"],
+          "tests": [],
+          "customizable": true,
+          "customizationAreas": ["entire file"],
+          "notes": "DO NOT sync - likely customized per product"
+        }
+      ]
+    },
+
+    "database": {
+      "description": "Database schema and migrations",
+      "priority": "high",
+      "files": [
+        {
+          "path": "backend/prisma/schema.prisma",
+          "type": "schema",
+          "syncBehavior": "merge",
+          "conflicts": "very-high",
+          "description": "Complete Prisma schema",
+          "dependencies": [],
+          "migrations": ["all"],
+          "customizable": true,
+          "customizationAreas": ["custom models", "relationships"],
+          "notes": "CRITICAL: Merge carefully - contains product-specific models"
+        },
+        {
+          "path": "backend/prisma/migrations/",
+          "type": "migrations",
+          "syncBehavior": "selective",
+          "conflicts": "high",
+          "description": "Database migrations",
+          "notes": "Only sync new compliance-related migrations"
+        }
+      ]
+    },
+
+    "api-clients": {
+      "description": "Frontend API client functions",
+      "priority": "medium",
+      "files": [
+        {
+          "path": "frontend/src/api/gdpr.ts",
+          "type": "api",
+          "syncBehavior": "replace",
+          "conflicts": "low",
+          "description": "GDPR API client functions",
+          "dependencies": ["axios or fetch"],
+          "tests": [],
+          "customizable": false,
+          "notes": "Standard API client - safe to sync"
+        }
+      ]
+    },
+
+    "tests": {
+      "description": "Test files for compliance features",
+      "priority": "medium",
+      "files": [
+        {
+          "path": "backend/src/__tests__/gdprService.test.ts",
+          "type": "test",
+          "syncBehavior": "replace",
+          "conflicts": "low",
+          "description": "GDPR service tests",
+          "customizable": false,
+          "notes": "Keep in sync with service"
+        },
+        {
+          "path": "backend/src/__tests__/auditService.test.ts",
+          "type": "test",
+          "syncBehavior": "replace",
+          "conflicts": "low",
+          "description": "Audit service tests",
+          "customizable": false,
+          "notes": "Keep in sync with service"
+        },
+        {
+          "path": "backend/src/__tests__/routes/gdpr.consent.e2e.test.ts",
+          "type": "test",
+          "syncBehavior": "replace",
+          "conflicts": "low",
+          "description": "GDPR consent E2E tests",
+          "customizable": false,
+          "notes": "Keep in sync with routes"
+        },
+        {
+          "path": "backend/src/__tests__/routes/gdpr.deletion.e2e.test.ts",
+          "type": "test",
+          "syncBehavior": "replace",
+          "conflicts": "low",
+          "description": "GDPR deletion E2E tests",
+          "customizable": false,
+          "notes": "Keep in sync with routes"
+        }
+      ]
+    },
+
+    "documentation": {
+      "description": "Compliance documentation",
+      "priority": "low",
+      "files": [
+        {
+          "path": "docs/WORLD_CLASS_COMPLIANCE_ROADMAP.md",
+          "type": "documentation",
+          "syncBehavior": "replace",
+          "conflicts": "none",
+          "description": "Complete compliance implementation guide",
+          "customizable": false,
+          "notes": "Always use latest version"
+        },
+        {
+          "path": "docs/compliance_view",
+          "type": "documentation",
+          "syncBehavior": "replace",
+          "conflicts": "none",
+          "description": "Compliance requirements reference",
+          "customizable": false,
+          "notes": "Reference document"
+        }
+      ]
+    },
+
+    "future-additions": {
+      "description": "Files that will be added in Phase 1-6 implementation",
+      "priority": "varies",
+      "plannedFiles": [
+        {
+          "path": "frontend/src/components/CookieConsentBanner.tsx",
+          "phase": "Phase 1 - Task 1.4",
+          "description": "Cookie consent banner (GDPR/PECR compliance)",
+          "syncBehavior": "merge",
+          "conflicts": "medium",
+          "customizable": true,
+          "customizationAreas": ["styling", "wording", "brand"],
+          "estimatedAddDate": "Phase 1 completion"
+        },
+        {
+          "path": "frontend/src/components/CookiePreferenceCenter.tsx",
+          "phase": "Phase 1 - Task 1.4",
+          "description": "Cookie preferences modal",
+          "syncBehavior": "merge",
+          "conflicts": "medium",
+          "customizable": true,
+          "customizationAreas": ["styling", "categories"],
+          "estimatedAddDate": "Phase 1 completion"
+        },
+        {
+          "path": "frontend/src/pages/legal/PrivacyPolicy.tsx",
+          "phase": "Phase 1 - Task 1.1",
+          "description": "Privacy Policy page",
+          "syncBehavior": "skip",
+          "conflicts": "very-high",
+          "customizable": true,
+          "customizationAreas": ["entire content"],
+          "notes": "Each product needs custom privacy policy"
+        },
+        {
+          "path": "frontend/src/pages/legal/TermsOfService.tsx",
+          "phase": "Phase 1 - Task 1.2",
+          "description": "Terms of Service page",
+          "syncBehavior": "skip",
+          "conflicts": "very-high",
+          "customizable": true,
+          "customizationAreas": ["entire content"],
+          "notes": "Each product needs custom terms"
+        },
+        {
+          "path": "frontend/src/pages/legal/CookiePolicy.tsx",
+          "phase": "Phase 1 - Task 1.3",
+          "description": "Cookie Policy page",
+          "syncBehavior": "template",
+          "conflicts": "medium",
+          "customizable": true,
+          "customizationAreas": ["cookie list", "purposes"],
+          "notes": "Can use template but must customize cookie list"
+        },
+        {
+          "path": "backend/src/services/dataRetentionService.ts",
+          "phase": "Phase 2 - Task 2.1",
+          "description": "Automated data retention and purging",
+          "syncBehavior": "replace",
+          "conflicts": "medium",
+          "customizable": true,
+          "customizationAreas": ["retention periods"],
+          "notes": "Review retention periods before syncing"
+        },
+        {
+          "path": "backend/src/services/securityIncidentService.ts",
+          "phase": "Phase 2 - Task 2.2",
+          "description": "Security incident and breach notification",
+          "syncBehavior": "replace",
+          "conflicts": "low",
+          "customizable": false,
+          "notes": "Core security feature - sync as-is"
+        },
+        {
+          "path": "backend/src/jobs/retentionJob.ts",
+          "phase": "Phase 2 - Task 2.1",
+          "description": "Cron job for data retention",
+          "syncBehavior": "replace",
+          "conflicts": "low",
+          "customizable": true,
+          "customizationAreas": ["schedule"],
+          "notes": "May need to adjust cron schedule"
+        },
+        {
+          "path": "frontend/src/pages/PrivacyCenter.tsx",
+          "phase": "Phase 2 - Task 2.4",
+          "description": "Unified privacy control center",
+          "syncBehavior": "merge",
+          "conflicts": "medium",
+          "customizable": true,
+          "customizationAreas": ["layout", "styling"],
+          "notes": "May integrate into existing settings"
+        },
+        {
+          "path": "backend/src/routes/admin/securityIncidents.ts",
+          "phase": "Phase 2 - Task 2.2",
+          "description": "Security incident management API",
+          "syncBehavior": "replace",
+          "conflicts": "low",
+          "customizable": false,
+          "notes": "Admin-only routes"
+        },
+        {
+          "path": "frontend/src/pages/admin/SecurityIncidents.tsx",
+          "phase": "Phase 2 - Task 2.2",
+          "description": "Security incident dashboard",
+          "syncBehavior": "merge",
+          "conflicts": "medium",
+          "customizable": true,
+          "customizationAreas": ["styling", "layout"],
+          "notes": "May need to match admin UI"
+        }
+      ]
+    }
+  },
+
+  "syncBehaviors": {
+    "replace": {
+      "description": "Completely replace file in product with template version",
+      "risk": "low",
+      "recommendation": "Safe for core compliance features that shouldn't be customized"
+    },
+    "merge": {
+      "description": "Merge changes carefully, preserving product customizations",
+      "risk": "medium",
+      "recommendation": "Use for UI components and shared services"
+    },
+    "review": {
+      "description": "Review all changes manually before applying",
+      "risk": "medium-high",
+      "recommendation": "Use for security configs and middleware"
+    },
+    "skip": {
+      "description": "Do not sync - product-specific",
+      "risk": "none",
+      "recommendation": "Use for auth, business logic, custom features"
+    },
+    "selective": {
+      "description": "Sync only specific parts (e.g., certain migrations)",
+      "risk": "medium",
+      "recommendation": "Use for database migrations"
+    },
+    "template": {
+      "description": "Use template as starting point, then customize",
+      "risk": "low",
+      "recommendation": "Use for legal documents"
+    }
+  },
+
+  "conflictLevels": {
+    "none": "No conflicts expected",
+    "low": "Minimal conflicts, easy to resolve",
+    "medium": "Some conflicts, may need manual review",
+    "high": "Significant conflicts, careful merging required",
+    "very-high": "Extensive conflicts, may be easier to skip and rewrite"
+  },
+
+  "dependencies": {
+    "npm": [
+      "prisma",
+      "helmet",
+      "cors",
+      "express-rate-limit",
+      "node-cron"
+    ],
+    "services": [
+      "gdprService → auditService",
+      "auditService → logger",
+      "gdprService → prisma"
+    ]
+  },
+
+  "migrations": {
+    "gdpr": [
+      "data_export_requests",
+      "data_deletion_requests",
+      "consent_records"
+    ],
+    "security": [
+      "security_incidents",
+      "breach_notifications"
+    ],
+    "audit": [
+      "audit_logs"
+    ]
+  },
+
+  "syncStrategies": {
+    "git-based": {
+      "command": "git cherry-pick",
+      "pros": ["Version control", "Easy rollback", "Clear history"],
+      "cons": ["Requires conflict resolution"]
+    },
+    "file-copy": {
+      "command": "cp",
+      "pros": ["Simple", "No Git conflicts"],
+      "cons": ["No version control", "Can overwrite changes"]
+    },
+    "package-based": {
+      "command": "npm update",
+      "pros": ["Clean", "Versioned", "Selective updates"],
+      "cons": ["Requires setup", "More infrastructure"]
+    }
+  },
+
+  "testing": {
+    "afterSync": [
+      "npm test",
+      "npm run test:e2e",
+      "npm run build",
+      "npm run lint"
+    ],
+    "critical": [
+      "Test GDPR data export",
+      "Test GDPR data deletion",
+      "Test consent management",
+      "Test audit logging",
+      "Test authentication still works",
+      "Test custom business logic"
+    ]
+  }
+}

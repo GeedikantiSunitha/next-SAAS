@@ -408,6 +408,7 @@ model ConsentRecord {
   ipAddress   String?
   userAgent   String?
   version     String? // Consent version (for tracking changes)
+  metadata    Json? // Additional consent data (e.g., cookie preferences)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 

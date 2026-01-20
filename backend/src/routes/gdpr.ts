@@ -389,5 +389,117 @@ router.get(
   })
 );
 
+/**
+ * @swagger
+ * /api/gdpr/consents/cookies:
+ *   post:
+ *     summary: Save cookie consent preferences (GDPR/PECR)
+ *     tags: [GDPR]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - essential
+ *             properties:
+ *               essential:
+ *                 type: boolean
+ *                 description: Essential cookies (always required)
+ *               analytics:
+ *                 type: boolean
+ *                 description: Analytics cookies consent
+ *               marketing:
+ *                 type: boolean
+ *                 description: Marketing cookies consent
+ *               functional:
+ *                 type: boolean
+ *                 description: Functional cookies consent
+ *               version:
+ *                 type: string
+ *                 description: Cookie policy version
+ *     responses:
+ *       200:
+ *         description: Cookie preferences saved
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Unauthorized
+ */
+router.post(
+  '/consents/cookies',
+  asyncHandler(async (req, res) => {
+    const { essential, analytics, marketing, functional, version } = req.body;
+
+    // Validate required field
+    if (essential === undefined || typeof essential !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        error: 'Field "essential" is required and must be a boolean',
+      });
+    }
+
+    // Save cookie consent
+    const consent = await gdprService.saveCookieConsent(
+      req.user!.id,
+      {
+        essential,
+        analytics: analytics || false,
+        marketing: marketing || false,
+        functional: functional || false,
+      },
+      version || '1.0.0',
+      getClientIp(req) || undefined,
+      req.headers['user-agent']
+    );
+
+    return res.json({
+      success: true,
+      data: consent,
+      message: 'Cookie consent preferences saved successfully',
+    });
+  })
+);
+
+/**
+ * @swagger
+ * /api/gdpr/consents/cookies:
+ *   get:
+ *     summary: Get cookie consent preferences (GDPR/PECR)
+ *     tags: [GDPR]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Cookie preferences
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Success'
+ *             example:
+ *               success: true
+ *               data:
+ *                 essential: true
+ *                 analytics: true
+ *                 marketing: false
+ *                 functional: true
+ *       401:
+ *         description: Unauthorized
+ */
+router.get(
+  '/consents/cookies',
+  asyncHandler(async (req, res) => {
+    const cookieConsent = await gdprService.getCookieConsent(req.user!.id);
+
+    res.json({
+      success: true,
+      data: cookieConsent,
+    });
+  })
+);
+
 export default router;
 

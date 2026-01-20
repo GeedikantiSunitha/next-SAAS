@@ -367,3 +367,12 @@ When building the template:
 
 Good luck! 🚀
 
+Testing 
+
+# Frontend
+cd frontend && npm run test:coverage -- --reporter=verbose 2>&1 | tee ../tests/frontend-coverage-$(date +%Y%m%d-%H%M%S).log
+
+
+
+# Backend
+cd backend && npm run test:coverage -- --verbose 2>&1 | tee ../tests/backend-coverage-$(date +%Y%m%d-%H%M%S).log
