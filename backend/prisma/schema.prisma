@@ -41,6 +41,7 @@ model User {
   mfaBackupCodes          MfaBackupCode[]
   newsletterSubscriptions NewsletterSubscription[]
   newsletters             Newsletter[]
+  policyAcceptances       PolicyAcceptance[]
 
   @@unique([oauthProvider, oauthProviderId])
   @@index([email])
@@ -536,4 +537,22 @@ model NewsletterSubscription {
   @@index([isActive])
   @@index([email])
   @@map("newsletter_subscriptions")
+}
+
+// Policy Acceptance model (GDPR compliance - track policy acceptance)
+model PolicyAcceptance {
+  id                String   @id @default(uuid())
+  userId            String
+  policyType        String // 'terms_of_service', 'privacy_policy', 'acceptable_use', 'cookie_policy'
+  policyVersion     String   @default("1.0") // Version of the policy accepted
+  acceptedAt        DateTime @default(now())
+  ipAddress         String?
+  userAgent         String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([policyType])
+  @@index([acceptedAt])
+  @@map("policy_acceptances")
 }

@@ -47,6 +47,8 @@ describe('Password Strength Validation in Auth Routes', () => {
           email: 'password-strength-test-weak@example.com',
           password: 'Short1!', // 7 chars, WEAK
           name: 'Test User',
+          acceptedTerms: true,
+          acceptedPrivacy: true,
         });
 
       expect(response.status).toBe(400);
@@ -62,6 +64,8 @@ describe('Password Strength Validation in Auth Routes', () => {
           email: 'password-strength-test-weak2@example.com',
           password: 'onlylowercase', // Missing uppercase, numbers, special
           name: 'Test User',
+          acceptedTerms: true,
+          acceptedPrivacy: true,
         });
 
       expect(response.status).toBe(400);
@@ -75,6 +79,8 @@ describe('Password Strength Validation in Auth Routes', () => {
           email: 'password-strength-test-fair@example.com',
           password: 'Passw0rd!', // 9 chars, FAIR
           name: 'Test User',
+          acceptedTerms: true,
+          acceptedPrivacy: true,
         });
 
       expect(response.status).toBe(400);
@@ -89,6 +95,8 @@ describe('Password Strength Validation in Auth Routes', () => {
           email: 'password-strength-test-good@example.com',
           password: 'Password123!', // 12 chars, GOOD
           name: 'Test User',
+          acceptedTerms: true,
+          acceptedPrivacy: true,
         });
 
       expect(response.status).toBe(201); // Register returns 201 Created
@@ -102,6 +110,8 @@ describe('Password Strength Validation in Auth Routes', () => {
           email: 'password-strength-test-strong@example.com',
           password: 'VeryStrongPassword123!', // 23 chars, STRONG
           name: 'Test User',
+          acceptedTerms: true,
+          acceptedPrivacy: true,
         });
 
       expect(response.status).toBe(201); // Register returns 201 Created
@@ -115,6 +125,8 @@ describe('Password Strength Validation in Auth Routes', () => {
           email: 'password-strength-test-common@example.com',
           password: 'Password123!', // Common password
           name: 'Test User',
+          acceptedTerms: true,
+          acceptedPrivacy: true,
         });
 
       // Note: This test depends on whether Password123! is in common list

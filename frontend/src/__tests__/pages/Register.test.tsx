@@ -133,15 +133,19 @@ describe('Register Page', () => {
     const emailInput = screen.getByLabelText(/email/i);
     const passwordInput = screen.getByLabelText(/password/i);
     const nameInput = screen.getByLabelText(/name/i);
+    const termsCheckbox = screen.getByLabelText(/I accept the.*Terms of Service/i);
+    const privacyCheckbox = screen.getByLabelText(/I accept the.*Privacy Policy/i);
     const submitButton = screen.getByRole('button', { name: /register/i });
 
     await user.type(emailInput, 'test@example.com');
     await user.type(passwordInput, 'Password123!');
     await user.type(nameInput, 'Test User');
+    await user.click(termsCheckbox);
+    await user.click(privacyCheckbox);
     await user.click(submitButton);
 
     await waitFor(() => {
-      expect(mockRegister).toHaveBeenCalledWith('test@example.com', 'Password123!', 'Test User');
+      expect(mockRegister).toHaveBeenCalledWith('test@example.com', 'Password123!', 'Test User', true, true);
     });
   });
 
@@ -164,19 +168,23 @@ describe('Register Page', () => {
     const emailInput = screen.getByLabelText(/email/i);
     const passwordInput = screen.getByLabelText(/password/i);
     const nameInput = screen.getByLabelText(/name/i);
+    const termsCheckbox = screen.getByLabelText(/I accept the.*Terms of Service/i);
+    const privacyCheckbox = screen.getByLabelText(/I accept the.*Privacy Policy/i);
     const submitButton = screen.getByRole('button', { name: /register/i });
 
     // Fill in valid form data that passes all validation
     await user.type(emailInput, 'existing@example.com');
     await user.type(passwordInput, 'Password123!');
     await user.type(nameInput, 'Test User');
-    
+    await user.click(termsCheckbox);
+    await user.click(privacyCheckbox);
+
     // Submit form - this will call mockRegister which rejects
     await user.click(submitButton);
 
     // Wait for mockRegister to be called (proving form passed validation)
     await waitFor(() => {
-      expect(mockRegister).toHaveBeenCalledWith('existing@example.com', 'Password123!', 'Test User');
+      expect(mockRegister).toHaveBeenCalledWith('existing@example.com', 'Password123!', 'Test User', true, true);
     }, { timeout: 3000 });
 
     // Wait for error state to update and display in the error div

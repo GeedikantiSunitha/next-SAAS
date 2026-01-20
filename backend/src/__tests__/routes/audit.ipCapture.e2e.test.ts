@@ -52,6 +52,8 @@ describe('Audit Log IP Capture E2E', () => {
           email,
           password: 'Password123!',
           name: 'E2E Test User',
+          acceptedTerms: true,
+          acceptedPrivacy: true,
         });
 
       expect(registerResponse.status).toBe(201);
@@ -172,6 +174,8 @@ describe('Audit Log IP Capture E2E', () => {
           email,
           password: 'Password123!',
           name: 'Proxy Test User',
+          acceptedTerms: true,
+          acceptedPrivacy: true,
         });
 
       expect(registerResponse.status).toBe(201);
@@ -206,6 +210,8 @@ describe('Audit Log IP Capture E2E', () => {
           email,
           password: 'Password123!',
           name: 'Real IP Test User',
+          acceptedTerms: true,
+          acceptedPrivacy: true,
         });
 
       expect(registerResponse.status).toBe(201);
@@ -239,6 +245,8 @@ describe('Audit Log IP Capture E2E', () => {
           email,
           password: 'Password123!',
           name: 'IPv6 Test User',
+          acceptedTerms: true,
+          acceptedPrivacy: true,
         });
 
       expect(registerResponse.status).toBe(201);
@@ -279,6 +287,8 @@ describe('Audit Log IP Capture E2E', () => {
             email,
             password: 'Password123!',
             name: 'Localhost Test User',
+            acceptedTerms: true,
+            acceptedPrivacy: true,
           });
 
         expect(registerResponse.status).toBe(201);
@@ -322,6 +332,8 @@ describe('Audit Log IP Capture E2E', () => {
             email,
             password: 'Password123!',
             name: 'Localhost Test User',
+            acceptedTerms: true,
+            acceptedPrivacy: true,
           });
 
         expect(registerResponse.status).toBe(201);
@@ -362,6 +374,8 @@ describe('Audit Log IP Capture E2E', () => {
           email,
           password: 'Password123!',
           name: 'Multi IP User',
+          acceptedTerms: true,
+          acceptedPrivacy: true,
         });
 
       expect(registerResponse.status).toBe(201);

@@ -243,6 +243,8 @@ describe('Audit Log IP Capture', () => {
           email,
           password: 'Password123!',
           name: 'Test User',
+          acceptedTerms: true,
+          acceptedPrivacy: true,
         });
 
       const user = await prisma.user.findUnique({

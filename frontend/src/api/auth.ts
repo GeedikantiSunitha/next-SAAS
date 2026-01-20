@@ -10,6 +10,8 @@ export interface RegisterRequest {
   email: string;
   password: string;
   name?: string;
+  acceptedTerms?: boolean;
+  acceptedPrivacy?: boolean;
 }
 
 export interface LoginRequest {

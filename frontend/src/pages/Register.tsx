@@ -20,6 +20,12 @@ const registerSchema = z.object({
     .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
     .regex(/[0-9]/, 'Password must contain at least one number'),
   name: z.string().min(1, 'Name is required').optional(),
+  acceptedTerms: z.boolean().refine((val) => val === true, {
+    message: 'You must accept the Terms of Service',
+  }),
+  acceptedPrivacy: z.boolean().refine((val) => val === true, {
+    message: 'You must accept the Privacy Policy',
+  }),
 });
 
 type RegisterFormData = z.infer<typeof registerSchema>;
@@ -56,7 +62,7 @@ export const Register = () => {
     try {
       setError(null);
       setIsSubmitting(true);
-      await registerUser(data.email, data.password, data.name);
+      await registerUser(data.email, data.password, data.name, data.acceptedTerms, data.acceptedPrivacy);
       // State will update asynchronously, useEffect will handle redirect
       // But also navigate explicitly as a fallback
       navigate('/dashboard', { replace: true });
@@ -65,7 +71,7 @@ export const Register = () => {
       // Axios errors have err.response.data.error for API errors
       // Rate limit errors (429) may have different structure
       let errorMessage = 'Registration failed. Please try again.';
-      
+
       if (err.response?.data?.error) {
         errorMessage = err.response.data.error;
       } else if (err.response?.data?.message) {
@@ -73,7 +79,7 @@ export const Register = () => {
       } else if (err.message) {
         errorMessage = err.message;
       }
-      
+
       setError(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -138,6 +144,44 @@ export const Register = () => {
               <p className="mt-1 text-xs text-gray-500">
                 Must be at least 8 characters with uppercase, lowercase, number, and special character
               </p>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-start">
+              <input
+                id="acceptedTerms"
+                type="checkbox"
+                {...register('acceptedTerms')}
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <label htmlFor="acceptedTerms" className="ml-2 text-sm text-gray-700">
+                I accept the{' '}
+                <Link to="/terms" className="text-primary hover:underline" target="_blank">
+                  Terms of Service
+                </Link>
+              </label>
+            </div>
+            {errors.acceptedTerms && (
+              <p className="text-sm text-red-600">{errors.acceptedTerms.message}</p>
+            )}
+
+            <div className="flex items-start">
+              <input
+                id="acceptedPrivacy"
+                type="checkbox"
+                {...register('acceptedPrivacy')}
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <label htmlFor="acceptedPrivacy" className="ml-2 text-sm text-gray-700">
+                I accept the{' '}
+                <Link to="/privacy-policy" className="text-primary hover:underline" target="_blank">
+                  Privacy Policy
+                </Link>
+              </label>
+            </div>
+            {errors.acceptedPrivacy && (
+              <p className="text-sm text-red-600">{errors.acceptedPrivacy.message}</p>
             )}
           </div>
 

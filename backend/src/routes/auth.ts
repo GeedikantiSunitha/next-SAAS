@@ -60,6 +60,14 @@ const getCookieOptions = (maxAge: number): CookieOptions => {
  *               name:
  *                 type: string
  *                 example: John Doe
+ *               acceptedTerms:
+ *                 type: boolean
+ *                 example: true
+ *                 description: Must be true to accept Terms of Service
+ *               acceptedPrivacy:
+ *                 type: boolean
+ *                 example: true
+ *                 description: Must be true to accept Privacy Policy
  *     responses:
  *       201:
  *         description: User registered successfully
@@ -98,6 +106,8 @@ const getCookieOptions = (maxAge: number): CookieOptions => {
  * @param {string} req.body.email - User's email address (required, validated)
  * @param {string} req.body.password - User's password (required, min 8 chars, strength validated)
  * @param {string} req.body.name - User's full name (optional)
+ * @param {boolean} req.body.acceptedTerms - Must be true to accept Terms of Service (required)
+ * @param {boolean} req.body.acceptedPrivacy - Must be true to accept Privacy Policy (required)
  * 
  * @returns {Object} 201 - User object with id, email, name, role
  * @returns {Object} 400 - Validation error (weak password, invalid email)
@@ -110,7 +120,9 @@ const getCookieOptions = (maxAge: number): CookieOptions => {
  * {
  *   "email": "user@example.com",
  *   "password": "SecurePass123!",
- *   "name": "John Doe"
+ *   "name": "John Doe",
+ *   "acceptedTerms": true,
+ *   "acceptedPrivacy": true
  * }
  * 
  * // Response (201)
@@ -131,14 +143,53 @@ router.post(
     validators.email,
     validators.password,
     validators.name,
+    body('acceptedTerms')
+      .isBoolean()
+      .withMessage('You must accept the Terms of Service')
+      .equals('true')
+      .withMessage('You must accept the Terms of Service'),
+    body('acceptedPrivacy')
+      .isBoolean()
+      .withMessage('You must accept the Privacy Policy')
+      .equals('true')
+      .withMessage('You must accept the Privacy Policy'),
   ]),
   asyncHandler(async (req, res) => {
-    const { email, password, name } = req.body;
+    const { email, password, name, acceptedTerms, acceptedPrivacy } = req.body;
     const ipAddress = getClientIp(req) || undefined;
     const userAgent = req.headers['user-agent'];
 
+    // Validate policy acceptance
+    if (!acceptedTerms || !acceptedPrivacy) {
+      res.status(400).json({
+        success: false,
+        error: 'You must accept both the Terms of Service and Privacy Policy to register',
+      });
+      return;
+    }
+
     // Register user (validates email uniqueness, password strength)
     const user = await authService.register(email, password, name, ipAddress, userAgent);
+
+    // Record policy acceptance (GDPR compliance)
+    await prisma.policyAcceptance.createMany({
+      data: [
+        {
+          userId: user.id,
+          policyType: 'terms_of_service',
+          policyVersion: '1.0',
+          ipAddress,
+          userAgent,
+        },
+        {
+          userId: user.id,
+          policyType: 'privacy_policy',
+          policyVersion: '1.0',
+          ipAddress,
+          userAgent,
+        },
+      ],
+    });
 
     // Auto-login after registration: generate tokens and set as cookies
     // This provides seamless UX - user doesn't need to login separately

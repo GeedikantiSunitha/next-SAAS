@@ -5,7 +5,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<User | { requiresMfa: boolean; mfaMethod: 'TOTP' | 'EMAIL'; user: User } | undefined>;
-  register: (email: string, password: string, name?: string) => Promise<void>;
+  register: (email: string, password: string, name?: string, acceptedTerms?: boolean, acceptedPrivacy?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   isAuthenticated: boolean;
@@ -55,12 +55,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const register = async (email: string, password: string, name?: string) => {
+  const register = async (email: string, password: string, name?: string, acceptedTerms?: boolean, acceptedPrivacy?: boolean) => {
     try {
       // Backend register endpoint sets accessToken as HTTP-only cookie automatically
       // Backend returns { success: true, data: user } (no accessToken in body)
-      const response = await authApi.register({ email, password, name });
-      
+      const response = await authApi.register({ email, password, name, acceptedTerms, acceptedPrivacy });
+
       // User is already authenticated via cookie set by backend
       // No need to call login - backend auto-logs in after registration
       setUser(response.data);

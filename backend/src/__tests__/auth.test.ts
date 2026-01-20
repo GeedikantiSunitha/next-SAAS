@@ -14,11 +14,16 @@ describe('Auth API', () => {
           { email: { startsWith: 'me-cookie' } },
           { email: { startsWith: 'refresh-test' } },
           { email: { startsWith: 'refresh-no-token' } },
-          { email: { startsWith: 'newuser@' } },
+          { email: { startsWith: 'newuser' } },
           { email: { startsWith: 'register-cookie' } },
           { email: { startsWith: 'register-no-token' } },
           { email: { startsWith: 'secure-test' } },
+          { email: { startsWith: 'login' } },
+          { email: { startsWith: 'cookie-test' } },
+          { email: { startsWith: 'no-token' } },
           { email: 'user@example.com' },
+          { email: 'test@example.com' },
+          { email: 'existing@example.com' },
         ],
       },
     });
@@ -31,6 +36,8 @@ describe('Auth API', () => {
           email: 'newuser@example.com',
           password: 'Password123!',
           name: 'New User',
+          acceptedTerms: true,
+          acceptedPrivacy: true,
         });
 
       expect(response.status).toBe(201);
@@ -41,6 +48,86 @@ describe('Auth API', () => {
       expect(response.body.data).not.toHaveProperty('password');
     });
 
+    it('should reject registration without acceptedTerms', async () => {
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send({
+          email: 'newuser2@example.com',
+          password: 'Password123!',
+          name: 'New User',
+          acceptedPrivacy: true,
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+      // Validation middleware returns "Validation failed" message
+      expect(response.body.error).toBeDefined();
+    });
+
+    it('should reject registration without acceptedPrivacy', async () => {
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send({
+          email: 'newuser3@example.com',
+          password: 'Password123!',
+          name: 'New User',
+          acceptedTerms: true,
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+      // Validation middleware returns "Validation failed" message
+      expect(response.body.error).toBeDefined();
+    });
+
+    it('should reject registration with acceptedTerms = false', async () => {
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send({
+          email: 'newuser4@example.com',
+          password: 'Password123!',
+          name: 'New User',
+          acceptedTerms: false,
+          acceptedPrivacy: true,
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+      // Either validation middleware or custom check will reject this
+      expect(response.body.error).toBeDefined();
+    });
+
+    it('should create PolicyAcceptance records on successful registration', async () => {
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send({
+          email: 'newuser5@example.com',
+          password: 'Password123!',
+          name: 'New User',
+          acceptedTerms: true,
+          acceptedPrivacy: true,
+        });
+
+      expect(response.status).toBe(201);
+      const userId = response.body.data.id;
+
+      // Check PolicyAcceptance records were created
+      const acceptances = await prisma.policyAcceptance.findMany({
+        where: { userId },
+      });
+
+      expect(acceptances.length).toBe(2);
+      const policyTypes = acceptances.map(a => a.policyType).sort();
+      expect(policyTypes).toEqual(['privacy_policy', 'terms_of_service']);
+
+      // Check that IP and user agent were recorded
+      acceptances.forEach(acceptance => {
+        expect(acceptance.ipAddress).toBeDefined();
+        expect(acceptance.userAgent).toBeDefined();
+        expect(acceptance.policyVersion).toBe('1.0');
+      });
+    });
+
     it('should set access token as HTTP-only cookie after registration', async () => {
       const response = await request(app)
         .post('/api/auth/register')
@@ -48,6 +135,8 @@ describe('Auth API', () => {
           email: 'register-cookie@example.com',
           password: 'Password123!',
           name: 'Register Cookie User',
+          acceptedTerms: true,
+          acceptedPrivacy: true,
         });
 
       expect(response.status).toBe(201);
@@ -70,6 +159,8 @@ describe('Auth API', () => {
           email: 'register-no-token@example.com',
           password: 'Password123!',
           name: 'Register No Token',
+          acceptedTerms: true,
+          acceptedPrivacy: true,
         });
 
       expect(response.status).toBe(201);
@@ -88,6 +179,8 @@ describe('Auth API', () => {
         .send({
           email: 'existing@example.com',
           password: 'Password123!',
+          acceptedTerms: true,
+          acceptedPrivacy: true,
         });
 
       expect(response.status).toBe(409);
