@@ -35,6 +35,9 @@ const OAuthCallback = lazy(() => import('./pages/OAuthCallback').then(m => ({ de
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
 const TermsOfService = lazy(() => import('./pages/TermsOfService').then(m => ({ default: m.TermsOfService })));
 const CookiePolicy = lazy(() => import('./pages/CookiePolicy').then(m => ({ default: m.CookiePolicy })));
+const AcceptableUse = lazy(() => import('./pages/AcceptableUse').then(m => ({ default: m.AcceptableUse })));
+const DataProcessingAgreement = lazy(() => import('./pages/DataProcessingAgreement').then(m => ({ default: m.DataProcessingAgreement })));
+const SecurityPolicy = lazy(() => import('./pages/SecurityPolicy').then(m => ({ default: m.SecurityPolicy })));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -188,6 +191,9 @@ function App() {
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 <Route path="/terms" element={<TermsOfService />} />
                 <Route path="/cookie-policy" element={<CookiePolicy />} />
+                <Route path="/acceptable-use" element={<AcceptableUse />} />
+                <Route path="/dpa" element={<DataProcessingAgreement />} />
+                <Route path="/security" element={<SecurityPolicy />} />
                 <Route path="/gdpr-settings" element={
                   <ProtectedRoute>
                     <GdprSettings />
