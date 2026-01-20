@@ -103,6 +103,27 @@ export interface ExportsResponse {
   data: DataExportRequest[];
 }
 
+export interface CookiePreferences {
+  essential: boolean;
+  analytics: boolean;
+  marketing: boolean;
+  functional: boolean;
+}
+
+export interface SaveCookieConsentRequest {
+  essential: boolean;
+  analytics: boolean;
+  marketing: boolean;
+  functional: boolean;
+  version: string;
+}
+
+export interface CookieConsentResponse {
+  success: boolean;
+  data: CookiePreferences | null;
+  message?: string;
+}
+
 /**
  * GDPR API client
  */
@@ -187,6 +208,24 @@ export const gdprApi = {
    */
   getExports: async (): Promise<ExportsResponse> => {
     const response = await apiClient.get<ExportsResponse>('/api/gdpr/exports');
+    return response.data;
+  },
+
+  /**
+   * Save cookie consent preferences
+   * POST /api/gdpr/consents/cookies
+   */
+  saveCookieConsent: async (request: SaveCookieConsentRequest): Promise<CookieConsentResponse> => {
+    const response = await apiClient.post<CookieConsentResponse>('/api/gdpr/consents/cookies', request);
+    return response.data;
+  },
+
+  /**
+   * Get cookie consent preferences
+   * GET /api/gdpr/consents/cookies
+   */
+  getCookieConsent: async (): Promise<CookieConsentResponse> => {
+    const response = await apiClient.get<CookieConsentResponse>('/api/gdpr/consents/cookies');
     return response.data;
   },
 };
