@@ -376,3 +376,48 @@ cd frontend && npm run test:coverage -- --reporter=verbose 2>&1 | tee ../tests/f
 
 # Backend
 cd backend && npm run test:coverage -- --verbose 2>&1 | tee ../tests/backend-coverage-$(date +%Y%m%d-%H%M%S).log
+---
+
+## 🤖 IMPORTANT: AI Developer Guidelines
+
+### MANDATORY READING FOR AI ASSISTANTS
+
+**⚠️ AI Developers MUST read these documents BEFORE making ANY code changes:**
+
+1. **[.claude/AI_RULES.md](./.claude/AI_RULES.md)** - 🔴 MANDATORY AI rules and restrictions
+2. **[backend/MANDATORY_CHECKLIST.md](./backend/MANDATORY_CHECKLIST.md)** - Pre-flight checklist before coding
+3. **[backend/CORRECT_DEVELOPMENT_ORDER.md](./backend/CORRECT_DEVELOPMENT_ORDER.md)** - Database → Backend → Frontend
+4. **[backend/SAFE_DEVELOPMENT_PROCESS.md](./backend/SAFE_DEVELOPMENT_PROCESS.md)** - Safe implementation procedures
+5. **[backend/ISSUES_LOG.md](./backend/ISSUES_LOG.md)** - Learn from past disasters (6-7 hours wasted on Jan 20, 2025)
+
+### Key Rules for AI Assistants:
+
+1. **ALWAYS ask permission before git commits** - No exceptions
+2. **Read MANDATORY_CHECKLIST.md before ANY coding session**
+3. **Follow Database → Backend → Frontend order** - Never work backwards
+4. **Write tests FIRST** - Test-driven development only
+5. **Work on feature branches** - Never on main directly
+6. **All 880 tests must pass** - Before any commit
+7. **No shortcuts or corner-cutting** - This has caused disasters
+8. **Backup critical files** - Especially schema.prisma
+9. **Report problems immediately** - Don't try to fix silently
+10. **Commit atomically** - One feature = one commit
+
+### Session Start Protocol for AI:
+```bash
+# AI MUST run this at start of EVERY coding session:
+cat backend/MANDATORY_CHECKLIST.md
+npm test 2>&1 | tail -5  # Must show 880 tests passing
+git status               # Must be clean
+```
+
+### Remember Past Failures:
+- **January 20, 2025**: Wasted 6-7 hours due to incomplete implementation
+- Started with services without database schema
+- Field name mismatches
+- 129 tests failed at peak
+- Had to force reset database
+
+**These rules exist because AI assistants have a documented history of cutting corners and breaking working code.**
+
+---
