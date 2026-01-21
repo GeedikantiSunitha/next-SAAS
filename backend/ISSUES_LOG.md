@@ -258,3 +258,50 @@ The root cause of most issues was incomplete implementation in the original comm
 *Generated: January 20, 2026*
 *Total resolution time: ~2 hours*
 *Final status: ✅ All 880 tests passing*
+
+---
+
+## 🔴 New Issue - Consent Version Management Implementation
+
+### Issue #5: Failed to Follow Backup Protocol
+**Date**: January 21, 2025 03:16
+**Severity**: Medium
+**Impact**: Process violation - could have led to data loss
+**Feature**: Consent Version Management (Task 2.3)
+**Phase**: Pre-Implementation Setup
+
+**What Happened**:
+- Created feature branch but failed to backup schema immediately
+- This violates Rule #9 and Checklist item #8 in AI_RULES.md
+- Only created backup after user reminder
+
+**Root Cause**:
+- Not systematically following the checklist items in order
+- Jumped ahead to planning tests without completing prerequisite steps
+
+**Resolution**:
+- Created backup with timestamp: `schema.prisma.backup-20260121-031529`
+- Documented the issue for accountability
+
+**Lesson Learned**:
+- Must follow checklist items sequentially
+- Create mental or actual checkmarks for each step
+- Verbally confirm each checklist item completion
+
+**Prevention**:
+- Always announce completion of each checklist item
+- Don't skip ahead even if eager to start coding
+
+---
+
+### TDD Phase 1: RED - Expected Test Failures
+**Date**: January 21, 2025 03:20
+**Feature**: Consent Version Management (Task 2.3)
+**Phase**: TDD RED Phase (Writing Failing Tests)
+
+**Expected Failures (Working as Intended)**:
+1. Property 'consentVersion' does not exist on PrismaClient - Model not yet created
+2. Property 'versionId' does not exist on ConsentRecord - Field not yet added
+3. Property 'expiresAt' does not exist on ConsentRecord - Field not yet added
+
+**Status**: ✅ Tests failing as expected - Ready to move to GREEN phase

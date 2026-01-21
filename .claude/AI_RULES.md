@@ -9,12 +9,13 @@
 
 ### 🔴 RULE #2: READ MANDATORY DOCUMENTS BEFORE ANY CODE CHANGES
 
-**BEFORE writing ANY code, you MUST read these 4 documents:**
+**BEFORE writing ANY code, you MUST read these 5 documents:**
 
 1. **backend/MANDATORY_CHECKLIST.md** - Pre-flight checklist (READ FIRST!)
-2. **backend/CORRECT_DEVELOPMENT_ORDER.md** - Database → Backend → Frontend
-3. **backend/SAFE_DEVELOPMENT_PROCESS.md** - How to implement safely
-4. **backend/ISSUES_LOG.md** - Learn from past disasters
+2. **.claude/TDD_WORKFLOW.md** - Test-Driven Development process (MANDATORY!)
+3. **backend/CORRECT_DEVELOPMENT_ORDER.md** - Database → Backend → Frontend
+4. **backend/SAFE_DEVELOPMENT_PROCESS.md** - How to implement safely
+5. **backend/ISSUES_LOG.md** - Learn from past disasters
 
 ```bash
 # Run this command BEFORE any coding session:
@@ -28,12 +29,14 @@ cat backend/MANDATORY_CHECKLIST.md
 4. **Tests** (at each layer)
 5. **Documentation** (as you go)
 
-### 🔴 RULE #4: TEST-DRIVEN DEVELOPMENT
-- Write test FIRST
-- See it FAIL
-- Write code to PASS
+### 🔴 RULE #4: TEST-DRIVEN DEVELOPMENT (MANDATORY - READ TDD_WORKFLOW.md)
+- Write test FIRST (Red phase)
+- See it FAIL and verify failure
+- Write MINIMAL code to PASS (Green phase)
 - Run ALL tests
 - ALL must PASS before proceeding
+- Refactor if needed (Refactor phase)
+- **FOLLOW .claude/TDD_WORKFLOW.md EXACTLY**
 
 ### 🔴 RULE #5: WORK ON FEATURE BRANCHES
 ```bash
@@ -57,10 +60,9 @@ These phrases are BANNED:
 
 ### 🔴 RULE #8: VERIFY BEFORE ACTION
 Before ANY code change:
-```bash
-npm test 2>&1 | tail -5  # MUST show 880 tests passing
-git status                # MUST be clean
-```
+- Ask user: "Could you confirm all 880 tests are passing?"
+- Run: `git status` # MUST be clean
+- Wait for user confirmation before proceeding
 
 ### 🔴 RULE #9: BACKUP CRITICAL FILES
 ```bash
@@ -73,6 +75,40 @@ If tests fail or something breaks:
 - STOP immediately
 - Tell the user
 - Don't try to fix without permission
+- **LOG ALL ISSUES in backend/ISSUES_LOG.md**
+
+### 🔴 RULE #11: TEST EXECUTION PROTOCOL
+
+**YOU CAN RUN (during TDD development):**
+- ✅ Specific test files: `npm test src/__tests__/specific.test.ts`
+- ✅ Single test suites during development
+- ✅ Quick TypeScript checks: `npx tsc --noEmit`
+
+**ASK USER TO RUN (prevents timeouts):**
+- ❌ Full test suite: Ask "Could you please run the full test suite?"
+- ❌ End-to-end tests: Ask "Could you run the e2e tests?"
+- ❌ Coverage reports: Ask "Could you run test coverage?"
+
+**How to ask user:**
+```
+"Could you please run the full test suite with:
+npm test 2>&1 | tee test-run-$(date +%Y%m%d-%H%M%S).log
+
+Then share the results or the log file."
+```
+
+**After user runs tests:**
+- Thank them for running tests
+- Analyze the log file they provide
+- Document any failures in ISSUES_LOG.md
+
+### 🔴 RULE #12: MANDATORY ISSUE LOGGING
+- **EVERY issue encountered MUST be logged**
+- **Location**: backend/ISSUES_LOG.md
+- **Format**: Follow the template in TDD_WORKFLOW.md
+- **Even small issues**: Log everything, even 2-minute fixes
+- **Root cause required**: Always include root cause analysis
+- **Prevention required**: Always include how to prevent in future
 
 ---
 
@@ -86,6 +122,14 @@ If tests fail or something breaks:
 - 129 tests failed at peak
 - Had to force reset database
 
+**January 21, 2025 - Consent Version Management Failure:**
+- Attempted implementation WITHOUT TDD
+- Wrote code before tests (violated TDD principle)
+- Created database changes without tests
+- Multiple TypeScript compilation errors
+- Had to completely rollback and reset database
+- **ROOT CAUSE: Did not follow TDD workflow**
+
 **NEVER REPEAT THESE MISTAKES**
 
 ---
@@ -95,15 +139,16 @@ If tests fail or something breaks:
 Before writing ANY code, you MUST:
 
 1. ✅ Read `backend/MANDATORY_CHECKLIST.md`
-2. ✅ Verify all 880 tests are passing
-3. ✅ Check git status is clean
-4. ✅ Create a feature branch
-5. ✅ Write a plan and show to user
-6. ✅ Backup schema if changing database
-7. ✅ Follow Database → Backend → Frontend order
-8. ✅ Write tests first
-9. ✅ Get user permission before commits
-10. ✅ Document as you go
+2. ✅ Read `.claude/TDD_WORKFLOW.md`
+3. ✅ ASK USER: "Please confirm all 880 tests are passing"
+4. ✅ Check git status is clean (you can run this)
+5. ✅ Create a feature branch
+6. ✅ Write TDD tests FIRST (Red phase)
+7. ✅ Show test plan to user before implementing
+8. ✅ Backup schema if changing database
+9. ✅ Follow Database → Backend → Frontend order
+10. ✅ Get user permission before commits
+11. ✅ Document all issues in ISSUES_LOG.md
 
 ---
 
@@ -156,9 +201,11 @@ At the start of EVERY coding session, you MUST:
 
 1. Say: "Let me check the mandatory documents first"
 2. Run: `cat backend/MANDATORY_CHECKLIST.md`
-3. Run: `npm test 2>&1 | tail -5`
-4. Say: "All X tests passing, ready to proceed"
-5. Ask: "What would you like to work on today?"
+3. Run: `cat .claude/TDD_WORKFLOW.md | head -50`
+4. Ask user: "Could you please run `npm test` and confirm all 880 tests are passing?"
+5. Wait for user confirmation
+6. Say: "Thank you! Ready to proceed with TDD"
+7. Ask: "What would you like to work on today?"
 
 ---
 

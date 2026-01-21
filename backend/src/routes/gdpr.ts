@@ -4,6 +4,7 @@
 
 import { Router } from 'express';
 import * as gdprService from '../services/gdprService';
+import * as consentVersionService from '../services/consentVersionService';
 import { authenticate } from '../middleware/auth';
 import { getClientIp } from '../utils/getClientIp';
 import asyncHandler from '../utils/asyncHandler';
@@ -497,6 +498,118 @@ router.get(
     res.json({
       success: true,
       data: cookieConsent,
+    });
+  })
+);
+
+/**
+ * Check if user needs to re-consent for a specific consent type
+ * GET /api/gdpr/consents/:consentType/needs-reconsent
+ */
+router.get(
+  '/consents/:consentType/needs-reconsent',
+  asyncHandler(async (req, res): Promise<any> => {
+    // Check authentication
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required',
+      });
+    }
+
+    const consentType = req.params.consentType as ConsentType;
+
+    // Validate consent type
+    if (!Object.values(ConsentType).includes(consentType)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid consent type',
+      });
+    }
+
+    const result = await consentVersionService.needsReConsent(
+      req.user.id,
+      consentType
+    );
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  })
+);
+
+/**
+ * Get user's consent history
+ * GET /api/gdpr/consents/history
+ */
+router.get(
+  '/consents/history',
+  asyncHandler(async (req, res): Promise<any> => {
+    const consentType = req.query.consentType as ConsentType | undefined;
+
+    // Validate consent type if provided
+    if (consentType && !Object.values(ConsentType).includes(consentType)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid consent type',
+      });
+    }
+
+    const history = await consentVersionService.getConsentHistory(
+      req.user!.id,
+      consentType
+    );
+
+    res.json({
+      success: true,
+      data: history,
+    });
+  })
+);
+
+/**
+ * Update consent with new version
+ * POST /api/gdpr/consents/update-version
+ */
+router.post(
+  '/consents/update-version',
+  asyncHandler(async (req, res): Promise<any> => {
+    const { consentType, granted } = req.body;
+
+    // Validate required fields
+    if (!consentType || granted === undefined) {
+      return res.status(400).json({
+        success: false,
+        error: 'consentType and granted are required',
+      });
+    }
+
+    // Validate consent type
+    if (!Object.values(ConsentType).includes(consentType)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid consent type',
+      });
+    }
+
+    const ipAddress = getClientIp(req) || undefined;
+    const userAgent = req.headers['user-agent'] || undefined;
+
+    const updatedConsent = await consentVersionService.updateConsentVersion(
+      req.user!.id,
+      consentType,
+      granted,
+      ipAddress,
+      userAgent
+    );
+
+    res.json({
+      success: true,
+      message: granted
+        ? `Consent for ${consentType} granted successfully`
+        : `Consent for ${consentType} revoked successfully`,
+      data: updatedConsent,
     });
   })
 );

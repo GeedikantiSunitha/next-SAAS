@@ -420,45 +420,16 @@ model ConsentRecord {
   ipAddress   String?
   userAgent   String?
   version     String? // Consent version (for tracking changes)
-  versionId   String? // Foreign key to ConsentVersion
-  expiresAt   DateTime? // When the consent expires
   metadata    Json? // Additional consent data (e.g., cookie preferences)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  consentVersion ConsentVersion? @relation(fields: [versionId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, consentType])
   @@index([userId])
   @@index([consentType])
-  @@index([versionId])
   @@map("consent_records")
-}
-
-// Consent Version Management
-model ConsentVersion {
-  id                String      @id @default(uuid())
-  consentType       ConsentType
-  version           String // Semantic version (e.g., "1.0.0")
-  title             String
-  content           String      @db.Text // Full consent text
-  summary           String?     @db.Text // Summary of changes
-  effectiveDate     DateTime
-  expiryPeriod      Int? // Days until consent expires (null = no expiry)
-  requiresReConsent Boolean     @default(true)
-  changes           String?     @db.Text // What changed from previous version
-  isActive          Boolean     @default(false)
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
-
-  // Relations
-  consentRecords ConsentRecord[]
-
-  @@unique([consentType, version])
-  @@index([consentType])
-  @@index([isActive])
-  @@map("consent_versions")
 }
 
 enum ConsentType {

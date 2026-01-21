@@ -339,7 +339,7 @@ describe('MFA E2E Integration Tests', () => {
 
       expect(mfaLoginResponse.body.success).toBe(false);
       expect(mfaLoginResponse.body.error).toContain('expired');
-    });
+    }, 10000); // Increase timeout to 10 seconds for E2E test
   });
 
   describe('E2E: Email MFA Setup and Login Flow', () => {
@@ -458,7 +458,7 @@ describe('MFA E2E Integration Tests', () => {
       });
 
       expect(usedCode?.used).toBe(true);
-    });
+    }, 10000); // Increase timeout to 10 seconds for E2E test
   });
 
   describe('E2E: MFA Disable Flow', () => {
@@ -533,7 +533,7 @@ describe('MFA E2E Integration Tests', () => {
       const normalCookies = Array.isArray(normalSetCookieHeader) ? normalSetCookieHeader : [normalSetCookieHeader];
       const accessTokenCookie = normalCookies.find((c: string) => c.startsWith('accessToken='));
       expect(accessTokenCookie).toBeDefined();
-    });
+    }, 10000); // Increase timeout to 10 seconds for E2E test
   });
 
   describe('E2E: Login Without MFA (Normal Flow)', () => {

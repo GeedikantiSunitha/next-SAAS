@@ -5,12 +5,16 @@ import { requireRole } from '../middleware/auth';
 import { validate, validators } from '../middleware/validation';
 import asyncHandler from '../utils/asyncHandler';
 import * as adminUserService from '../services/adminUserService';
+import consentVersionRoutes from './admin/consentVersions';
 
 const router = Router();
 
 // All admin routes require authentication and ADMIN/SUPER_ADMIN role
 router.use(authenticate);
 router.use(requireRole('ADMIN', 'SUPER_ADMIN'));
+
+// Mount consent version admin routes
+router.use('/consent-versions', consentVersionRoutes);
 
 /**
  * @swagger
