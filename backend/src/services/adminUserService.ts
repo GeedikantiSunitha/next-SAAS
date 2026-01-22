@@ -10,6 +10,7 @@ import { hashPassword } from './authService';
 import { shouldRejectPassword } from '../utils/passwordStrength';
 import { createAuditLog } from './auditService';
 import logger from '../utils/logger';
+import { getEncryptionService } from './encryptionService';
 
 export interface ListUsersParams {
   page?: number;
@@ -47,10 +48,22 @@ export const listUsers = async (params: ListUsersParams, adminUserId: string) =>
   const where: any = {};
 
   if (params.search) {
-    where.OR = [
-      { email: { contains: params.search, mode: 'insensitive' } },
-      { name: { contains: params.search, mode: 'insensitive' } },
-    ];
+    const encryptionService = getEncryptionService();
+
+    // Check if search looks like an email
+    const isEmail = params.search.includes('@');
+
+    if (isEmail && encryptionService.isEnabled()) {
+      // For email search with encryption enabled, use exact match on emailHash
+      const emailHash = encryptionService.hash(params.search);
+      where.emailHash = emailHash;
+    } else {
+      // For non-email search or when encryption is disabled
+      where.OR = [
+        { email: { contains: params.search, mode: 'insensitive' } },
+        { name: { contains: params.search, mode: 'insensitive' } },
+      ];
+    }
   }
 
   if (params.role) {

@@ -20,6 +20,7 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1'
   },
+  setupFiles: ['<rootDir>/jest.setup.env.js'],
   setupFilesAfterEnv: ['<rootDir>/src/tests/setup.ts'],
   maxWorkers: 1, // Run tests sequentially to avoid database conflicts
   // Exclude template files from test runs (they're examples, not actual tests)
