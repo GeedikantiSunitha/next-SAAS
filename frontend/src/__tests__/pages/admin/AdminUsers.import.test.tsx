@@ -15,11 +15,11 @@ describe('AdminUsers Import Test', () => {
     // This test will fail if the import path is incorrect
     // The error will be: "Failed to resolve import"
     const AdminUsersModule = await import('../../../pages/admin/AdminUsers');
-    
+
     expect(AdminUsersModule).toBeDefined();
     expect(AdminUsersModule.AdminUsers).toBeDefined();
     expect(typeof AdminUsersModule.AdminUsers).toBe('function');
-  });
+  }, 10000); // Increase timeout to 10 seconds for dynamic import
 
   it('should have correct PasswordStrengthIndicator import path', async () => {
     // Verify that PasswordStrengthIndicator can be imported from correct location

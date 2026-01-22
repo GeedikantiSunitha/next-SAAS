@@ -276,17 +276,27 @@ describe('FieldEncryptionService', () => {
     });
 
     it('should handle decryption with wrong key gracefully', () => {
-      const encrypted = service.encrypt('test');
+      const plaintext = 'test-data';
+      const encrypted = service.encrypt(plaintext);
+
+      // Verify it's actually encrypted
+      expect(encrypted).not.toEqual(plaintext);
+      expect(service.isFieldEncrypted(encrypted)).toBe(true);
 
       // Save original key and set wrong one
       const originalKey = process.env.FIELD_ENCRYPTION_KEY;
       process.env.FIELD_ENCRYPTION_KEY = 'wrong-key-32-characters-long-minimum-value!!!';
       process.env.FIELD_ENCRYPTION_ENABLED = 'true'; // Ensure it's enabled
+      delete process.env.OLD_FIELD_ENCRYPTION_KEY; // Ensure no old key fallback
 
       const wrongKeyService = new FieldEncryptionService();
 
-      // Should throw because it detects field encryption but can't decrypt
-      expect(() => wrongKeyService.decrypt(encrypted)).toThrow();
+      // Verify the service is enabled and has a different key
+      expect(wrongKeyService.isEnabled()).toBe(true);
+
+      // The wrongKeyService should detect it's field-encrypted but fail to decrypt with wrong key
+      // This should throw an error as it detects the FLE_ prefix but can't decrypt
+      expect(() => wrongKeyService.decrypt(encrypted)).toThrow('Field decryption failed');
 
       // Restore original key for other tests
       process.env.FIELD_ENCRYPTION_KEY = originalKey;
