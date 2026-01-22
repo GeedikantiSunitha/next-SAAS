@@ -3,7 +3,7 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Layout } from '../components/Layout';
 import { Link } from 'react-router-dom';
-import { User as UserIcon, CreditCard, History } from 'lucide-react';
+import { User as UserIcon, CreditCard, History, Shield } from 'lucide-react';
 
 export const Dashboard = () => {
   const { user } = useAuth();
@@ -53,6 +53,12 @@ export const Dashboard = () => {
                           <Link to="/payments" className="flex items-center gap-2">
                             <History className="h-4 w-4" />
                             Payment History
+                          </Link>
+                        </Button>
+                        <Button asChild variant="outline">
+                          <Link to="/privacy-center" className="flex items-center gap-2">
+                            <Shield className="h-4 w-4" />
+                            Privacy Center
                           </Link>
                         </Button>
                       </div>

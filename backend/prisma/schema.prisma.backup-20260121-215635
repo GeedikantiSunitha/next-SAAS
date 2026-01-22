@@ -51,8 +51,6 @@ model User {
   policyAcceptances       PolicyAcceptance[]
   reportedIncidents       SecurityIncident[]       @relation("ReportedIncidents")
   assignedIncidents       SecurityIncident[]       @relation("AssignedIncidents")
-  privacyPreferences      PrivacyPreferences?
-  dataAccessLogs          DataAccessLog[]
 
   @@unique([oauthProvider, oauthProviderId])
   @@index([email])
@@ -684,52 +682,4 @@ model BreachNotification {
   @@index([incidentId])
   @@index([userId])
   @@map("breach_notifications")
-}
-
-// Privacy Preferences model - Task 2.4: Enhanced Privacy Center
-model PrivacyPreferences {
-  id                      String   @id @default(uuid())
-  userId                  String   @unique
-
-  // Granular marketing preferences
-  emailMarketing          Boolean  @default(false)
-  smsMarketing           Boolean  @default(false)
-  pushNotifications      Boolean  @default(false)
-  productUpdates         Boolean  @default(true)
-  newsletterSubscription Boolean  @default(false)
-
-  // Third-party sharing preferences
-  shareWithPartners      Boolean  @default(false)
-  shareForAnalytics      Boolean  @default(false)
-  shareForAdvertising    Boolean  @default(false)
-
-  // Data visibility preferences
-  profileVisibility      String   @default("PRIVATE") // PUBLIC, FRIENDS, PRIVATE
-  showActivityStatus     Boolean  @default(true)
-
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("privacy_preferences")
-}
-
-// Data Access Log model - Track who accessed user data
-model DataAccessLog {
-  id           String   @id @default(uuid())
-  userId       String   // User whose data was accessed
-  accessedBy   String   // Who accessed it (userId or system)
-  accessType   String   // VIEW, EXPORT, SHARE, PROCESS
-  dataCategory String   // PROFILE, ORDERS, ACTIVITY, etc.
-  purpose      String   // Why it was accessed
-  ipAddress    String?
-  userAgent    String?
-  timestamp    DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([timestamp])
-  @@map("data_access_logs")
 }

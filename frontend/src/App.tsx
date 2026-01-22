@@ -38,6 +38,7 @@ const CookiePolicy = lazy(() => import('./pages/CookiePolicy').then(m => ({ defa
 const AcceptableUse = lazy(() => import('./pages/AcceptableUse').then(m => ({ default: m.AcceptableUse })));
 const DataProcessingAgreement = lazy(() => import('./pages/DataProcessingAgreement').then(m => ({ default: m.DataProcessingAgreement })));
 const SecurityPolicy = lazy(() => import('./pages/SecurityPolicy').then(m => ({ default: m.SecurityPolicy })));
+const PrivacyCenter = lazy(() => import('./pages/PrivacyCenter'));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -112,6 +113,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <NewsletterSettings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/privacy-center"
+                  element={
+                    <ProtectedRoute>
+                      <PrivacyCenter />
                     </ProtectedRoute>
                   }
                 />
