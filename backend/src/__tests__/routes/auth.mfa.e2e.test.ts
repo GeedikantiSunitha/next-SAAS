@@ -27,6 +27,8 @@ app.use('/api/auth', authRoutes);
 app.use(errorHandler);
 
 describe('MFA E2E Integration Tests', () => {
+  // Increase timeout since encryption slows down operations
+  jest.setTimeout(15000);
   let testUser: any;
   let userEmail: string;
   let userPassword: string;
@@ -58,7 +60,7 @@ describe('MFA E2E Integration Tests', () => {
   });
 
   describe('E2E: Complete MFA Setup and Login Flow', () => {
-    it('should complete full TOTP MFA setup and login flow', async () => {, 30000
+    it('should complete full TOTP MFA setup and login flow', async () => {
       // Step 1: Setup TOTP MFA
       const tokens = authService.generateTokens(testUser.id);
       const setupResponse = await request(app)

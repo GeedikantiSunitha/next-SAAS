@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import logger from '../utils/logger';
+import { applyEncryptionMiddleware } from '../middleware/encryptionMiddleware';
 
 // Create Prisma client instance
 const prisma = new PrismaClient({
@@ -9,6 +10,9 @@ const prisma = new PrismaClient({
     { level: 'warn', emit: 'event' },
   ],
 });
+
+// Apply encryption middleware for PII data protection (GDPR Phase 3.1)
+applyEncryptionMiddleware(prisma);
 
 // Log database queries in development
 if (process.env.NODE_ENV === 'development') {

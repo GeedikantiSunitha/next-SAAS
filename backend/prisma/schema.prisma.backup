@@ -12,13 +12,8 @@ datasource db {
 model User {
   id            String    @id @default(uuid())
   email         String    @unique
-  emailHash     String?   @unique // Hash of email for searching encrypted data
   password      String?   // Optional for OAuth users
   name          String?
-  firstName     String?
-  lastName      String?
-  phoneNumber   String?   // Encrypted PII
-  address       String?   // Encrypted PII
   role          Role      @default(USER)
   isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
@@ -61,7 +56,6 @@ model User {
 
   @@unique([oauthProvider, oauthProviderId])
   @@index([email])
-  @@index([emailHash])
   @@index([oauthProvider, oauthProviderId])
   @@map("users")
 }

@@ -11,10 +11,8 @@
 import request from 'supertest';
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
 import app from '../../server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../config/database'; // Use the configured instance with encryption middleware
 import bcrypt from 'bcryptjs';
-
-const prisma = new PrismaClient();
 
 describe('Admin Data Retention E2E Tests', () => {
   let adminToken: string;
@@ -23,7 +21,7 @@ describe('Admin Data Retention E2E Tests', () => {
 
   beforeAll(async () => {
     // Create admin user
-    const hashedPassword = await bcrypt.hash('Admin123!', 10);
+    const hashedPassword = await bcrypt.hash('Admin123!', 12);
     await prisma.user.create({
       data: {
         email: 'admin-retention@test.com',
@@ -40,10 +38,23 @@ describe('Admin Data Retention E2E Tests', () => {
       email: 'admin-retention@test.com',
       password: 'Admin123!',
     });
-    adminToken = adminLoginRes.headers['set-cookie'];
+
+    // Check if login was successful
+    if (!adminLoginRes.body.success) {
+      console.error('Admin login failed:', adminLoginRes.body);
+    }
+
+    // Extract accessToken from response body or cookies
+    if (adminLoginRes.body.data?.accessToken) {
+      adminToken = `accessToken=${adminLoginRes.body.data.accessToken}`;
+    } else if (adminLoginRes.headers['set-cookie']) {
+      adminToken = adminLoginRes.headers['set-cookie'];
+    } else {
+      console.error('No token received for admin');
+    }
 
     // Create regular user for auth tests
-    const regularPassword = await bcrypt.hash('Regular123!', 10);
+    const regularPassword = await bcrypt.hash('Regular123!', 12);
     await prisma.user.create({
       data: {
         email: 'regular-retention@test.com',
@@ -60,7 +71,20 @@ describe('Admin Data Retention E2E Tests', () => {
       email: 'regular-retention@test.com',
       password: 'Regular123!',
     });
-    regularUserToken = regularLoginRes.headers['set-cookie'];
+
+    // Check if login was successful
+    if (!regularLoginRes.body.success) {
+      console.error('Regular user login failed:', regularLoginRes.body);
+    }
+
+    // Extract accessToken from response body or cookies
+    if (regularLoginRes.body.data?.accessToken) {
+      regularUserToken = `accessToken=${regularLoginRes.body.data.accessToken}`;
+    } else if (regularLoginRes.headers['set-cookie']) {
+      regularUserToken = regularLoginRes.headers['set-cookie'];
+    } else {
+      console.error('No token received for regular user');
+    }
   });
 
   afterAll(async () => {
@@ -81,7 +105,7 @@ describe('Admin Data Retention E2E Tests', () => {
       where: { email: 'test-retention@test.com' },
     });
 
-    const hashedPassword = await bcrypt.hash('Test123!', 10);
+    const hashedPassword = await bcrypt.hash('Test123!', 12);
     const testUser = await prisma.user.create({
       data: {
         email: 'test-retention@test.com',
