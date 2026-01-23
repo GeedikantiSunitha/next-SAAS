@@ -56,7 +56,6 @@ model User {
   policyAcceptances       PolicyAcceptance[]
   reportedIncidents       SecurityIncident[]       @relation("ReportedIncidents")
   assignedIncidents       SecurityIncident[]       @relation("AssignedIncidents")
-  securityAuditLogs       SecurityAuditLog[]
   privacyPreferences      PrivacyPreferences?
   dataAccessLogs          DataAccessLog[]
 
@@ -546,92 +545,6 @@ enum MfaMethodType {
   EMAIL
 
   @@map("mfa_method_type")
-}
-
-// Security Audit Log Model for Task 3.3
-model SecurityAuditLog {
-  id            String               @id @default(uuid())
-  eventType     SecurityEventType
-  severity      SecurityEventSeverity
-  userId        String?              // User associated with the event (if any)
-  ipAddress     String?
-  userAgent     String?
-  resource      String?              // Resource being accessed
-  action        String?              // Specific action attempted
-  outcome       SecurityEventOutcome
-  details       Json?                // Additional event details
-  metadata      Json?                // Event metadata
-  alertSent     Boolean             @default(false)
-  alertSentAt   DateTime?
-  createdAt     DateTime            @default(now())
-
-  user          User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([eventType])
-  @@index([severity])
-  @@index([userId])
-  @@index([createdAt])
-  @@index([outcome])
-  @@map("security_audit_logs")
-}
-
-// Security Event Types
-enum SecurityEventType {
-  // Authentication Events
-  FAILED_LOGIN
-  SUCCESSFUL_LOGIN
-  PASSWORD_RESET_ATTEMPT
-  PASSWORD_CHANGED
-  ACCOUNT_LOCKED
-  ACCOUNT_UNLOCKED
-
-  // Security Threats
-  BRUTE_FORCE_DETECTED
-  RATE_LIMIT_EXCEEDED
-  UNAUTHORIZED_ACCESS
-  SUSPICIOUS_ACTIVITY
-  PRIVILEGE_ESCALATION_ATTEMPT
-
-  // Data Events
-  DATA_EXPORT_LARGE
-  DATA_ACCESS_DENIED
-  DATA_DELETION_ATTEMPT
-
-  // API Events
-  API_KEY_CREATED
-  API_KEY_REVOKED
-  API_KEY_COMPROMISED
-  INVALID_API_KEY
-  // Admin Actions
-  ADMIN_ACTION
-  USER_ROLE_CHANGED
-  ADMIN_ACCESS
-  // Data Access
-  SENSITIVE_DATA_ACCESS
-  PERMISSION_CHANGED
-
-  @@map("security_event_type")
-}
-
-// Security Event Severity
-enum SecurityEventSeverity {
-  INFO
-  LOW
-  MEDIUM
-  HIGH
-  CRITICAL
-
-  @@map("security_event_severity")
-}
-
-// Security Event Outcome
-enum SecurityEventOutcome {
-  SUCCESS
-  FAILURE
-  BLOCKED
-  PENDING
-
-  @@map("security_event_outcome")
 }
 
 // Feature Flag model

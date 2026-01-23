@@ -27,7 +27,7 @@ Implement database encryption at rest to protect sensitive data when stored on d
 - **Pros**: Managed service, automatic key rotation, compliance certified
 - **Cons**: Vendor lock-in, additional costs
 
-### Option 3: Application-Level Encryption
+### Option 3: Application-Level Encryption - i think we should do this 
 - **Pros**: Platform-agnostic, granular control
 - **Cons**: Performance overhead, complex key management
 - **Implementation**: Encrypt data before storing in database
