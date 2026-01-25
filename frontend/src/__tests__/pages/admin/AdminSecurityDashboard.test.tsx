@@ -131,7 +131,9 @@ describe('AdminSecurityDashboard', () => {
   });
 
   it('should render the dashboard title', async () => {
-    render(<AdminSecurityDashboard />);
+    await act(async () => {
+      render(<AdminSecurityDashboard />);
+    });
 
     await waitFor(() => {
       expect(screen.getByText('Security Dashboard')).toBeInTheDocument();
@@ -189,7 +191,9 @@ describe('AdminSecurityDashboard', () => {
   });
 
   it('should allow changing time range', async () => {
-    render(<AdminSecurityDashboard />);
+    await act(async () => {
+      render(<AdminSecurityDashboard />);
+    });
 
     await waitFor(() => {
       expect(screen.getByText('Security Dashboard')).toBeInTheDocument();
@@ -200,7 +204,9 @@ describe('AdminSecurityDashboard', () => {
     // Clear previous calls
     vi.mocked(api.get).mockClear();
 
-    fireEvent.change(select, { target: { value: '6' } });
+    await act(async () => {
+      fireEvent.change(select, { target: { value: '6' } });
+    });
 
     await waitFor(() => {
       expect(api.get).toHaveBeenCalledWith('/api/security/statistics?hoursBack=6');
@@ -289,14 +295,19 @@ describe('AdminSecurityDashboard', () => {
   });
 
   it('should toggle auto-refresh', async () => {
-    render(<AdminSecurityDashboard />);
+    await act(async () => {
+      render(<AdminSecurityDashboard />);
+    });
 
     await waitFor(() => {
       expect(screen.getByText('Security Dashboard')).toBeInTheDocument();
     });
 
     const autoRefreshButton = screen.getByText('Auto-Refresh');
-    fireEvent.click(autoRefreshButton);
+
+    await act(async () => {
+      fireEvent.click(autoRefreshButton);
+    });
 
     // Just verify the button state changed
     expect(screen.getByText('Auto-Refreshing')).toBeInTheDocument();

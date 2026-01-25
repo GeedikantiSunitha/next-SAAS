@@ -70,14 +70,50 @@ Before ANY code change:
 cp prisma/schema.prisma prisma/schema.backup.prisma
 ```
 
-### 🔴 RULE #10: REPORT PROBLEMS IMMEDIATELY
+### 🔴 RULE #10: PRISMA SCHEMA CHANGE PROTOCOL (CRITICAL)
+
+**NEVER append directly to schema.prisma with >> or cat >>**
+**76 tests failed when this was done incorrectly (Issue #12)**
+
+When modifying Prisma schema:
+1. ✅ **ALWAYS backup first**: `cp prisma/schema.prisma prisma/schema.prisma.backup_$(date +%Y%m%d_%H%M%S)`
+2. ✅ **Create changes in separate file first**: Write new models to a temporary file
+3. ✅ **Use proper Edit/Write tools**: Never use `cat >>` or `echo >>` for schema changes
+4. ✅ **Ensure proper formatting**:
+   - Blank line before each new model
+   - Proper indentation (2 spaces)
+   - All fields properly typed
+5. ✅ **Regenerate Prisma client**: `npx prisma generate`
+6. ✅ **Push to database**: `npx prisma db push`
+7. ✅ **Test immediately**: Run specific tests for new models
+8. ✅ **If tests fail**: Restore from backup immediately
+
+**Emergency Recovery Procedure (if schema breaks):**
+```bash
+# 1. Stop and restore immediately
+cp prisma/schema.prisma.backup_* prisma/schema.prisma
+
+# 2. Clean Prisma cache
+rm -rf node_modules/.prisma
+
+# 3. Regenerate client
+npx prisma generate
+
+# 4. Sync database
+npx prisma db push
+
+# 5. Verify tests pass
+npm test 2>&1 | tail -5
+```
+
+### 🔴 RULE #11: REPORT PROBLEMS IMMEDIATELY
 If tests fail or something breaks:
 - STOP immediately
 - Tell the user
 - Don't try to fix without permission
 - **LOG ALL ISSUES in backend/ISSUES_LOG.md**
 
-### 🔴 RULE #11: TEST EXECUTION PROTOCOL
+### 🔴 RULE #12: TEST EXECUTION PROTOCOL
 
 **YOU CAN RUN (during TDD development):**
 - ✅ Specific test files: `npm test src/__tests__/specific.test.ts`
@@ -102,7 +138,7 @@ Then share the results or the log file."
 - Analyze the log file they provide
 - Document any failures in ISSUES_LOG.md
 
-### 🔴 RULE #12: MANDATORY ISSUE LOGGING
+### 🔴 RULE #13: MANDATORY ISSUE LOGGING
 - **EVERY issue encountered MUST be logged**
 - **Location**: backend/ISSUES_LOG.md
 - **Format**: Follow the template in TDD_WORKFLOW.md

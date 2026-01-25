@@ -59,8 +59,6 @@ model User {
   securityAuditLogs       SecurityAuditLog[]
   privacyPreferences      PrivacyPreferences?
   dataAccessLogs          DataAccessLog[]
-  accessibilityPreferences AccessibilityPreferences?
-  accessibilityIssues     AccessibilityIssue[]
 
   @@unique([oauthProvider, oauthProviderId])
   @@index([email])
@@ -946,67 +944,4 @@ enum VulnerabilityStatus {
   VERIFIED
   CLOSED
   WONT_FIX
-}// Accessibility Preferences model
-model AccessibilityPreferences {
-  id                String   @id @default(uuid())
-  userId            String   @unique
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  highContrast      Boolean  @default(false)
-  reduceMotion      Boolean  @default(false)
-  fontSize          String   @default("medium") // small, medium, large
-  keyboardShortcuts Boolean  @default(true)
-  screenReaderMode  Boolean  @default(false)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  @@index([userId])
-  @@map("accessibility_preferences")
-}
-
-// Accessibility Issue Report model
-model AccessibilityIssue {
-  id          String                 @id @default(uuid())
-  userId      String?
-  user        User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
-  type        AccessibilityIssueType
-  description String                 @db.Text
-  url         String?
-  userAgent   String?
-  status      IssueStatus           @default(OPEN)
-  priority    IssuePriority         @default(MEDIUM)
-  createdAt   DateTime              @default(now())
-  updatedAt   DateTime              @updatedAt
-  resolvedAt  DateTime?
-
-  @@index([userId])
-  @@index([status])
-  @@index([type])
-  @@map("accessibility_issues")
-}
-
-enum AccessibilityIssueType {
-  KEYBOARD_NAVIGATION
-  SCREEN_READER
-  COLOR_CONTRAST
-  FOCUS_INDICATOR
-  FORM_LABEL
-  ALT_TEXT
-  HEADING_STRUCTURE
-  ARIA_LABEL
-  OTHER
-}
-
-enum IssueStatus {
-  OPEN
-  IN_PROGRESS
-  RESOLVED
-  CLOSED
-  WONT_FIX
-}
-
-enum IssuePriority {
-  LOW
-  MEDIUM
-  HIGH
-  CRITICAL
 }

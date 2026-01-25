@@ -5,6 +5,7 @@ import requestId from './middleware/requestId';
 import apiVersioning from './middleware/apiVersioning';
 import metricsMiddleware from './middleware/metrics';
 import { idempotency } from './middleware/idempotency';
+import { trackUnauthorizedAccess } from './middleware/securityMonitoring';
 import errorHandler from './middleware/errorHandler';
 import routes from './routes';
 import logger from './utils/logger';
@@ -60,6 +61,9 @@ app.use('/api', idempotency);
 
 // Apply rate limiting to all routes
 app.use('/api', apiLimiter);
+
+// Security monitoring middleware - track unauthorized access attempts
+app.use('/api', trackUnauthorizedAccess);
 
 // Request logging
 app.use((req, _res, next) => {

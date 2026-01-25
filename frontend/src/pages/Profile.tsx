@@ -15,7 +15,8 @@ import { useToast } from '../hooks/use-toast';
 import { useProfile, useUpdateProfile, useChangePassword } from '../hooks/useProfile';
 import { MfaSettings } from '../components/MfaSettings';
 import { ConnectedAccounts } from '../components/ConnectedAccounts';
-import { Shield } from 'lucide-react';
+import { AccessibilitySettings } from '../components/accessibility/AccessibilitySettings';
+import { Shield, Settings } from 'lucide-react';
 
 // Profile update schema - email validation when provided
 const profileSchema = z
@@ -385,6 +386,19 @@ export const Profile = () => {
                     GDPR Settings
                   </Link>
                 </Button>
+              </CardContent>
+            </Card>
+
+            {/* Accessibility Settings Card */}
+            <Card className="animate-fade-in">
+              <CardHeader>
+                <CardTitle>Accessibility</CardTitle>
+                <CardDescription>
+                  Customize accessibility features to improve your experience
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AccessibilitySettings />
               </CardContent>
             </Card>
             </div>

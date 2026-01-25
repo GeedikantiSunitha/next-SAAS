@@ -14,6 +14,8 @@ import observabilityRoutes from './observability';
 import testHelpersRoutes from './testHelpers';
 import securityIncidentRoutes from './securityIncident';
 import privacyCenterRoutes from './privacyCenter';
+import securityTestingRoutes from './securityTesting';
+import accessibilityRoutes from './accessibility';
 import { getMetrics } from './metrics';
 
 const router = Router();
@@ -31,6 +33,8 @@ router.use('/newsletter', newsletterRoutes);
 router.use('/feature-flags', featureFlagsRoutes);
 router.use('/security-incidents', securityIncidentRoutes); // Security incident management
 router.use('/privacy-center', privacyCenterRoutes); // Privacy Center dashboard
+router.use('/security', securityTestingRoutes); // Security testing and vulnerability scanning
+router.use('/accessibility', accessibilityRoutes); // Accessibility preferences and reporting
 router.use('/admin', adminRoutes); // Admin routes (protected by role)
 router.use('/observability', observabilityRoutes); // Observability routes (protected by role)
 router.use('/test-helpers', testHelpersRoutes); // Test helpers (test environment only)

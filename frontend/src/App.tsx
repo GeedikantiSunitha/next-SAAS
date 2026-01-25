@@ -9,6 +9,7 @@ import { AdminRoute } from './components/admin/AdminRoute';
 import { Toaster } from './components/ui/toaster';
 import { NetworkErrorBanner } from './components/NetworkErrorBanner';
 import { CookieConsentBanner } from './components/gdpr/CookieConsentBanner';
+import { SkipToContent } from './components/accessibility/SkipToContent';
 
 // Lazy load pages for code splitting
 const Landing = lazy(() => import('./pages/Landing').then(m => ({ default: m.Landing })));
@@ -39,6 +40,7 @@ const AcceptableUse = lazy(() => import('./pages/AcceptableUse').then(m => ({ de
 const DataProcessingAgreement = lazy(() => import('./pages/DataProcessingAgreement').then(m => ({ default: m.DataProcessingAgreement })));
 const SecurityPolicy = lazy(() => import('./pages/SecurityPolicy').then(m => ({ default: m.SecurityPolicy })));
 const PrivacyCenter = lazy(() => import('./pages/PrivacyCenter'));
+const AccessibilityStatement = lazy(() => import('./pages/AccessibilityStatement').then(m => ({ default: m.AccessibilityStatement })));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -65,8 +67,10 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <BrowserRouter>
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
+            <SkipToContent targetId="main-content" />
+            <main id="main-content" tabIndex={-1}>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
@@ -203,6 +207,7 @@ function App() {
                 <Route path="/acceptable-use" element={<AcceptableUse />} />
                 <Route path="/dpa" element={<DataProcessingAgreement />} />
                 <Route path="/security" element={<SecurityPolicy />} />
+                <Route path="/accessibility" element={<AccessibilityStatement />} />
                 <Route path="/gdpr-settings" element={
                   <ProtectedRoute>
                     <GdprSettings />
@@ -214,7 +219,8 @@ function App() {
                   element={<NotFound />}
                 />
               </Routes>
-            </Suspense>
+              </Suspense>
+            </main>
             <CookieConsentBanner />
             <NetworkErrorBanner />
             <Toaster />
