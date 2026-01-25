@@ -21,7 +21,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { api } from '@/lib/api';
+import { getThreatIndicators } from '@/lib/api';
 import { useToast } from '@/components/ui/use-toast';
 
 interface ThreatIndicatorData {
@@ -52,12 +52,10 @@ export default function ThreatIndicators({ hoursBack = 24 }: ThreatIndicatorsPro
       setLoading(true);
 
       // Fetch current indicators
-      const response = await api.get(`/api/security/threat-indicators?hoursBack=${hoursBack}`);
-      const currentData = response.data.data;
+      const currentData = await getThreatIndicators(hoursBack);
 
-      // Fetch previous period for comparison
-      const prevResponse = await api.get(`/api/security/threat-indicators?hoursBack=${hoursBack * 2}`);
-      const prevData = prevResponse.data.data;
+      // Fetch previous period for comparison (optional, for trend analysis)
+      const prevData = await getThreatIndicators(hoursBack * 2);
 
       setIndicators(currentData);
       setPreviousIndicators(prevData);

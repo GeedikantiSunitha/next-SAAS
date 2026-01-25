@@ -17,7 +17,15 @@ vi.mock('../../lib/api', () => {
       put: vi.fn(() => Promise.resolve({ data: { data: {} } })),
       delete: vi.fn(() => Promise.resolve({ data: { data: {} } })),
       patch: vi.fn(() => Promise.resolve({ data: { data: {} } })),
-    }
+    },
+    getThreatIndicators: vi.fn(() => Promise.resolve({
+      failedLogins: 0,
+      bruteForceAttempts: 0,
+      rateLimitViolations: 0,
+      unauthorizedAccess: 0,
+      suspiciousActivity: 0,
+      threatLevel: 'LOW',
+    }))
   };
 });
 
@@ -30,7 +38,15 @@ vi.mock('@/lib/api', () => {
       put: vi.fn(() => Promise.resolve({ data: { data: {} } })),
       delete: vi.fn(() => Promise.resolve({ data: { data: {} } })),
       patch: vi.fn(() => Promise.resolve({ data: { data: {} } })),
-    }
+    },
+    getThreatIndicators: vi.fn(() => Promise.resolve({
+      failedLogins: 0,
+      bruteForceAttempts: 0,
+      rateLimitViolations: 0,
+      unauthorizedAccess: 0,
+      suspiciousActivity: 0,
+      threatLevel: 'LOW',
+    }))
   };
 });
 
@@ -49,33 +65,25 @@ vi.mock('@/components/ui/use-toast', () => ({
 
 // Now import the component and api after mocks are set up
 import ThreatIndicators from '../../components/ThreatIndicators';
-import { api } from '../../lib/api';
+import { api, getThreatIndicators } from '../../lib/api';
 
 describe('ThreatIndicators', () => {
   const mockIndicators = {
-    data: {
-      data: {
-        failedLogins: 45,
-        bruteForceAttempts: 2,
-        rateLimitViolations: 12,
-        unauthorizedAccess: 7,
-        suspiciousActivity: 15,
-        threatLevel: 'MEDIUM' as const,
-      }
-    },
+    failedLogins: 45,
+    bruteForceAttempts: 2,
+    rateLimitViolations: 12,
+    unauthorizedAccess: 7,
+    suspiciousActivity: 15,
+    threatLevel: 'MEDIUM' as const,
   };
 
   const mockPreviousIndicators = {
-    data: {
-      data: {
-        failedLogins: 30,
-        bruteForceAttempts: 1,
-        rateLimitViolations: 20,
-        unauthorizedAccess: 5,
-        suspiciousActivity: 10,
-        threatLevel: 'LOW' as const,
-      }
-    },
+    failedLogins: 30,
+    bruteForceAttempts: 1,
+    rateLimitViolations: 20,
+    unauthorizedAccess: 5,
+    suspiciousActivity: 10,
+    threatLevel: 'LOW' as const,
   };
 
   beforeEach(() => {
@@ -83,29 +91,29 @@ describe('ThreatIndicators', () => {
   });
 
   it('should fetch threat indicators on mount', async () => {
-    const mockGet = vi.mocked(api.get);
-    mockGet.mockImplementation((url: string) => {
-      if (url.includes('hoursBack=24')) {
+    const mockGetThreatIndicators = vi.mocked(getThreatIndicators);
+    mockGetThreatIndicators.mockImplementation((hoursBack: number) => {
+      if (hoursBack === 24) {
         return Promise.resolve(mockIndicators);
       }
-      if (url.includes('hoursBack=48')) {
+      if (hoursBack === 48) {
         return Promise.resolve(mockPreviousIndicators);
       }
-      return Promise.resolve({ data: {} });
+      return Promise.resolve(mockIndicators);
     });
 
 
     render(<ThreatIndicators />);
 
     await waitFor(() => {
-      expect(api.get).toHaveBeenCalledWith('/api/security/threat-indicators?hoursBack=24');
-      expect(api.get).toHaveBeenCalledWith('/api/security/threat-indicators?hoursBack=48');
+      expect(getThreatIndicators).toHaveBeenCalledWith(24);
+      expect(getThreatIndicators).toHaveBeenCalledWith(48);
     });
   });
 
   it('should display overall threat level', async () => {
-    const mockGet = vi.mocked(api.get);
-    mockGet.mockResolvedValue(mockIndicators);
+    const mockGetThreatIndicators = vi.mocked(getThreatIndicators);
+    mockGetThreatIndicators.mockResolvedValue(mockIndicators);
 
     render(<ThreatIndicators />);
 
@@ -117,8 +125,8 @@ describe('ThreatIndicators', () => {
   });
 
   it('should display threat level progress bar', async () => {
-    const mockGet = vi.mocked(api.get);
-    mockGet.mockResolvedValue(mockIndicators);
+    const mockGetThreatIndicators = vi.mocked(getThreatIndicators);
+    mockGetThreatIndicators.mockResolvedValue(mockIndicators);
 
     render(<ThreatIndicators />);
 
@@ -130,9 +138,9 @@ describe('ThreatIndicators', () => {
   });
 
   it('should display individual threat indicators', async () => {
-    const mockGet = vi.mocked(api.get);
-    mockGet.mockImplementation((url: string) => {
-      if (url.includes('hoursBack=24')) {
+    const mockGetThreatIndicators = vi.mocked(getThreatIndicators);
+    mockGetThreatIndicators.mockImplementation((hoursBack: number) => {
+      if (hoursBack === 24) {
         return Promise.resolve(mockIndicators);
       }
       return Promise.resolve(mockPreviousIndicators);
@@ -159,9 +167,9 @@ describe('ThreatIndicators', () => {
   });
 
   it('should show trend indicators when data changes', async () => {
-    const mockGet = vi.mocked(api.get);
-    mockGet.mockImplementation((url: string) => {
-      if (url.includes('hoursBack=24')) {
+    const mockGetThreatIndicators = vi.mocked(getThreatIndicators);
+    mockGetThreatIndicators.mockImplementation((hoursBack: number) => {
+      if (hoursBack === 24) {
         return Promise.resolve(mockIndicators);
       }
       return Promise.resolve(mockPreviousIndicators);
@@ -181,16 +189,12 @@ describe('ThreatIndicators', () => {
   });
 
   it('should show warning badges for values above threshold', async () => {
-    const mockGet = vi.mocked(api.get);
-    mockGet.mockImplementation((url: string) => {
-      if (url.includes('hoursBack=24')) {
+    const mockGetThreatIndicators = vi.mocked(getThreatIndicators);
+    mockGetThreatIndicators.mockImplementation((hoursBack: number) => {
+      if (hoursBack === 24) {
         return Promise.resolve({
-          data: {
-            data: {
-              ...mockIndicators.data.data,
+              ...mockIndicators,
               suspiciousActivity: 16, // Above threshold of 15
-            }
-          },
         });
       }
       return Promise.resolve(mockPreviousIndicators);
@@ -205,9 +209,9 @@ describe('ThreatIndicators', () => {
   });
 
   it('should calculate and display security score', async () => {
-    const mockGet = vi.mocked(api.get);
-    mockGet.mockImplementation((url: string) => {
-      if (url.includes('hoursBack=24')) {
+    const mockGetThreatIndicators = vi.mocked(getThreatIndicators);
+    mockGetThreatIndicators.mockImplementation((hoursBack: number) => {
+      if (hoursBack === 24) {
         return Promise.resolve(mockIndicators);
       }
       return Promise.resolve(mockPreviousIndicators);
@@ -227,9 +231,9 @@ describe('ThreatIndicators', () => {
   });
 
   it('should show security recommendations when threat level is not LOW', async () => {
-    const mockGet = vi.mocked(api.get);
-    mockGet.mockImplementation((url: string) => {
-      if (url.includes('hoursBack=24')) {
+    const mockGetThreatIndicators = vi.mocked(getThreatIndicators);
+    mockGetThreatIndicators.mockImplementation((hoursBack: number) => {
+      if (hoursBack === 24) {
         return Promise.resolve(mockIndicators);
       }
       return Promise.resolve(mockPreviousIndicators);
@@ -244,21 +248,17 @@ describe('ThreatIndicators', () => {
   });
 
   it('should not show recommendations when threat level is LOW', async () => {
-    const mockGet = vi.mocked(api.get);
-    mockGet.mockImplementation((url: string) => {
-      if (url.includes('hoursBack=24')) {
+    const mockGetThreatIndicators = vi.mocked(getThreatIndicators);
+    mockGetThreatIndicators.mockImplementation((hoursBack: number) => {
+      if (hoursBack === 24) {
         return Promise.resolve({
-          data: {
-            data: {
-              ...mockIndicators.data.data,
+              ...mockIndicators,
               threatLevel: 'LOW',
               failedLogins: 5,
               bruteForceAttempts: 0,
               rateLimitViolations: 2,
               unauthorizedAccess: 1,
               suspiciousActivity: 3,
-            }
-          },
         });
       }
       return Promise.resolve(mockPreviousIndicators);
@@ -272,16 +272,12 @@ describe('ThreatIndicators', () => {
   });
 
   it('should handle CRITICAL threat level correctly', async () => {
-    const mockGet = vi.mocked(api.get);
-    mockGet.mockImplementation((url: string) => {
-      if (url.includes('hoursBack=24')) {
+    const mockGetThreatIndicators = vi.mocked(getThreatIndicators);
+    mockGetThreatIndicators.mockImplementation((hoursBack: number) => {
+      if (hoursBack === 24) {
         return Promise.resolve({
-          data: {
-            data: {
-              ...mockIndicators.data.data,
+              ...mockIndicators,
               threatLevel: 'CRITICAL',
-            }
-          },
         });
       }
       return Promise.resolve(mockPreviousIndicators);
@@ -296,16 +292,12 @@ describe('ThreatIndicators', () => {
   });
 
   it('should handle HIGH threat level correctly', async () => {
-    const mockGet = vi.mocked(api.get);
-    mockGet.mockImplementation((url: string) => {
-      if (url.includes('hoursBack=24')) {
+    const mockGetThreatIndicators = vi.mocked(getThreatIndicators);
+    mockGetThreatIndicators.mockImplementation((hoursBack: number) => {
+      if (hoursBack === 24) {
         return Promise.resolve({
-          data: {
-            data: {
-              ...mockIndicators.data.data,
+              ...mockIndicators,
               threatLevel: 'HIGH',
-            }
-          },
         });
       }
       return Promise.resolve(mockPreviousIndicators);
@@ -320,20 +312,20 @@ describe('ThreatIndicators', () => {
   });
 
   it('should respect custom hoursBack prop', async () => {
-    const mockGet = vi.mocked(api.get);
-    mockGet.mockResolvedValue(mockIndicators);
+    const mockGetThreatIndicators = vi.mocked(getThreatIndicators);
+    mockGetThreatIndicators.mockResolvedValue(mockIndicators);
 
     render(<ThreatIndicators hoursBack={6} />);
 
     await waitFor(() => {
-      expect(api.get).toHaveBeenCalledWith('/api/security/threat-indicators?hoursBack=6');
-      expect(api.get).toHaveBeenCalledWith('/api/security/threat-indicators?hoursBack=12');
+      expect(getThreatIndicators).toHaveBeenCalledWith(6);
+      expect(getThreatIndicators).toHaveBeenCalledWith(12);
     });
   });
 
   it('should show loading state', () => {
-    const mockGet = vi.mocked(api.get);
-    mockGet.mockImplementation(() => new Promise(() => {})); // Never resolves
+    const mockGetThreatIndicators = vi.mocked(getThreatIndicators);
+    mockGetThreatIndicators.mockImplementation(() => new Promise(() => {})); // Never resolves
 
     render(<ThreatIndicators />);
 
@@ -343,8 +335,8 @@ describe('ThreatIndicators', () => {
   });
 
   it('should handle API errors gracefully', async () => {
-    const mockGet = vi.mocked(api.get);
-    mockGet.mockRejectedValue(new Error('API Error'));
+    const mockGetThreatIndicators = vi.mocked(getThreatIndicators);
+    mockGetThreatIndicators.mockRejectedValue(new Error('API Error'));
 
     render(<ThreatIndicators />);
 
@@ -357,9 +349,9 @@ describe('ThreatIndicators', () => {
   });
 
   it('should display correct indicator descriptions', async () => {
-    const mockGet = vi.mocked(api.get);
-    mockGet.mockImplementation((url: string) => {
-      if (url.includes('hoursBack=24')) {
+    const mockGetThreatIndicators = vi.mocked(getThreatIndicators);
+    mockGetThreatIndicators.mockImplementation((hoursBack: number) => {
+      if (hoursBack === 24) {
         return Promise.resolve(mockIndicators);
       }
       return Promise.resolve(mockPreviousIndicators);
@@ -377,20 +369,16 @@ describe('ThreatIndicators', () => {
   });
 
   it('should show appropriate recommendations based on data', async () => {
-    const mockGet = vi.mocked(api.get);
-    mockGet.mockImplementation((url: string) => {
-      if (url.includes('hoursBack=24')) {
+    const mockGetThreatIndicators = vi.mocked(getThreatIndicators);
+    mockGetThreatIndicators.mockImplementation((hoursBack: number) => {
+      if (hoursBack === 24) {
         return Promise.resolve({
-          data: {
-            data: {
               failedLogins: 10,
               bruteForceAttempts: 3,
               rateLimitViolations: 25,
               unauthorizedAccess: 8,
               suspiciousActivity: 20,
               threatLevel: 'HIGH',
-            }
-          },
         });
       }
       return Promise.resolve(mockPreviousIndicators);
@@ -406,9 +394,9 @@ describe('ThreatIndicators', () => {
   });
 
   it('should calculate security score correctly', async () => {
-    const mockGet = vi.mocked(api.get);
-    mockGet.mockImplementation((url: string) => {
-      if (url.includes('hoursBack=24')) {
+    const mockGetThreatIndicators = vi.mocked(getThreatIndicators);
+    mockGetThreatIndicators.mockImplementation((hoursBack: number) => {
+      if (hoursBack === 24) {
         return Promise.resolve(mockIndicators);
       }
       return Promise.resolve(mockPreviousIndicators);
@@ -433,9 +421,9 @@ describe('ThreatIndicators', () => {
   });
 
   it('should display score badge with appropriate variant', async () => {
-    const mockGet = vi.mocked(api.get);
-    mockGet.mockImplementation((url: string) => {
-      if (url.includes('hoursBack=24')) {
+    const mockGetThreatIndicators = vi.mocked(getThreatIndicators);
+    mockGetThreatIndicators.mockImplementation((hoursBack: number) => {
+      if (hoursBack === 24) {
         return Promise.resolve(mockIndicators);
       }
       return Promise.resolve(mockPreviousIndicators);
