@@ -5,7 +5,7 @@
  * Extracts token/code from URL and completes authentication
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Layout } from '../components/Layout';
 import { authApi } from '../api/auth';
@@ -27,8 +27,13 @@ export const OAuthCallback = () => {
   const linkOAuthMutation = useLinkOAuth();
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
   const [error, setError] = useState<string | null>(null);
+  const hasRunRef = useRef(false);
 
   useEffect(() => {
+    // Run only once (avoids "Invalid OAuth state" on second run from StrictMode or double mount)
+    if (hasRunRef.current) return;
+    hasRunRef.current = true;
+
     const handleCallback = async () => {
       if (!provider || !['google', 'github', 'microsoft'].includes(provider)) {
         setError('Invalid OAuth provider');

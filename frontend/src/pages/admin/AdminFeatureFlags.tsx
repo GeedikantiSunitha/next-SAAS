@@ -57,9 +57,15 @@ export const AdminFeatureFlags = () => {
             </div>
           ) : flags.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-600 mb-2">No feature flags available</p>
-              <p className="text-sm text-gray-500">
-                Feature flags may need to be seeded in the database. Run the seed script to create default flags.
+              <p className="text-gray-600 mb-2">No feature flags in the database</p>
+              <p className="text-sm text-gray-500 mb-3">
+                Seed default flags so you can toggle and test. In the backend folder run:
+              </p>
+              <code className="block text-left max-w-md mx-auto px-4 py-2 bg-gray-100 rounded text-sm">
+                npm run seed:feature-flags
+              </code>
+              <p className="text-sm text-gray-500 mt-3">
+                Then refresh this page. Safe to re-run if flags already exist.
               </p>
             </div>
           ) : (

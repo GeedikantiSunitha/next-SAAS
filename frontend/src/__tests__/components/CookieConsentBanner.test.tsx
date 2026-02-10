@@ -248,10 +248,11 @@ describe('CookieConsentBanner Component', () => {
       const acceptButton = await screen.findByRole('button', { name: /accept all/i });
       await user.click(acceptButton);
 
-      // Banner should remain visible on error
+      // Component stores locally and hides banner on error (so UX is not broken)
       await waitFor(() => {
-        expect(screen.getByRole('banner')).toBeInTheDocument();
+        expect(gdprApi.saveCookieConsent).toHaveBeenCalled();
       });
+      expect(screen.queryByRole('banner')).not.toBeInTheDocument();
     });
   });
 

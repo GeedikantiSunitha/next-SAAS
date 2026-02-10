@@ -213,9 +213,9 @@ const AccessLog: React.FC<AccessLogProps> = ({ initialData, showDetails = false,
         <p className="empty-state">No access log entries</p>
       ) : (
         <div className="log-entries">
-          {filteredEntries.map((entry) => (
+          {filteredEntries.map((entry, index) => (
             <div
-              key={entry.id}
+              key={(entry as AccessLogEntry & { id?: string }).id ?? `access-${entry.timestamp}-${entry.accessedBy}-${index}`}
               className={`log-entry ${(entry as any).suspicious ? 'suspicious' : ''}`}
             >
               <div className="entry-header">

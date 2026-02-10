@@ -81,9 +81,12 @@ export const TotpSetupModal = ({ open, onOpenChange }: TotpSetupModalProps) => {
     );
   };
 
+  const setupData = setupTotpMutation.data?.data;
+
   const handleCopyBackupCodes = () => {
-    if (backupCodes.length > 0) {
-      navigator.clipboard.writeText(backupCodes.join('\n'));
+    const codesToCopy = setupData?.backupCodes ?? backupCodes;
+    if (codesToCopy.length > 0) {
+      navigator.clipboard.writeText(codesToCopy.join('\n'));
       setCodesCopied(true);
       setTimeout(() => setCodesCopied(false), 2000);
       toast({
@@ -92,8 +95,6 @@ export const TotpSetupModal = ({ open, onOpenChange }: TotpSetupModalProps) => {
       });
     }
   };
-
-  const setupData = setupTotpMutation.data?.data;
 
   return (
     <Modal open={open} onOpenChange={onOpenChange}>
@@ -107,7 +108,10 @@ export const TotpSetupModal = ({ open, onOpenChange }: TotpSetupModalProps) => {
           </ModalDescription>
         </ModalHeader>
 
-        <div className="space-y-6 py-4">
+        <div
+          data-totp-modal-content
+          className="space-y-6 py-4 overflow-y-auto max-h-[min(60vh,28rem)]"
+        >
           {step === 'setup' && (
             <>
               {setupTotpMutation.isPending && (

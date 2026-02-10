@@ -1,0 +1,715 @@
+Feature / Task	Description	status
+		
+		
+	#### Test Case 1.1.5: Email Format Validation	FAIL
+	- **Steps**:	System accepts invalid email format and allows form submission.
+	  1. Enter invalid email: `invalid-email`	
+	  2. Try to submit	
+	- **Expected Result**:	
+	  - ✅ Email validation error displayed	
+	  - ✅ Form does not submit	
+		
+		
+	### 1.3 Password Reset Flow	FAIL
+		
+	#### Test Case 1.3.1: Request Password Reset	
+	- **Steps**:	
+	  1. Navigate to `http://localhost:3000/forgot-password`	
+	  2. Enter registered email: `user@demo.com`	
+	  3. Click "Send Reset Link"	
+	- **Expected Result**:	
+	  - ✅ Success message: "Password reset email sent"	
+	  - ✅ Password reset email received (check inbox)	
+	  - ✅ Reset token generated in database	
+	  - ✅ Reset token expires in 1 hour	
+		
+	#### Test Case 1.3.2: Reset Password with Valid Token	FAIL
+	- **Steps**:	
+	  1. Click reset link from email	
+	  2. Enter new password: `NewSecurePass123!`	
+	  3. Confirm new password	
+	  4. Click "Reset Password"	
+	- **Expected Result**:	
+	  - ✅ Password reset successful	
+	  - ✅ Can login with new password	
+	  - ✅ Old password no longer works	
+	  - ✅ Reset token marked as used	
+		
+	#### Test Case 1.3.3: Reset Password with Expired Token	FAIL
+	- **Steps**:	
+	  1. Wait for reset token to expire (>1 hour)	
+	  2. Try to use expired reset link	
+	- **Expected Result**:	
+	  - ✅ Error message: "Invalid or expired reset token"	
+	  - ✅ Must request new reset link	
+		
+	#### Test Case 1.3.4: Reset Password with Used Token	
+	- **Steps**:	
+	  1. Use a reset token to reset password	
+	  2. Try to use same token again	
+	- **Expected Result**:	
+	  - ✅ Error message: "This reset token has already been used"	
+	  - ✅ Must request new reset link	
+		
+	#### Test Case 1.3.5: Reset Password - Weak Password Rejected	FAIL
+	- **Steps**:	
+	  1. Use valid reset token	
+	  2. Enter weak password: `123456`	
+	- **Expected Result**:	
+	  - ✅ Password strength validation enforced	
+	  - ✅ Error message about password strength	
+	  - ✅ Password not reset	
+		
+	#### Test Case 3.1.1: Enable TOTP MFA	FAIL
+	- **Steps**:	Verification code input field (⚠️ currently missing)
+	  1. Go to Profile → Security → MFA Settings	
+	  2. Click "Enable TOTP"	
+	  3. Scan QR code with authenticator app (Google Authenticator, Authy)- working	
+	  4. Enter verification code from app--NO FIELD AVAILABLE TO ENTER VERIFICATION CODE	
+	  5. Click "Verify and Enable"	
+	- **Expected Result**:	
+	  - ✅ TOTP MFA enabled successfully	
+	  - ✅ Backup codes displayed (10 codes)- 	
+	  - ✅ Option to download/print backup codes- copy backup code option available but not  functional- we can copy all backup keys(select keys-->ctrl C+ctrl V)	
+	  - ✅ QR code displayed correctly	
+	  - ✅ Manual entry code shown (if QR scan fails)	
+		
+	#### Test Case 3.1.2: Enable TOTP - Invalid Code	FAIL
+	- **Steps**:	Verification code input field (⚠️ currently missing)
+	  1. Start TOTP setup	No field available → user is blocked → MFA cannot be enabled
+	  2. Enter wrong verification code: `000000`-	
+	- **Expected Result**:	
+	  - ✅ Error message: "Invalid verification code"	
+	  - ✅ MFA not enabled	
+	  - ✅ Can retry with correct code	
+		
+	### 3.2 Login with MFA	FAIL
+		
+	#### Test Case 3.2.1: Login with TOTP MFA	
+	- **Steps**:	
+	  1. Login with MFA-enabled account	
+	  2. Enter email and password	
+	  3. Enter TOTP code from authenticator app	
+	- **Expected Result**:	
+	  - ✅ MFA prompt displayed after password verification	
+	  - ✅ Login successful after valid MFA code	
+	  - ✅ Redirected to dashboard	
+	  - ✅ Invalid MFA code shows error	
+		
+	#### Test Case 3.2.2: Login with Backup Code	FAIL
+	- **Steps**:	
+	  1. Login with MFA-enabled account	
+	  2. Use one of the backup codes instead of TOTP	
+	- **Expected Result**:	
+	  - ✅ Login successful with backup code	
+	  - ✅ Backup code marked as used	
+	  - ✅ Backup code cannot be reused	
+		
+	### 3.3 Email MFA	FAIL
+		verification code not sending to email,so cant enable  EMAIL-MFA
+	#### Test Case 3.3.1: Enable Email MFA	
+	- **Steps**:	
+	  1. Go to Profile → Security → MFA Settings	
+	  2. Click "Enable Email MFA"	
+	  3. Verify email address	
+	- **Expected Result**:	
+	  - ✅ Email MFA enabled	
+	  - ✅ Confirmation message displayed	
+		
+	#### Test Case 3.3.2: Login with Email MFA	FAIL
+	- **Steps**:	
+	  1. Login with Email MFA-enabled account	
+	  2. Enter email and password	
+	  3. Check email for OTP code	
+	  4. Enter OTP code	
+	- **Expected Result**:	
+	  - ✅ OTP email sent	
+	  - ✅ OTP code received in email	
+	  - ✅ Login successful after valid OTP	
+	  - ✅ OTP expires after set time (e.g., 10 minutes)	
+		
+	### 3.4 Disable MFA	FAIL- there s no option to disable MFA
+		
+	#### Test Case 3.4.1: Disable TOTP MFA	
+	- **Steps**:	
+	  1. Go to MFA Settings	
+	  2. Click "Disable MFA"	
+	  3. Confirm action	
+	- **Expected Result**:	
+	  - ✅ MFA disabled successfully	
+	  - ✅ No MFA required on next login	
+	  - ✅ Change logged in audit logs	
+		
+	---	
+		
+		
+	### 4.3 Microsoft OAuth	FAIL
+		
+	#### Test Case 4.3.1: Microsoft OAuth Login	
+	- **Steps**:	
+	  1. Click "Sign in with Microsoft"	
+	  2. Complete Microsoft OAuth flow	
+	- **Expected Result**:	
+	  - ✅ Redirected to Microsoft sign-in	
+	  - ✅ Account created or logged in	
+	  - ✅ User information saved	
+		
+	### 4.4 OAuth Account Linking	
+		
+	#### Test Case 4.4.1: Link OAuth to Existing Account	PASS
+	- **Steps**:	INITIALLY showing "AUTHENTICATION FAILED "INVALID OATH
+	  1. Login with email/password	Successfully logged in with Google.
+	  2. Go to Profile → Security → Connected Accounts	
+	  3. Click "Link Google Account"	
+	  4. Complete OAuth flow	
+	- **Expected Result**:	
+	  - ✅ OAuth account linked successfully	
+	  - ✅ Can now login with either method	
+	  - ✅ Both methods shown as connected	
+		
+	---	
+		
+	## 5. Payment Processing	
+		
+	### 5.1 Create Payment	FAIL
+		Payment page fails to load when amount is 0 or empty
+	#### Test Case 5.1.1: Create Payment Intent	IntegrationError – amount must be greater than 0
+	- **Steps**:	page is crashed
+	  1. Go to Payment page	
+	  2. Enter payment details:	
+	     - Amount: $10.00	
+	     - Description: "Test Payment"	
+	     - Currency: USD	
+	  3. Click "Create Payment"	
+	- **Expected Result**:	
+	  - ✅ Payment intent created	
+	  - ✅ Payment ID generated	
+	  - ✅ Payment status: PENDING	
+	  - ✅ Payment appears in payment history	
+		
+	#### Test Case 5.1.2: Complete Payment - Stripe Success	FAIL
+	- **Steps**:	
+	  1. Create payment intent	page is crashed
+	  2. Use Stripe test card: `4242 4242 4242 4242`	
+	  3. Complete payment form	
+	  4. Submit payment	
+	- **Expected Result**:	
+	  - ✅ Payment processed successfully	
+	  - ✅ Payment status: SUCCEEDED	
+	  - ✅ Payment confirmation email sent	
+	  - ✅ Payment appears in history with success status	
+		
+	#### Test Case 5.1.3: Payment Declined	FAIL
+	- **Steps**:	page crashes with Stripe IntegrationError -unabke to check
+	  1. Create payment intent	
+	  2. Use decline card: `4000 0000 0000 0002`	
+	  3. Submit payment	
+	- **Expected Result**:	
+	  - ✅ Payment declined	
+	  - ✅ Payment status: FAILED	
+	  - ✅ Error message displayed	
+	  - ✅ Payment appears in history with failed status	
+		FAIL
+	### 5.2 Payment History	History page crashes with Stripe IntegrationError when clicking History button
+		ser cannot access History page
+	#### Test Case 5.2.1: View Payment History	
+	- **Steps**:	
+	  1. Go to Payment History page	
+	- **Expected Result**:	
+	  - ✅ All user payments listed	
+	  - ✅ Payment details visible:	
+	    - Amount	
+	    - Status	
+	    - Date	
+	    - Description	
+	    - Payment provider	
+	  - ✅ Pagination works (if many payments)	
+		
+	#### Test Case 5.2.2: Filter Payments by Status	FAIL
+	- **Steps**:	History page crashes with Stripe IntegrationError when clicking History button
+	  1. Go to Payment History	
+	  2. Filter by status: "SUCCEEDED"	
+	- **Expected Result**:	
+	  - ✅ Only successful payments shown	
+	  - ✅ Filter applies correctly	
+		
+	### 5.3 Payment Refund (Admin)	FAIL
+		No payments found
+	#### Test Case 5.3.1: Process Refund	there is no option to check refunds-Refund functionality cannot be tested or used.
+	- **Steps**:	
+	  1. Login as admin	
+	  2. Go to Admin → Payments	
+	  3. Select a successful payment	
+	  4. Click "Refund"	
+	  5. Enter refund amount	
+	  6. Confirm refund	
+	- **Expected Result**:	
+	  - ✅ Refund processed successfully	
+	  - ✅ Payment status: REFUNDED	
+	  - ✅ Refund amount recorded	
+	  - ✅ Refund notification sent to user	
+		
+	### 5.4 Payment Webhooks	FAIL
+		Webhook testing is currently blocked because payment creation is not fully functional and the Stripe webhook endpoint has not yet been configured
+	#### Test Case 5.4.1: Stripe Webhook Processing	
+	- **Steps**:	
+	  1. Process a payment	
+	  2. Simulate webhook from Stripe (or use Stripe CLI)	
+	- **Expected Result**:	
+	  - ✅ Webhook received and verified	
+	  - ✅ Payment status updated automatically	
+	  - ✅ Webhook logged in database	
+	  - ✅ Payment state synchronized	
+		
+	---	
+		
+	## 6. Notifications System	PASS
+		
+	### 6.1 In-App Notifications	
+		
+	#### Test Case 6.1.1: View Notifications	
+	- **Steps**:	
+	  1. Click notification bell icon	
+	  2. View notifications list	
+	- **Expected Result**:	
+	  - ✅ Notifications dropdown opens	
+	  - ✅ All notifications listed	
+	  - ✅ Unread notifications highlighted	
+	  - ✅ Notification count badge shows unread count	
+		
+	#### Test Case 6.1.2: Mark Notification as Read	PASS
+	- **Steps**:	
+	  1. Click on a notification	
+	- **Expected Result**:	
+	  - ✅ Notification marked as read	
+	  - ✅ Unread count decreases	
+	  - ✅ Notification no longer highlighted	
+		
+	#### Test Case 6.1.3: Mark All as Read	PASS
+	- **Steps**:	
+	  1. Click "Mark all as read" button	
+	- **Expected Result**:	
+	  - ✅ All notifications marked as read	
+	  - ✅ Unread count becomes 0	
+	  - ✅ No notifications highlighted	
+		
+	#### Test Case 6.1.4: Notification Types	PASS
+	- **Steps**:	
+	  1. Trigger different notification types:	
+	     - Payment confirmation	
+	     - Password reset	
+	     - MFA setup	
+	     - Profile update	
+	- **Expected Result**:	
+	  - ✅ All notification types displayed correctly	
+	  - ✅ Icons and colors differentiate types	
+	  - ✅ Notification messages clear and informative	
+		
+	### 6.2 Notification Preferences	PASS
+		
+	#### Test Case 6.2.1: Update Notification Preferences	
+	- **Steps**:	
+	  1. Go to Settings → Notifications	
+	  2. Toggle notification preferences:	
+	     - Email notifications: ON/OFF	
+	     - In-app notifications: ON/OFF	
+	     - SMS notifications: ON/OFF (if enabled)	SMS notifications toggle → Not Applicable (feature not fully implemented yet)- the option is disabled
+	  3. Save preferences	
+	- **Expected Result**:	
+	  - ✅ Preferences saved successfully	
+	  - ✅ Changes take effect immediately	
+	  - ✅ Future notifications respect preferences	
+		
+	### 6.3 Email Notifications	FAIL
+		
+	#### Test Case 6.3.1: Receive Email Notification	
+	- **Steps**:	
+	  1. Enable email notifications in preferences	
+	  2. Trigger an event (e.g., password reset, payment)	
+	- **Expected Result**:	
+	  - ✅ Email notification received	
+	  - ✅ Email contains relevant information	
+	  - ✅ Email template renders correctly	
+	  - ✅ Links in email work correctly	
+		
+	---	
+		
+	## 7. GDPR Compliance	PASS
+	### 7.1 Data Export	
+	#### Test Case 7.1.1: Request Data Export	
+	- **Steps**:	
+	  1. Go to Profile → GDPR Settings → Data Export	
+	  2. Click "Request Data Export"	
+	  3. Confirm request	
+	- **Expected Result**:	
+	  - ✅ Export request created	
+	  - ✅ Status: PENDING or PROCESSING	
+	  - ✅ Confirmation message displayed	
+	  - ✅ Export processing starts	
+		
+	#### Test Case 7.1.2: Download Exported Data	FAIL
+	- **Steps**:	but there is no visible download link anywhere on the page
+	  1. Wait for export to complete	
+	  2. Check export status	
+	  3. Click download link (if available)	
+	- **Expected Result**:	
+	  - ✅ Export status: COMPLETED	
+	  - ✅ Download link provided	
+	  - ✅ Downloaded file contains all user data:	
+	    - Profile information	
+	    - Payment history	
+	    - Notification history	
+	    - Audit logs (if applicable)	
+	  - ✅ Data in readable format (JSON/CSV)	
+		
+	### 7.2 Data Deletion	partially pass
+		
+	#### Test Case 7.2.1: Request Account Deletion	
+	- **Steps**:	
+	  1. Go to Profile → GDPR Settings → Data Deletion	
+	  2. Click "Request Account Deletion"	
+	  3. Select deletion type: SOFT or HARD	
+	  4. Enter reason (optional)	
+	  5. Confirm deletion	
+	- **Expected Result**:	
+	  - ✅ Deletion request created	
+	  - ✅ Status: PENDING	
+	  - ✅ Confirmation email sent	not RECEIVED
+	  - ✅ Deletion scheduled (if SOFT) or immediate (if HARD)	
+		
+	#### Test Case 7.2.2: Confirm Deletion via Email	
+	- **Steps**:	
+	  1. Request account deletion	
+	  2. Check email for confirmation link	
+	  3. Click confirmation link	
+	- **Expected Result**:	
+	  - ✅ Deletion confirmed	
+	  - ✅ Status: CONFIRMED or PROCESSING	
+	  - ✅ Account deletion process continues	
+		
+	### 7.3 Consent Management	PASS
+		
+	#### Test Case 7.3.1: View Consent Records	
+	- **Steps**:	
+	  1. Go to Profile → GDPR Settings → Consent Management	
+	- **Expected Result**:	
+	  - ✅ All consent types listed:	
+	    - Marketing emails	
+	    - Analytics	
+	    - Third-party sharing	
+	    - Cookies	
+	    - Terms of service	
+	    - Privacy policy	
+	  - ✅ Current consent status displayed	
+		
+	#### Test Case 7.3.2: Update Consents	PASS
+	- **Steps**:	
+	  1. Toggle consent preferences	
+	  2. Save changes	
+	- **Expected Result**:	
+	  - ✅ Consents updated successfully	
+	  - ✅ Changes logged with timestamp	
+	  - ✅ IP address and user agent recorded	
+	  - ✅ Consent version tracked	
+		
+	---	
+		
+	## 8. Admin Panel	 PASS
+		
+	### 8.1 Admin Dashboard	
+		
+	#### Test Case 8.1.1: Access Admin Dashboard	
+	- **Steps**:	
+	  1. Login as admin user	
+	  2. Navigate to Admin → Dashboard	
+	- **Expected Result**:	
+	  - ✅ Admin dashboard loads	
+	  - ✅ Statistics displayed:	
+	    - Total users	
+	    - Active sessions	
+	    - Total payments	
+	    - System health	
+	  - ✅ Recent activity feed visible	
+		
+		
+	### 8.2 User Management	PASS
+		
+	#### Test Case 8.2.1: View User List	
+	- **Steps**:	
+	  1. Go to Admin → Users	
+	- **Expected Result**:	
+	  - ✅ All users listed	
+	  - ✅ User information displayed:	
+	    - Email	
+	    - Name	
+	    - Role	
+	    - Status (Active/Inactive)	
+	    - Created date	
+	  - ✅ Pagination works (if many users)	
+		
+	#### Test Case 8.2.2: Search Users	PASS
+	- **Steps**:	
+	  1. Use search bar to search for user	
+	  2. Enter email or name	
+	- **Expected Result**:	
+	  - ✅ Search filters users correctly	
+	  - ✅ Results update as you type	
+	  - ✅ Search is case-insensitive	
+		
+	#### Test Case 8.2.3: Filter Users by Role	PASS
+	- **Steps**:	
+	  1. Filter users by role: ADMIN	
+	- **Expected Result**:	
+	  - ✅ Only ADMIN users shown	
+	  - ✅ Filter persists on page refresh	
+		
+	#### Test Case 8.2.4: Edit User	PASS
+	- **Steps**:	
+	  1. Click on a user	
+	  2. Edit user details (name, email, role)	
+	  3. Save changes	
+	- **Expected Result**:	
+	  - ✅ User updated successfully	
+	  - ✅ Changes reflected immediately	
+	  - ✅ Change logged in audit logs	
+		
+	#### Test Case 8.2.5: Deactivate User	PASS
+	- **Steps**:	
+	  1. Select a user	
+	  2. Click "Deactivate"	
+	  3. Confirm action	
+	- **Expected Result**:	
+	  - ✅ User account deactivated	
+	  - ✅ User cannot login	
+	  - ✅ User status shows "Inactive"	
+	  - ✅ Change logged in audit logs	
+		
+	#### Test Case 8.2.6: Change User Role (Super Admin Only)	Logged in as SUPER_ADMIN, but there is no option in the UI to change a user's role (USER → ADMIN). Role management functionality appears to be missing--- FAIL
+	- **Steps**:	
+	  1. Login as SUPER_ADMIN	
+	  2. Change user role from USER to ADMIN	
+	- **Expected Result**:	
+	  - ✅ Role changed successfully	
+	  - ✅ User now has admin permissions	
+	  - ✅ Change logged in audit logs	
+	  - ✅ Regular ADMIN cannot change roles	
+		
+	### 8.3 Audit Logs	PASS
+		
+	#### Test Case 8.3.1: View Audit Logs	
+	- **Steps**:	
+	  1. Go to Admin → Audit Logs	
+	- **Expected Result**:	
+	  - ✅ All audit log entries displayed	
+	  - ✅ Log information shown:	
+	    - User (if applicable)	
+	    - Action	
+	    - Resource	
+	    - Timestamp	
+	    - IP address	
+	    - User agent	
+		
+		
+	### 8.4 Feature Flags	FAIL
+		No feature flags available.Feature Flags page loads successfully, but no flags are available in the environment. Unable to validate status and description fields due to missing seeded data.
+	#### Test Case 8.4.1: View Feature Flags	
+	- **Steps**:	
+	  1. Go to Admin → Feature Flags	
+	- **Expected Result**:	
+	  - ✅ All feature flags listed	
+	  - ✅ Current status shown (Enabled/Disabled)	
+	  - ✅ Description displayed for each flag	
+		
+	#### Test Case 8.4.2: Toggle Feature Flag	FAIL
+	- **Steps**:	No feature flags are available in the environment, so toggle functionality cannot be tested.
+	  1. Toggle a feature flag (e.g., ENABLE_REGISTRATION)	
+	  2. Save changes	
+	- **Expected Result**:	
+	  - ✅ Feature flag toggled	
+	  - ✅ Changes take effect immediately	
+	  - ✅ Feature behavior changes accordingly	
+	  - ✅ Change logged in audit logs	
+		
+	#### Test Case 8.4.3: Create New Feature Flag	FAIL
+	- **Steps**:	No feature flags are available in the environment, so toggle functionality cannot be tested.
+	  1. Click "Create Feature Flag"	
+	  2. Enter:	
+	    - Key: `FEATURE_NEW_FEATURE`	
+	    - Description: "Enable new feature"	
+	    - Status: Enabled/Disabled	
+	  3. Save	
+	- **Expected Result**:	
+	  - ✅ Feature flag created	
+	  - ✅ Appears in list	
+	  - ✅ Can be toggled on/off	
+		
+	### 8.5 Payment Management	
+		FAIL
+	#### Test Case 8.5.1: View All Payments	no subscriptions found -NO DATA available-Feature exists in UI but is not functionally testable
+	- **Steps**:	payment page crashed in the UI
+	  1. Go to Admin → Payments	
+	- **Expected Result**:	
+	  - ✅ All payments from all users listed	
+	  - ✅ Payment details visible	
+	  - ✅ Pagination works	
+		
+	#### Test Case 8.5.2: Filter Payments	FAIL
+	- **Steps**:	
+	  1. Filter payments by:	
+	     - User	
+	     - Status	
+	     - Payment provider	
+	     - Date range	
+	- **Expected Result**:	
+	  - ✅ Filters apply correctly	
+	  - ✅ Results update based on filters	
+		
+	#### Test Case 8.5.3: Process Refund	FAIL
+	- **Steps**:	
+	  1. Select a successful payment	
+	  2. Click "Refund"	
+	  3. Enter refund amount (full or partial)	
+	  4. Confirm refund	
+	- **Expected Result**:	
+	  - ✅ Refund processed	
+	  - ✅ Payment status updated	
+	  - ✅ Refund amount recorded	
+	  - ✅ User notified	
+		
+	### 8.6 Newsletter Management	not vailable
+		
+	#### Test Case 8.6.1: Create Newsletter	
+	- **Steps**:	
+	  1. Go to Admin → Newsletters	
+	  2. Click "Create Newsletter"	
+	  3. Fill in:	
+	    - Title	
+	    - Subject	
+	    - Content (HTML)	
+	  4. Save as DRAFT	
+	- **Expected Result**:	
+	  - ✅ Newsletter created	
+	  - ✅ Status: DRAFT	
+	  - ✅ Can be edited later	
+		
+	#### Test Case 8.6.2: Schedule Newsletter	NOT IMPLEMENTED
+	- **Steps**:	
+	  1. Create newsletter	
+	  2. Set scheduled date/time	
+	  3. Change status to SCHEDULED	
+	- **Expected Result**:	
+	  - ✅ Newsletter scheduled	
+	  - ✅ Status: SCHEDULED	
+	  - ✅ Will be sent at scheduled time	
+		
+	#### Test Case 8.6.3: Send Newsletter	NOT IMPLEMENTED
+	- **Steps**:	
+	  1. Create newsletter	
+	  2. Click "Send Now"	
+	- **Expected Result**:	
+	  - ✅ Newsletter sent to all subscribers	
+	  - ✅ Status: SENT	
+	  - ✅ Sent count recorded	
+	  - ✅ Statistics tracked (opened, clicked)	
+		
+	---	
+		
+		
+	### 9.2 Tablet View (768px)	PASS
+		
+	#### Test Case 9.2.1: Tablet Layout	
+	- **Steps**:	
+	  1. Resize browser to 768px width	
+	  2. Test key features	
+	- **Expected Result**:	
+	  - ✅ Layout optimized for tablet	
+	  - ✅ Two-column layouts work well	
+	  - ✅ All features accessible	
+	  - ✅ Touch targets appropriate size	
+		
+		
+	### 10.3 Safari	NOT TESTED
+		
+	#### Test Case 10.3.1: Safari Testing	
+	- **Steps**:	
+	  1. Test in Safari (latest version)	
+	  2. Test key features	
+	- **Expected Result**:	
+	  - ✅ All features work correctly	
+	  - ✅ No Safari-specific issues	
+		
+		
+	### 11.3 Input Validation Security	PASS
+		System safely handled SQL injection attempt. Input was not executed, no crash observed, and data remained intact.
+	#### Test Case 11.3.1: SQL Injection Attempt	
+	- **Steps**:	
+	  1. In any form, enter SQL injection: `'; DROP TABLE users; --`	
+	  2. Submit form	
+	- **Expected Result**:	
+	  - ✅ Input sanitized	
+	  - ✅ No SQL executed	
+	  - ✅ Error handled gracefully	
+	  - ✅ Data remains safe	
+		
+	#### Test Case 11.3.2: XSS Attempt	PASS
+	- **Steps**:	
+	  1. In any input field, enter: `<script>alert('XSS')</script>`	
+	  2. Submit and view result	
+	- **Expected Result**:	
+	  - ✅ Script tags sanitized/escaped	
+	  - ✅ No scripts executed	
+	  - ✅ Content displayed safely	
+		
+	#### Test Case 11.3.3: CSRF Protection	FAIL
+	- **Steps**:	CSRF protection is not implemented
+	  1. Try to submit form without valid CSRF token (if implemented)	
+	- **Expected Result**:	
+	  - ✅ Request rejected	
+	  - ✅ CSRF error displayed	
+		
+	---	
+		
+		
+	### 12.2 Network Errors	FAIL
+		
+	#### Test Case 12.2.1: Offline Handling	
+	- **Steps**:	
+	  1. Disconnect network	
+	  2. Try to use application	
+	- **Expected Result**:	
+	  - ✅ Error message displayed: "Network error" or "Offline"	
+	  - ✅ Graceful degradation	
+	  - ✅ Can retry when online	
+		
+	#### Test Case 12.2.2: API Timeout	FAIL
+	- **Steps**:	
+	  1. Slow down network (DevTools → Network → Throttling)	
+	  2. Make API request	
+	- **Expected Result**:	
+	  - ✅ Timeout handled gracefully	
+	  - ✅ Error message displayed	
+	  - ✅ Can retry request	
+		
+	### 12.3 Server Errors	
+		
+		
+	#### Test Case 12.3.2: 404 Error Handling	PASS
+	- **Steps**:	
+	  1. Navigate to non-existent page: `/non-existent-page`	
+	- **Expected Result**:	
+	  - ✅ 404 page displayed	
+	  - ✅ Option to return to homepage	
+	  - ✅ Helpful error message	
+		
+	---	
+		
+	### 13.2 Large Dataset Handling	not tested
+		
+	#### Test Case 13.2.1: Large User List	
+	- **Steps**:	
+	  1. Create many users (100+)	
+	  2. View user list in admin panel	
+	- **Expected Result**:	
+	  - ✅ Pagination works correctly	
+	  - ✅ Page loads quickly	
+	  - ✅ No performance degradation	

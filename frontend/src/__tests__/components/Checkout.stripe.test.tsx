@@ -49,8 +49,20 @@ const mockCreatePaymentMutation = {
   reset: vi.fn(),
 };
 
+const mockCapturePaymentMutation = {
+  mutateAsync: vi.fn().mockResolvedValue(undefined),
+  mutate: vi.fn(),
+  isPending: false,
+  isError: false,
+  isSuccess: false,
+  error: null,
+  data: null,
+  reset: vi.fn(),
+};
+
 vi.mock('../../hooks/usePayments', () => ({
   useCreatePayment: vi.fn(() => mockCreatePaymentMutation),
+  useCapturePayment: vi.fn(() => mockCapturePaymentMutation),
 }));
 
 vi.mock('../../hooks/use-toast', () => ({

@@ -45,9 +45,14 @@ export interface GetPaymentsParams {
   pageSize?: number;
 }
 
+/** Backend returns totalCount, page, pageSize, totalPages at top level. */
 export interface PaymentsResponse {
   payments: Payment[];
-  pagination: {
+  totalCount?: number;
+  page?: number;
+  pageSize?: number;
+  totalPages?: number;
+  pagination?: {
     page: number;
     limit: number;
     total: number;

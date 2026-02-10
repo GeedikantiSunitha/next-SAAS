@@ -1,6 +1,7 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import { securityHeaders, corsConfig, apiLimiter, requestSizeLimit } from './middleware/security';
+import { csrfMiddleware } from './middleware/csrf';
 import requestId from './middleware/requestId';
 import apiVersioning from './middleware/apiVersioning';
 import metricsMiddleware from './middleware/metrics';
@@ -58,6 +59,9 @@ app.use('/api', apiVersioning);
 // Idempotency middleware (before routes, optional - only works if idempotency-key header is present)
 // Prevents duplicate operations for POST/PUT/PATCH requests
 app.use('/api', idempotency);
+
+// CSRF protection for state-changing requests (disabled in test)
+app.use('/api', csrfMiddleware);
 
 // Apply rate limiting to all routes
 app.use('/api', apiLimiter);

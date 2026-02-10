@@ -4,7 +4,7 @@
  * GDPR/PECR compliant cookie consent banner
  * - Shows at bottom of screen when no consent exists
  * - Allows accepting all, rejecting non-essential, or customizing
- * - Persists preferences to backend API
+ * - Persists to backend when logged in; falls back to localStorage when not (avoids 401)
  */
 
 import { useState, useEffect } from 'react';
@@ -12,26 +12,51 @@ import { gdprApi, type CookiePreferences } from '../../api/gdpr';
 import { CookiePreferenceCenter } from './CookiePreferenceCenter';
 
 const COOKIE_VERSION = '1.0.0';
+const STORAGE_KEY = 'cookie_consent';
+
+const getStoredConsent = (): CookiePreferences | null => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CookiePreferences & { version?: string };
+    if (parsed.essential === undefined) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
+const setStoredConsent = (preferences: CookiePreferences) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...preferences, version: COOKIE_VERSION }));
+  } catch {
+    // ignore
+  }
+};
 
 export const CookieConsentBanner = () => {
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showPreferenceCenter, setShowPreferenceCenter] = useState(false);
 
-  // Check if consent already exists
+  // Check if consent already exists (localStorage first, then API when logged in)
   useEffect(() => {
     const checkConsent = async () => {
+      const stored = getStoredConsent();
+      if (stored) {
+        setVisible(false);
+        setLoading(false);
+        return;
+      }
       try {
         const response = await gdprApi.getCookieConsent();
         if (response.success && response.data) {
-          // Consent exists, don't show banner
           setVisible(false);
         } else {
-          // No consent, show banner
           setVisible(true);
         }
-      } catch (error) {
-        // On error, show banner (safe default)
+      } catch {
+        // 401 or any error when not logged in: no consent yet, show banner
         setVisible(true);
       } finally {
         setLoading(false);
@@ -42,15 +67,15 @@ export const CookieConsentBanner = () => {
   }, []);
 
   const saveConsent = async (preferences: CookiePreferences) => {
+    const payload = { ...preferences, version: COOKIE_VERSION };
     try {
-      await gdprApi.saveCookieConsent({
-        ...preferences,
-        version: COOKIE_VERSION,
-      });
+      await gdprApi.saveCookieConsent(payload);
+      setStoredConsent(preferences);
       setVisible(false);
-    } catch (error) {
-      console.error('Failed to save cookie consent:', error);
-      // Keep banner visible on error
+    } catch {
+      // Not logged in (401) or network error: store locally and hide banner so UX isn't broken
+      setStoredConsent(preferences);
+      setVisible(false);
     }
   };
 

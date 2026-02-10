@@ -92,12 +92,27 @@ export const createPayment = async (params: CreatePaymentParams & { provider?: P
         minimumFractionDigits: 2,
       }).format(Number(params.amount) / 100);
 
+      const paymentInitiatedMessage = `A payment of ${amountFormatted} has been initiated.`;
       await createNotification({
         userId: params.userId,
         type: 'INFO',
         channel: 'IN_APP',
         title: 'Payment Initiated',
-        message: `A payment of ${amountFormatted} has been initiated.`,
+        message: paymentInitiatedMessage,
+        data: {
+          action: 'PAYMENT_CREATED',
+          paymentId: payment.id,
+          amount: params.amount,
+          currency: params.currency,
+          timestamp: new Date().toISOString(),
+        },
+      });
+      await createNotification({
+        userId: params.userId,
+        type: 'INFO',
+        channel: 'EMAIL',
+        title: 'Payment Initiated',
+        message: paymentInitiatedMessage,
         data: {
           action: 'PAYMENT_CREATED',
           paymentId: payment.id,
@@ -226,12 +241,27 @@ export const capturePayment = async (paymentId: string, userId: string, amount?:
           minimumFractionDigits: 2,
         }).format(Number(updatedPayment.amount) / 100);
 
+        const paymentSuccessMessage = `Your payment of ${amountFormatted} has been successfully processed.`;
         await createNotification({
           userId,
           type: 'SUCCESS',
           channel: 'IN_APP',
           title: 'Payment Successful',
-          message: `Your payment of ${amountFormatted} has been successfully processed.`,
+          message: paymentSuccessMessage,
+          data: {
+            action: 'PAYMENT_COMPLETED',
+            paymentId: payment.id,
+            amount: updatedPayment.amount,
+            currency: updatedPayment.currency,
+            timestamp: new Date().toISOString(),
+          },
+        });
+        await createNotification({
+          userId,
+          type: 'SUCCESS',
+          channel: 'EMAIL',
+          title: 'Payment Successful',
+          message: paymentSuccessMessage,
           data: {
             action: 'PAYMENT_COMPLETED',
             paymentId: payment.id,
@@ -341,6 +371,98 @@ export const refundPayment = async (params: RefundPaymentParams & { userId: stri
       paymentId: params.paymentId,
     });
     throw error;
+  }
+};
+
+/**
+ * Refund a payment as admin (no ownership check).
+ * Used by POST /api/admin/payments/:id/refund.
+ */
+export const refundPaymentAsAdmin = async (
+  paymentId: string,
+  adminUserId: string,
+  params: { amount?: number; reason?: string }
+) => {
+  try {
+    const payment = await prisma.payment.findUnique({
+      where: { id: paymentId },
+    });
+
+    if (!payment) {
+      throw new NotFoundError('Payment not found');
+    }
+
+    if (payment.status !== PaymentStatus.SUCCEEDED) {
+      throw new AppError('Payment not eligible for refund', 400);
+    }
+
+    if (!payment.providerPaymentId) {
+      throw new AppError(
+        'Payment has no provider payment ID (e.g. demo or manual record). Refunds require a real payment from the provider.',
+        400
+      );
+    }
+
+    const provider = PaymentProviderFactory.getProvider();
+    const refundResult = await provider.refundPayment({
+      paymentId: payment.providerPaymentId!,
+      amount: params.amount,
+      reason: params.reason,
+    });
+
+    const refund = await prisma.paymentRefund.create({
+      data: {
+        paymentId: payment.id,
+        providerRefundId: refundResult.providerRefundId,
+        amount: refundResult.amount,
+        reason: params.reason,
+        status: mapProviderStatus(refundResult.status),
+        processedAt: new Date(),
+      },
+    });
+
+    const refundedAmount = Number(payment.refundedAmount || 0) + refundResult.amount;
+    const isFullRefund = refundedAmount >= Number(payment.amount);
+
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: isFullRefund ? PaymentStatus.REFUNDED : PaymentStatus.PARTIALLY_REFUNDED,
+        refundedAmount,
+        refundedAt: new Date(),
+      },
+    });
+
+    await createAuditLog({
+      userId: adminUserId,
+      action: 'PAYMENT_REFUNDED',
+      resource: 'payments',
+      resourceId: payment.id,
+      details: {
+        refundId: refund.id,
+        amount: refundResult.amount,
+        reason: params.reason,
+        performedBy: 'admin',
+      },
+    });
+
+    logger.info('Payment refunded by admin', {
+      paymentId: payment.id,
+      refundId: refund.id,
+      adminUserId,
+    });
+
+    return refund;
+  } catch (error: any) {
+    logger.error('Admin payment refund failed', {
+      error: error.message,
+      paymentId,
+    });
+    if (error instanceof AppError) throw error;
+    throw new AppError(
+      error?.message ?? 'Payment provider refund failed. Check that the payment is from the configured provider (e.g. Stripe).',
+      400
+    );
   }
 };
 

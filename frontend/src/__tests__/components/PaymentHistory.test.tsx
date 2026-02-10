@@ -77,7 +77,7 @@ describe('PaymentHistory', () => {
       payments: [
         {
           id: 'pay-1',
-          amount: 100.0,
+          amount: 10000, // cents = $100.00 (API returns amount in smallest unit)
           currency: 'USD' as const,
           status: 'SUCCEEDED' as const,
           description: 'Test payment',

@@ -23,7 +23,7 @@ describe('DataExport Component', () => {
       status: 'COMPLETED',
       requestedAt: '2024-01-01T10:00:00Z',
       completedAt: '2024-01-01T10:30:00Z',
-      downloadUrl: '/api/gdpr/export/download/export-1',
+      downloadUrl: '/api/gdpr/exports/export-1/download',
     },
     {
       id: 'export-2',
@@ -67,12 +67,12 @@ describe('DataExport Component', () => {
     expect(screen.getByText('FAILED')).toBeInTheDocument();
   });
 
-  it('should display download button for completed exports', () => {
+  it('should display download button for completed exports (credentialed fetch)', () => {
     render(<DataExport exports={mockExports} onUpdate={vi.fn()} />);
 
     const downloadButton = screen.getByRole('button', { name: /Download/i });
     expect(downloadButton).toBeInTheDocument();
-    expect(downloadButton.closest('a')).toHaveAttribute('href', '/api/gdpr/export/download/export-1');
+    // Download uses button + fetch(credentials) not <a href>
   });
 
   it('should not show download for pending exports', () => {

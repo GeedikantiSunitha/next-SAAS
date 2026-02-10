@@ -146,7 +146,7 @@ describe('DataExport Component', () => {
       expect(screen.getByText(/expires in 7 days/i)).toBeInTheDocument();
     });
 
-    it('should have correct download link with href', () => {
+    it('should show download button for completed export (triggers credentialed fetch)', () => {
       vi.mocked(useGdprHooks.useExportRequests).mockReturnValue({
         data: { success: true, data: mockExportRequests },
         isLoading: false,
@@ -160,9 +160,9 @@ describe('DataExport Component', () => {
 
       render(<DataExport />, { wrapper: createWrapper() });
 
-      const downloadLink = screen.getByRole('link', { name: /download data export/i });
-      expect(downloadLink).toHaveAttribute('href', 'https://example.com/download/data.zip');
-      expect(downloadLink).toHaveAttribute('download');
+      const downloadButton = screen.getByRole('button', { name: /download data export/i });
+      expect(downloadButton).toBeInTheDocument();
+      expect(screen.getByTestId('export-download-section')).toBeInTheDocument();
     });
   });
 

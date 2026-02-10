@@ -1,10 +1,13 @@
 /**
  * DataExport Component
- * Handles data export requests under GDPR
+ * Handles data export requests under GDPR.
+ * Download uses credentialed fetch so cookies are sent when API is on a different origin.
  */
 
 import React, { useState } from 'react';
 import { privacyApi } from '../../api/privacy';
+
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001').replace(/\/$/, '');
 
 interface Export {
   id: string;
@@ -23,6 +26,7 @@ const DataExport: React.FC<DataExportProps> = ({ exports, onUpdate }) => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const handleExportRequest = async () => {
     setLoading(true);
@@ -56,6 +60,34 @@ const DataExport: React.FC<DataExportProps> = ({ exports, onUpdate }) => {
     const end = new Date(completedAt).getTime();
     const minutes = Math.round((end - start) / (1000 * 60));
     return `Completed in ${minutes} minutes`;
+  };
+
+  const handleDownload = async (exp: Export) => {
+    if (!exp.downloadUrl) return;
+    const url = exp.downloadUrl.startsWith('http')
+      ? exp.downloadUrl
+      : `${apiBaseUrl}${exp.downloadUrl}`;
+    setDownloadingId(exp.id);
+    try {
+      const res = await fetch(url, { credentials: 'include' });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(res.status === 410 ? 'Download link has expired' : text || `Download failed (${res.status})`);
+      }
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = `data-export-${exp.id}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(objectUrl);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Download failed');
+    } finally {
+      setDownloadingId(null);
+    }
   };
 
   return (
@@ -124,13 +156,14 @@ const DataExport: React.FC<DataExportProps> = ({ exports, onUpdate }) => {
                 </div>
                 {exp.status === 'COMPLETED' && exp.downloadUrl && (
                   <div className="export-actions">
-                    <a
-                      href={exp.downloadUrl}
+                    <button
+                      type="button"
                       className="btn btn-secondary"
-                      download
+                      onClick={() => handleDownload(exp)}
+                      disabled={downloadingId === exp.id}
                     >
-                      <button>Download</button>
-                    </a>
+                      {downloadingId === exp.id ? 'Downloading...' : 'Download'}
+                    </button>
                   </div>
                 )}
                 {exp.status === 'FAILED' && (

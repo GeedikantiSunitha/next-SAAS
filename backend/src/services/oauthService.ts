@@ -1,6 +1,7 @@
 import { prisma } from '../config/database';
 import { ConflictError, NotFoundError, ValidationError } from '../utils/errors';
 import logger from '../utils/logger';
+import { getEncryptionService } from './encryptionService';
 
 export type OAuthProvider = 'google' | 'github' | 'microsoft';
 
@@ -85,10 +86,15 @@ export const createOrUpdateUserFromOAuth = async (
     );
   }
 
+  // Set emailHash so login/findUserByEncryptedEmail works when ENCRYPTION_ENABLED=true
+  const normalizedEmail = email.trim().toLowerCase();
+  const emailHash = getEncryptionService().hash(normalizedEmail);
+
   // Create new OAuth user
   const newUser = await prisma.user.create({
     data: {
       email,
+      emailHash,
       oauthProvider: provider,
       oauthProviderId: providerId,
       oauthEmail: email,

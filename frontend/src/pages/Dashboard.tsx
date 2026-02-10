@@ -3,7 +3,9 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Layout } from '../components/Layout';
 import { Link } from 'react-router-dom';
-import { User as UserIcon, CreditCard, History, Shield } from 'lucide-react';
+import { User as UserIcon, CreditCard, History, Shield, LayoutDashboard } from 'lucide-react';
+
+const isAdmin = (role?: string) => role === 'ADMIN' || role === 'SUPER_ADMIN';
 
 export const Dashboard = () => {
   const { user } = useAuth();
@@ -61,6 +63,14 @@ export const Dashboard = () => {
                             Privacy Center
                           </Link>
                         </Button>
+                        {isAdmin(user?.role) && (
+                          <Button asChild variant="default" className="gap-2">
+                            <Link to="/admin/dashboard">
+                              <LayoutDashboard className="h-4 w-4" />
+                              Admin Panel
+                            </Link>
+                          </Button>
+                        )}
                       </div>
                     </div>
                     <p className="text-sm text-muted-foreground">

@@ -311,6 +311,31 @@ describe('Email Service', () => {
     });
   });
 
+  describe('sendDataDeletionRequestConfirmationEmail', () => {
+    it('should send data deletion request confirmation email (7.2)', async () => {
+      const mockSend = jest.fn().mockResolvedValue({ data: { id: 'email-123' } });
+      (Resend as jest.MockedClass<typeof Resend>).mockImplementation(() => ({
+        emails: { send: mockSend },
+      } as any));
+
+      await emailService.sendDataDeletionRequestConfirmationEmail({
+        to: 'user@example.com',
+        name: 'John Doe',
+        confirmationLink: 'http://localhost:3000/gdpr?confirmDeletion=abc123',
+      });
+
+      expect(mockSend).toHaveBeenCalledTimes(1);
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: 'user@example.com',
+          subject: expect.stringContaining('Confirm your data deletion'),
+        })
+      );
+      const callArgs = mockSend.mock.calls[0][0];
+      expect(callArgs.html).toMatch(/Confirm.*Deletion|confirmation|confirm/i);
+    });
+  });
+
   describe('sendDataDeletionConfirmationEmail', () => {
     it('should send data deletion confirmation email', async () => {
       const mockSend = jest.fn().mockResolvedValue({ data: { id: 'email-123' } });

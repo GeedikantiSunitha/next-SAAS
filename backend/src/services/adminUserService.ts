@@ -183,13 +183,33 @@ export const createUser = async (data: CreateUserData, adminUserId: string) => {
   // Hash password
   const hashedPassword = await hashPassword(data.password);
 
+  // Only SUPER_ADMIN can set role to ADMIN or SUPER_ADMIN on create
+  let role: 'USER' | 'ADMIN' | 'SUPER_ADMIN' = 'USER';
+  if (data.role && data.role !== 'USER') {
+    const admin = await prisma.user.findUnique({
+      where: { id: adminUserId },
+      select: { role: true },
+    });
+    if (admin?.role !== 'SUPER_ADMIN') {
+      throw new ForbiddenError('Only SUPER_ADMIN can create users with Admin or Super Admin role');
+    }
+    role = data.role;
+  } else if (data.role === 'USER') {
+    role = 'USER';
+  }
+
+  // Set emailHash so login works when ENCRYPTION_ENABLED=true (login looks up by emailHash)
+  const normalizedEmail = data.email.trim().toLowerCase();
+  const emailHash = getEncryptionService().hash(normalizedEmail);
+
   // Create user
   const user = await prisma.user.create({
     data: {
       email: data.email,
+      emailHash,
       password: hashedPassword,
       name: data.name,
-      role: data.role || 'USER',
+      role,
       isActive: data.isActive !== undefined ? data.isActive : true,
     },
     select: {
@@ -250,6 +270,8 @@ export const updateUser = async (
         throw new ConflictError('Email is already taken');
       }
       updateData.email = data.email;
+      // Keep emailHash in sync so login works when ENCRYPTION_ENABLED=true
+      updateData.emailHash = getEncryptionService().hash(data.email.trim().toLowerCase());
     }
   }
 

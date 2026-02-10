@@ -197,7 +197,7 @@ describe('Accessibility Routes', () => {
       const issueReport = {
         type: 'SCREEN_READER',
         description: 'Button not announced properly',
-        url: '/dashboard',
+        url: 'http://localhost:3000/dashboard',
         userAgent: 'Mozilla/5.0...'
       };
 
@@ -215,7 +215,7 @@ describe('Accessibility Routes', () => {
       const issueReport = {
         type: 'KEYBOARD_NAVIGATION',
         description: 'Cannot navigate with Tab key',
-        url: '/login'
+        url: 'http://localhost:3000/login'
       };
 
       const response = await request(app)

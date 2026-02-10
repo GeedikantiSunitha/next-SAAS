@@ -1,10 +1,12 @@
 /**
  * Privacy Center Page
  * Unified dashboard for managing all privacy-related settings
+ * Uses same Layout (Header + Footer) as Dashboard/Profile for consistent navigation.
  */
 
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Layout } from '../components/Layout';
 import { privacyApi, PrivacyCenterOverview } from '../api/privacy';
 import DataOverview from '../components/privacy/DataOverview';
 import ConsentManager from '../components/privacy/ConsentManager';
@@ -45,29 +47,37 @@ const PrivacyCenter: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="privacy-center-loading">
-        <div className="spinner"></div>
-        <p>Loading privacy data...</p>
-      </div>
+      <Layout>
+        <div className="privacy-center-loading">
+          <div className="spinner"></div>
+          <p>Loading privacy data...</p>
+        </div>
+      </Layout>
     );
   }
 
   if (error && !isLoading) {
     return (
-      <div className="privacy-center-error">
-        <div className="error-message">
-          <h2>Failed to load privacy data</h2>
-          <p>{(error as Error).message}</p>
-          <button onClick={() => refetch()} className="btn btn-primary">
-            Retry
-          </button>
+      <Layout>
+        <div className="privacy-center-error">
+          <div className="error-message">
+            <h2>Failed to load privacy data</h2>
+            <p>{(error as Error).message}</p>
+            <button onClick={() => refetch()} className="btn btn-primary">
+              Retry
+            </button>
+          </div>
         </div>
-      </div>
+      </Layout>
     );
   }
 
   if (!data) {
-    return <div>No data available</div>;
+    return (
+      <Layout>
+        <div>No data available</div>
+      </Layout>
+    );
   }
 
   const handleDataUpdate = () => {
@@ -100,6 +110,7 @@ const PrivacyCenter: React.FC = () => {
   };
 
   return (
+    <Layout>
     <div className="privacy-center-container mobile-view" data-testid="privacy-center-container">
       <div className="privacy-center-header">
         <h1>Privacy Center</h1>
@@ -227,6 +238,7 @@ const PrivacyCenter: React.FC = () => {
         </button>
       </div>
     </div>
+    </Layout>
   );
 };
 

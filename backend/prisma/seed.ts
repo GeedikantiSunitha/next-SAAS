@@ -7,12 +7,21 @@
  *   npx tsx prisma/seed.ts
  *   or
  *   npm run seed (if configured in package.json)
+ *
+ * IMPORTANT: When ENCRYPTION_ENABLED=true, login looks up users by emailHash.
+ * Every user create must set emailHash (same format as seed.demo-users and authService).
  */
 
+import * as crypto from 'crypto';
 import { PrismaClient, Role } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
+
+// Must match authService / encryptionMiddleware: login looks up by emailHash (SHA-256 of normalized email)
+function emailHash(email: string): string {
+  return crypto.createHash('sha256').update(email.trim().toLowerCase()).digest('hex');
+}
 
 async function main() {
   console.log('🌱 Starting database seed...');
@@ -33,6 +42,7 @@ async function main() {
   const admin = await prisma.user.create({
     data: {
       email: 'admin@example.com',
+      emailHash: emailHash('admin@example.com'),
       password: adminPassword,
       name: 'Admin User',
       role: Role.ADMIN,
@@ -48,6 +58,7 @@ async function main() {
   const superAdmin = await prisma.user.create({
     data: {
       email: 'superadmin@example.com',
+      emailHash: emailHash('superadmin@example.com'),
       password: superAdminPassword,
       name: 'Super Admin User',
       role: Role.SUPER_ADMIN,
@@ -61,10 +72,12 @@ async function main() {
   // Regular users
   const regularUsers = [];
   for (let i = 1; i <= 5; i++) {
+    const email = `user${i}@example.com`;
     const password = await bcrypt.hash(`User${i}123!`, 12);
     const user = await prisma.user.create({
       data: {
-        email: `user${i}@example.com`,
+        email,
+        emailHash: emailHash(email),
         password,
         name: `Test User ${i}`,
         role: Role.USER,
@@ -81,6 +94,7 @@ async function main() {
   const oauthUser = await prisma.user.create({
     data: {
       email: 'oauth.google@example.com',
+      emailHash: emailHash('oauth.google@example.com'),
       password: null, // OAuth users don't have passwords
       name: 'OAuth Google User',
       role: Role.USER,

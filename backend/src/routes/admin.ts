@@ -5,6 +5,9 @@ import { requireRole } from '../middleware/auth';
 import { validate, validators } from '../middleware/validation';
 import asyncHandler from '../utils/asyncHandler';
 import * as adminUserService from '../services/adminUserService';
+import * as gdprService from '../services/gdprService';
+import { createAuditLog } from '../services/auditService';
+import { DataDeletionStatus } from '@prisma/client';
 import consentVersionRoutes from './admin/consentVersions';
 
 const router = Router();
@@ -15,6 +18,87 @@ router.use(requireRole('ADMIN', 'SUPER_ADMIN'));
 
 // Mount consent version admin routes
 router.use('/consent-versions', consentVersionRoutes);
+
+/**
+ * @swagger
+ * /api/admin/gdpr/deletion-requests:
+ *   get:
+ *     summary: List all data deletion requests (admin)
+ *     tags: [Admin]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [PENDING, CONFIRMED, PROCESSING, COMPLETED, CANCELLED, FAILED]
+ *         description: Filter by status
+ *     responses:
+ *       200:
+ *         description: List of deletion requests with user info
+ *       403:
+ *         description: Forbidden - Admin role required
+ */
+router.get(
+  '/gdpr/deletion-requests',
+  asyncHandler(async (req, res) => {
+    const status = req.query.status as DataDeletionStatus | undefined;
+    const validStatuses = Object.values(DataDeletionStatus);
+    const filter = status && validStatuses.includes(status) ? status : undefined;
+    const requests = await gdprService.listDeletionRequestsForAdmin(filter);
+    res.json({
+      success: true,
+      data: requests,
+    });
+  })
+);
+
+/**
+ * @swagger
+ * /api/admin/gdpr/deletion-requests/:id/execute:
+ *   post:
+ *     summary: Execute a confirmed data deletion request (admin)
+ *     tags: [Admin]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Deletion request ID
+ *     responses:
+ *       200:
+ *         description: Deletion executed successfully
+ *       400:
+ *         description: Request not in CONFIRMED status
+ *       404:
+ *         description: Deletion request not found
+ *       403:
+ *         description: Forbidden - Admin role required
+ */
+router.post(
+  '/gdpr/deletion-requests/:id/execute',
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const adminUserId = req.user!.id;
+    const result = await gdprService.executeDataDeletion(id);
+    await createAuditLog({
+      userId: adminUserId,
+      action: 'DATA_DELETION_EXECUTED_BY_ADMIN',
+      resource: 'data_deletion_requests',
+      resourceId: id,
+      details: { targetUserId: result.userId, deletionType: result.deletionType },
+    });
+    res.json({
+      success: true,
+      data: result,
+      message: 'Data deletion executed successfully.',
+    });
+  })
+);
 
 /**
  * @swagger
@@ -581,6 +665,31 @@ router.get(
     res.json({
       success: true,
       data: result,
+    });
+  })
+);
+
+/**
+ * POST /api/admin/payments/:id/refund
+ * Refund a payment (admin only; no ownership check)
+ */
+router.post(
+  '/payments/:id/refund',
+  asyncHandler(async (req, res) => {
+    const paymentService = await import('../services/paymentService');
+    const refund = await paymentService.refundPaymentAsAdmin(
+      req.params.id,
+      req.user!.id,
+      {
+        amount: req.body.amount,
+        reason: req.body.reason,
+      }
+    );
+
+    res.json({
+      success: true,
+      data: refund,
+      message: 'Payment refunded successfully',
     });
   })
 );

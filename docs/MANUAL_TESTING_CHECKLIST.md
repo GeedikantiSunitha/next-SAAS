@@ -1,7 +1,7 @@
 # NextSaaS - Manual Testing Checklist
 
 **Purpose**: Comprehensive manual testing checklist for CodeCanyon submission  
-**Last Updated**: January 2025
+**Last Updated**: February 2025
 
 ---
 
@@ -389,6 +389,193 @@
 
 ---
 
+## 🌍 World-Class Compliance (Completed Items Only)
+
+*Manual tests for features marked COMPLETE in `docs/WORLD_CLASS_COMPLIANCE_ROADMAP.md`. Phases 4–6 and incomplete items (e.g. SLA, Security Policy, Database/Field Encryption) are not included.*
+
+### Phase 1: Legal Foundation (COMPLETE)
+
+#### Legal Pages
+- [ ] **Privacy Policy**
+  - Navigate to `/legal/privacy` (or footer link)
+  - **Expected**: Privacy Policy page loads with controller identity, data collected, legal basis, retention, user rights, DPO/complaint info
+
+- [ ] **Terms of Service**
+  - Navigate to `/legal/terms`
+  - **Expected**: Terms of Service page loads with service description, user obligations, AUP, termination, liability, governing law
+
+- [ ] **Cookie Policy**
+  - Navigate to `/legal/cookies`
+  - **Expected**: Cookie Policy page loads with cookie categories (essential, analytics, marketing, functional) and management instructions
+
+- [ ] **Acceptable Use Policy**
+  - Navigate to `/legal/acceptable-use`
+  - **Expected**: AUP page loads with prohibited activities, suspension policy, reporting mechanisms
+
+- [ ] **ICO Registration (UK)**
+  - Check footer on any public/legal page
+  - **Expected**: ICO registration number displayed (e.g. "Registered with ICO: …")
+
+#### Policy Acceptance (Registration)
+- [ ] **ToS/Privacy Acceptance on Register**
+  - Register a new user; ensure ToS/Privacy checkboxes (or equivalent) are present
+  - Submit without accepting
+  - **Expected**: Validation error
+  - Accept and submit
+  - **Expected**: User created; acceptance recorded (check DB or audit if needed)
+
+#### Cookie Consent Banner & Preference Center
+- [ ] **Banner on First Visit**
+  - Use incognito or clear `cookie_consent` (and relevant cookies)
+  - Load app
+  - **Expected**: Cookie consent banner appears
+
+- [ ] **Accept All**
+  - Click "Accept All"
+  - **Expected**: Banner dismisses; preferences saved (localStorage/backend if logged in)
+
+- [ ] **Reject All**
+  - Clear consent and reload; click "Reject All"
+  - **Expected**: Banner dismisses; non-essential categories off
+
+- [ ] **Customize / Preference Center**
+  - Open preference center (e.g. "Customize" or footer "Cookie preferences")
+  - Toggle analytics/marketing/functional
+  - Save
+  - **Expected**: Preferences saved; banner does not reappear on reload (until version change)
+
+- [ ] **Consent Persistence**
+  - After saving consent, close and reopen app (same browser)
+  - **Expected**: Banner does not show; previously chosen preferences apply
+
+#### DPA (Data Processing Agreement)
+- [ ] **DPA Available on Request**
+  - Confirm via docs or support flow that DPA template is available on request for B2B
+  - **Expected**: Documented (e.g. in DEMO_CREDENTIALS or README) or contact path provided
+
+---
+
+### Phase 2: Enhanced GDPR Compliance (COMPLETE)
+
+#### Data Retention (Admin)
+- [ ] **Admin Data Retention Page**
+  - Login as Admin/Super Admin → Admin → Data Retention (or equivalent)
+  - **Expected**: Retention page loads; policies or summary visible
+
+- [ ] **Manual Retention Enforcement**
+  - Trigger manual "Enforce" (or equivalent) if available
+  - **Expected**: No crash; success or result message; audit log entry if applicable
+
+- [ ] **Legal Hold (if UI present)**
+  - Place legal hold on a test user (Admin → Users → user → Legal hold)
+  - **Expected**: Legal hold set; user excluded from retention purge
+  - Release legal hold
+  - **Expected**: Legal hold cleared
+
+#### Breach Notification / Security Incidents (Admin)
+- [ ] **Security Incidents List**
+  - Admin → Security Incidents (or Breach / Incidents)
+  - **Expected**: List of incidents (or empty state) loads
+
+- [ ] **Report Incident**
+  - Create new incident: type, severity, title, description, mark as personal data breach if option exists
+  - **Expected**: Incident created; 72-hour countdown shown if personal data breach
+
+- [ ] **72-Hour Countdown**
+  - Open an incident marked as personal data breach
+  - **Expected**: Deadline or hours remaining displayed
+
+- [ ] **Notify Affected Users**
+  - On an incident with affected users, use "Notify affected users"
+  - **Expected**: Action completes; notifications sent (check email/logs if possible)
+
+- [ ] **Report to ICO**
+  - Use "Report to ICO" (or equivalent) for a breach incident
+  - **Expected**: Action completes; confirmation or audit trail (full ICO submission may be manual)
+
+#### Consent Version Management (Admin)
+- [ ] **Consent Versions List / by Type**
+  - Admin → Consent Versions (or similar)
+  - **Expected**: List or per-type view of consent versions
+
+- [ ] **Create Consent Version**
+  - Create a new version for a consent type (e.g. COOKIES, ANALYTICS)
+  - **Expected**: Version created; appears in list
+
+- [ ] **Active Version / Users Needing Re-consent**
+  - View active version for a type
+  - **Expected**: Active version shown or 404 when none
+  - View "users needing reconsent" (if available)
+  - **Expected**: List or count of users who need to re-consent
+
+#### Privacy Center (User)
+- [ ] **Privacy Center Access**
+  - As logged-in user, open Privacy Center (menu or `/privacy-center` / equivalent)
+  - **Expected**: Privacy dashboard loads
+
+- [ ] **Data Overview**
+  - **Expected**: Summary of data held (e.g. profile, consents, exports)
+
+- [ ] **Consent Management**
+  - **Expected**: View/update consent by category (e.g. marketing, analytics)
+
+- [ ] **Data Export**
+  - Request data export from Privacy Center
+  - **Expected**: Export requested; download link or email when ready
+
+- [ ] **Data Deletion**
+  - Request account/data deletion from Privacy Center
+  - **Expected**: Deletion flow starts; confirmation email if implemented
+
+- [ ] **Cookie Preferences**
+  - Open cookie preferences from Privacy Center
+  - **Expected**: Same preference center as banner; save works
+
+- [ ] **Connected Accounts (if shown)**
+  - **Expected**: OAuth-linked accounts visible and revocable if implemented
+
+---
+
+### Phase 3: Security Hardening – Completed Items Only
+
+*Excludes: Database encryption at rest (3.1), Field-level PII encryption (3.2). Includes: Security Monitoring (3.3), Security Testing / Vulnerability Scanner (3.4).*
+
+#### Security Monitoring Dashboard (Admin)
+- [ ] **Admin Security Dashboard**
+  - Admin → Security (or Security Dashboard)
+  - **Expected**: Security dashboard with metrics, recent events, or threat summary
+
+- [ ] **Security Event Timeline**
+  - Open security events / timeline view
+  - **Expected**: List of security events (logins, failures, rate limits, etc.) with time and details
+
+- [ ] **Threat Indicators**
+  - Open threat indicators or risk summary
+  - **Expected**: Indicators (e.g. failed logins, blocked IPs) visible
+
+- [ ] **IP Blocklist (if present)**
+  - View or add blocklist entry
+  - **Expected**: Blocklist manageable; blocked IPs cannot access as expected
+
+#### Vulnerability Scanner (Admin)
+- [ ] **Vulnerability Scanner UI**
+  - Admin → Vulnerability Scanner (or Security → Scans)
+  - **Expected**: Scan management UI loads
+
+- [ ] **Run Scan**
+  - Start a scan (e.g. OWASP, QUICK, or FULL)
+  - **Expected**: Scan starts; progress or status shown
+
+- [ ] **View Scan Results**
+  - After scan completes, open results/report
+  - **Expected**: Findings list or summary; severity/category visible; export (e.g. CSV) if implemented
+
+- [ ] **OWASP / Compliance**
+  - Run scan and review results
+  - **Expected**: OWASP-related checks (e.g. injection, XSS, CSRF) reflected in results where implemented
+
+---
+
 ## 📊 Test Results Summary
 
 ### Features Tested
@@ -413,6 +600,11 @@
 - Authorization: ✅ / ❌
 - Input Validation: ✅ / ❌
 
+### World-Class Compliance (Completed Items)
+- Phase 1 Legal Foundation: ✅ / ❌
+- Phase 2 Enhanced GDPR: ✅ / ❌
+- Phase 3 Security Monitoring & Vulnerability Scanner: ✅ / ❌
+
 ---
 
 ## 🐛 Issues Found
@@ -433,6 +625,7 @@ Document any issues found during testing:
 - [ ] All browsers tested
 - [ ] Responsive design verified
 - [ ] Security checks completed
+- [ ] World-Class Compliance (completed items) tested per roadmap
 - [ ] Issues documented
 - [ ] Ready for CodeCanyon submission
 
@@ -442,4 +635,5 @@ Document any issues found during testing:
 
 ---
 
-**Last Updated**: January 2025
+**Last Updated**: February 2025  
+**Compliance section**: Manual tests for completed items only from `docs/WORLD_CLASS_COMPLIANCE_ROADMAP.md` (Phases 1–3 completed items; Phases 4–6 and incomplete items excluded).

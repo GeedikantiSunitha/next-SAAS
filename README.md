@@ -1,6 +1,6 @@
 # NextSaaS
 
-**Status**: ✅ **PRODUCTION READY** - All 3 Phases Complete!
+**Status**: ✅ **PRODUCTION READY** - Full-stack SaaS template (backend + frontend)
 
 **👋 New here? Read [START_HERE.md](./docs/START_HERE.md) first!**
 
@@ -8,18 +8,111 @@
 
 ## 📚 Documentation Overview
 
-**NextSaaS** is a **production-ready, reusable SaaS application template** with comprehensive features built using **Test-Driven Development (TDD)**. All core functionality is complete and tested (127/127 tests passing).
+**NextSaaS** is a **production-ready, full-stack SaaS application template** with a **Node.js/Express/Prisma backend** and a **React/Vite frontend**. It includes authentication, payments, RBAC, OAuth, MFA, GDPR, and notifications, built using **Test-Driven Development (TDD)**.
+
+---
+
+## 🚀 Running the Application
+
+### Prerequisites
+
+- **Node.js 18+**
+- **PostgreSQL** (running locally or remote)
+- **Backend**: Copy `backend/.env.example` to `backend/.env` and set `DATABASE_URL`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, and optionally `RESEND_API_KEY` for emails.
+- **Frontend**: Copy `frontend/.env.example` to `frontend/.env`. Set `VITE_API_BASE_URL=http://localhost:3001` (or your backend URL).
+
+### Install dependencies
+
+From the project root:
+
+```bash
+npm run install:all
+```
+
+Or manually:
+
+```bash
+cd backend && npm install
+cd ../frontend && npm install
+```
+
+### Database setup (first time)
+
+```bash
+cd backend
+npx prisma generate
+npx prisma migrate dev
+npm run seed   # optional: seed demo data and feature flags
+```
+
+### Start backend server
+
+From the project root:
+
+```bash
+npm run dev:backend
+```
+
+Or from the backend folder:
+
+```bash
+cd backend && npm run dev
+```
+
+**Backend** runs at **http://localhost:3001** (configurable via `PORT` in `backend/.env`).
+
+### Start frontend server
+
+From the project root (in a **second terminal**):
+
+```bash
+npm run dev:frontend
+```
+
+Or from the frontend folder:
+
+```bash
+cd frontend && npm run dev
+```
+
+**Frontend** runs at **http://localhost:3000** (Vite dev server).
+
+### Full-stack development
+
+Run **both** backend and frontend in separate terminals so the app talks to the API. Open **http://localhost:3000** in your browser.
+
+**Stripe console errors (CORS / r.stripe.com):** If you see errors like *"Access to fetch at 'https://r.stripe.com/b' from origin 'https://js.stripe.com' has been blocked by CORS policy"* or *"POST https://r.stripe.com/b net::ERR_FAILED"*, those come from **Stripe’s own script** (js.stripe.com) calling **Stripe’s servers** (r.stripe.com). Our app does not control those requests or their CORS headers, and **the payment flow is not affected**. To reduce noise in development: (1) use **test** keys (`pk_test_...`) in `VITE_STRIPE_PUBLISHABLE_KEY` and backend Stripe env vars for local dev, and (2) try disabling ad/tracking blockers for localhost or use a clean profile if the console is cluttered.
 
 ---
 
 ## 🎉 Status: Production Ready!
 
 **Phase 1, 2 & 3**: ✅ COMPLETE  
-**Tests**: 127/127 passing (100%)  
-**Features**: Auth, Notifications, Audit, RBAC, Payments, GDPR  
-**Ready to**: Build your business features NOW!
+**Stack**: Backend (Express, Prisma, PostgreSQL) + Frontend (React, Vite, Tailwind)  
+**Features**: Auth, OAuth, MFA, Notifications, Audit, RBAC, Payments, GDPR  
+**Ready to**: Build your business features on top of this template.
 
-See [PROJECT_STATUS.md](./docs/PROJECT_STATUS.md) for quick overview.
+See [PROJECT_STATUS.md](./docs/PROJECT_STATUS.md) for quick overview and [GETTING_STARTED.md](./docs/GETTING_STARTED.md) for detailed setup.
+
+---
+
+## 🧪 Testing
+
+From the **project root** you can run:
+
+| Command | Description |
+|--------|-------------|
+| `npm run test:e2e` | Run all Playwright E2E tests |
+| `npm run test:e2e:ui` | Run E2E tests with Playwright UI |
+| `npm run test:e2e:full-stack` | Run full-stack E2E tests |
+| `npm run test:e2e:auth` | Run auth-related E2E test |
+| `./scripts/test-all.sh` | Run backend, frontend, E2E, code quality, and documentation tests (full suite) |
+| `./scripts/test-quick.sh` | Run a subset of critical backend tests only |
+
+**Backend tests** (from `backend/`): `npm test`, `npm run test:coverage`  
+**Frontend tests** (from `frontend/`): `npm test`, `npm run test:coverage`
+
+See the **Testing commands** section at the bottom of this README for coverage commands that write logs.
 
 ---
 
@@ -223,8 +316,8 @@ See [PROJECT_STATUS.md](./docs/PROJECT_STATUS.md) for quick overview.
 
 ### Overall Status: **ALL 3 PHASES COMPLETE** 🎉
 
-**Total Tests**: 127/127 passing (100%)
-**Production Ready**: YES ✅
+**Backend**: 1110 tests, 94 suites (all passing)  
+**Production Ready**: YES ✅  
 **Enterprise Ready**: YES ✅
 
 ### Phase 4: Optional Enhancements ⏳ AS NEEDED
@@ -232,7 +325,6 @@ See [PROJECT_STATUS.md](./docs/PROJECT_STATUS.md) for quick overview.
 14. ⏳ File Storage & Uploads
 15. ⏳ Background Jobs
 16. ⏳ Caching Layer
-16. ⏳ GDPR Compliance
 
 ---
 
@@ -291,20 +383,18 @@ Your template is successful when:
 
 ## 📝 Current Status
 
-**Status**: Phase 1 Complete ✅
+**Status**: Phases 1–3 complete; full-stack template ✅
 
 **Completed**:
-- ✅ Strategic planning documents
-- ✅ Risk analysis
-- ✅ Module prioritization
-- ✅ Implementation roadmap
-- ✅ Tech stack decision (Node.js + Express + TypeScript + Prisma)
-- ✅ **Phase 1 Foundation** (Backend with auth, security, logging, testing)
+- ✅ Strategic planning documents and risk analysis
+- ✅ **Backend**: Phase 1 (Foundation), Phase 2 (Business features), Phase 3 (Payments, GDPR)
+- ✅ **Frontend**: React + Vite + Tailwind app with auth, dashboard, payments, GDPR, MFA, OAuth
+- ✅ E2E tests (Playwright), backend unit/integration tests, frontend tests
 
 **Next Steps**:
-- [ ] Test Phase 1 in a real project
-- [ ] Build Phase 2 (Email notifications, payments, RBAC)
-- [ ] Add frontend (Next.js)
+- [ ] Run backend and frontend locally (see **Running the Application** above)
+- [ ] Customize for your product (branding, features)
+- [ ] Deploy to your environment
 
 ---
 
@@ -367,16 +457,6 @@ When building the template:
 
 Good luck! 🚀
 
-Testing 
-
-# Frontend
-cd frontend && npm run test:coverage -- --reporter=verbose 2>&1 | tee ../tests/frontend-coverage-$(date +%Y%m%d-%H%M%S).log
-
-
-
-# Backend
-cd backend && npm run test:coverage -- --verbose 2>&1 | tee ../tests/backend-coverage-$(date +%Y%m%d-%H%M%S).log
----
 
 ## 🤖 IMPORTANT: AI Developer Guidelines
 
@@ -397,7 +477,7 @@ cd backend && npm run test:coverage -- --verbose 2>&1 | tee ../tests/backend-cov
 3. **Follow Database → Backend → Frontend order** - Never work backwards
 4. **Write tests FIRST** - Test-driven development only
 5. **Work on feature branches** - Never on main directly
-6. **All 880 tests must pass** - Before any commit
+6. **All 1110 backend tests must pass** - Before any commit
 7. **No shortcuts or corner-cutting** - This has caused disasters
 8. **Backup critical files** - Especially schema.prisma
 9. **Report problems immediately** - Don't try to fix silently
@@ -407,7 +487,7 @@ cd backend && npm run test:coverage -- --verbose 2>&1 | tee ../tests/backend-cov
 ```bash
 # AI MUST run this at start of EVERY coding session:
 cat backend/MANDATORY_CHECKLIST.md
-npm test 2>&1 | tail -5  # Must show 880 tests passing
+cd backend && npm test 2>&1 | tail -5  # Must show 1110 tests passing
 git status               # Must be clean
 ```
 
@@ -420,4 +500,13 @@ git status               # Must be clean
 
 **These rules exist because AI assistants have a documented history of cutting corners and breaking working code.**
 
+---
+---
+Testing commands DO NOT DELETE
+
+# Frontend
+cd frontend && npm run test:coverage -- --reporter=verbose 2>&1 | tee ../tests/frontend-coverage-$(date +%Y%m%d-%H%M%S).log
+
+# Backend
+cd backend && npm run test:coverage -- --verbose 2>&1 | tee ../tests/backend-coverage-$(date +%Y%m%d-%H%M%S).log
 ---

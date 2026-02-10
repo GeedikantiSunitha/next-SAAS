@@ -132,14 +132,27 @@ export const updateProfile = async (
     userAgent,
   });
 
-  // Create notification for profile update
+  // Create notification for profile update (in-app and email when user has email enabled)
+  const profileMessage = `Your profile information has been updated. Changes: ${changes.join(', ')}`;
   try {
     await createNotification({
       userId: updatedUser.id,
       type: 'INFO',
       channel: 'IN_APP',
       title: 'Profile Updated',
-      message: `Your profile information has been updated. Changes: ${changes.join(', ')}`,
+      message: profileMessage,
+      data: {
+        action: 'PROFILE_UPDATED',
+        changes: changes,
+        timestamp: new Date().toISOString(),
+      },
+    });
+    await createNotification({
+      userId: updatedUser.id,
+      type: 'INFO',
+      channel: 'EMAIL',
+      title: 'Profile Updated',
+      message: profileMessage,
       data: {
         action: 'PROFILE_UPDATED',
         changes: changes,

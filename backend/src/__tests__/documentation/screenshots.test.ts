@@ -10,8 +10,9 @@ import * as path from 'path';
 import { execSync } from 'child_process';
 
 describe('Documentation: Screenshots Validation', () => {
-  const screenshotsDir = path.join(__dirname, '../../../..', 'screenshots');
+  // From backend/src/__tests__/documentation: 4 levels up = project root
   const rootDir = path.join(__dirname, '../../../..');
+  const screenshotsDir = path.join(rootDir, 'screenshots');
 
   /**
    * Required screenshots for CodeCanyon
@@ -166,13 +167,17 @@ describe('Documentation: Screenshots Validation', () => {
   it('should have SCREENSHOTS.md documentation file', () => {
     const screenshotsMd = path.join(screenshotsDir, 'SCREENSHOTS.md');
     const rootScreenshotsMd = path.join(rootDir, 'SCREENSHOTS.md');
-    
-    const exists = fs.existsSync(screenshotsMd) || fs.existsSync(rootScreenshotsMd);
+    const docsScreenshotsMd = path.join(rootDir, 'docs', 'SCREENSHOTS.md');
+
+    const exists =
+      fs.existsSync(screenshotsMd) ||
+      fs.existsSync(rootScreenshotsMd) ||
+      fs.existsSync(docsScreenshotsMd);
 
     if (!exists) {
       throw new Error(
         'SCREENSHOTS.md not found. Create it to document your screenshots.\n' +
-        'Include descriptions for each screenshot.'
+        'Include descriptions for each screenshot. It may be at project root, in docs/, or in screenshots/.'
       );
     }
 

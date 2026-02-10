@@ -12,6 +12,12 @@ import {
   X,
   LogOut,
   User,
+  Trash2,
+  Mail,
+  Shield,
+  AlertTriangle,
+  Database,
+  Bug,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useToast } from '../../hooks/use-toast';
@@ -34,6 +40,12 @@ const navItems: NavItem[] = [
   { label: 'Audit Logs', path: '/admin/audit-logs', icon: FileText },
   { label: 'Feature Flags', path: '/admin/feature-flags', icon: Flag },
   { label: 'Payments', path: '/admin/payments', icon: CreditCard },
+  { label: 'Data Deletions', path: '/admin/data-deletions', icon: Trash2 },
+  { label: 'Data Retention', path: '/admin/data-retention', icon: Database },
+  { label: 'Security Dashboard', path: '/admin/security', icon: Shield },
+  { label: 'Security Incidents', path: '/admin/security-incidents', icon: AlertTriangle },
+  { label: 'Security Testing', path: '/admin/security-testing', icon: Bug },
+  { label: 'Newsletters', path: '/admin/newsletters', icon: Mail },
   { label: 'Settings', path: '/admin/settings', icon: Settings },
 ];
 

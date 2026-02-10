@@ -29,6 +29,11 @@ const Notifications = lazy(() => import('./pages/Notifications').then(m => ({ de
 const GdprSettings = lazy(() => import('./pages/GdprSettings').then(m => ({ default: m.GdprSettings })));
 const NewsletterSettings = lazy(() => import('./pages/NewsletterSettings').then(m => ({ default: m.NewsletterSettings })));
 const AdminNewsletters = lazy(() => import('./pages/admin/AdminNewsletters').then(m => ({ default: m.AdminNewsletters })));
+const AdminDataDeletions = lazy(() => import('./pages/admin/AdminDataDeletions').then(m => ({ default: m.AdminDataDeletions })));
+const AdminDataRetention = lazy(() => import('./pages/admin/AdminDataRetention').then(m => ({ default: m.AdminDataRetention })));
+const AdminSecurityDashboard = lazy(() => import('./pages/admin/AdminSecurityDashboard').then(m => ({ default: m.AdminSecurityDashboard })));
+const AdminSecurityIncidents = lazy(() => import('./pages/admin/AdminSecurityIncidents').then(m => ({ default: m.AdminSecurityIncidents })));
+const AdminVulnerabilityScanner = lazy(() => import('./pages/admin/AdminVulnerabilityScanner').then(m => ({ default: m.AdminVulnerabilityScanner })));
 const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
 const PaymentSettings = lazy(() => import('./pages/PaymentSettings').then(m => ({ default: m.PaymentSettings })));
 const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess').then(m => ({ default: m.PaymentSuccess })));
@@ -193,10 +198,50 @@ function App() {
                   }
                 />
                 <Route
+                  path="/admin/data-deletions"
+                  element={
+                    <AdminRoute>
+                      <AdminDataDeletions />
+                    </AdminRoute>
+                  }
+                />
+                <Route
                   path="/admin/newsletters"
                   element={
                     <AdminRoute>
                       <AdminNewsletters />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/data-retention"
+                  element={
+                    <AdminRoute>
+                      <AdminDataRetention />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/security"
+                  element={
+                    <AdminRoute>
+                      <AdminSecurityDashboard />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/security-incidents"
+                  element={
+                    <AdminRoute>
+                      <AdminSecurityIncidents />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/security-testing"
+                  element={
+                    <AdminRoute>
+                      <AdminVulnerabilityScanner />
                     </AdminRoute>
                   }
                 />

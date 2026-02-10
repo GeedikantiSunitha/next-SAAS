@@ -9,8 +9,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 describe('Code Quality: Package Validation', () => {
-  // Fix: __dirname is at src/__tests__/codeQuality, so '../../../../' gives project root
-  // Previously was '../../../../..' which gave one level too high
+  // From backend/src/__tests__/codeQuality: 4 levels up = project root (codeQuality -> __tests__ -> src -> backend -> root)
   const rootDir = path.join(__dirname, '../../../../');
 
   /**
@@ -100,8 +99,9 @@ describe('Code Quality: Package Validation', () => {
     const missing: string[] = [];
 
     requiredDocs.forEach(doc => {
-      const docPath = path.join(rootDir, doc);
-      if (!fileExists(docPath)) {
+      const atRoot = path.join(rootDir, doc);
+      const inDocs = path.join(rootDir, 'docs', doc);
+      if (!fileExists(atRoot) && !fileExists(inDocs)) {
         missing.push(doc);
       }
     });
@@ -109,7 +109,7 @@ describe('Code Quality: Package Validation', () => {
     if (missing.length > 0) {
       throw new Error(
         `Missing required documentation files:\n${missing.map(d => `  - ${d}`).join('\n')}\n\n` +
-        'These files are required for CodeCanyon submission.'
+        'These files are required for CodeCanyon submission. They may be at project root or in docs/.'
       );
     }
 

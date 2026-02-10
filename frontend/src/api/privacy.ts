@@ -4,7 +4,8 @@
 
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// Use same backend as auth (VITE_API_BASE_URL). Default 3001, not 5000.
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001').replace(/\/$/, '');
 
 export interface PrivacyCenterOverview {
   user: {
@@ -219,7 +220,7 @@ class PrivacyApi {
    * Request account deletion
    */
   async requestAccountDeletion(reason?: string): Promise<{ id: string; message: string }> {
-    const response = await this.axios.post('/gdpr/delete', { reason });
+    const response = await this.axios.post('/gdpr/deletion', { reason, deletionType: 'SOFT' });
     return response.data;
   }
 

@@ -31,8 +31,9 @@ describe('Encryption Integration Tests', () => {
   });
 
   describe('User Model Encryption', () => {
+    // Use unique email per run to avoid emailHash unique constraint (parallel tests / shared DB)
     const testUser = {
-      email: 'test@example.com',
+      email: `encryption-test-${Date.now()}-${Math.random().toString(36).slice(2, 9)}@example.com`,
       password: 'hashedPassword123',
       firstName: 'John',
       lastName: 'Doe',
@@ -95,7 +96,7 @@ describe('Encryption Integration Tests', () => {
     });
 
     it('should encrypt fields on update', async () => {
-      const newEmail = 'updated@example.com';
+      const newEmail = `updated-${Date.now()}-${Math.random().toString(36).slice(2, 9)}@example.com`;
       const newPhone = '+9876543210';
 
       const updated = await prisma.user.update({
@@ -182,10 +183,11 @@ describe('Encryption Integration Tests', () => {
 
   describe('Encryption with Transactions', () => {
     it('should maintain encryption in transactions', async () => {
+      const uniqueEmail = `transaction-${Date.now()}-${Math.random().toString(36).slice(2, 9)}@example.com`;
       const result = await prisma.$transaction(async (tx) => {
         const user = await tx.user.create({
           data: {
-            email: 'transaction@example.com',
+            email: uniqueEmail,
             password: 'hashedPassword',
             firstName: 'Trans',
             lastName: 'Action',
@@ -193,15 +195,16 @@ describe('Encryption Integration Tests', () => {
         });
 
         // Update within transaction
+        const updatedEmail = `updated-tx-${Date.now()}@example.com`;
         const updated = await tx.user.update({
           where: { id: user.id },
-          data: { email: 'updated-transaction@example.com' },
+          data: { email: updatedEmail },
         });
 
         return updated;
       });
 
-      expect(result.email).toBe('updated-transaction@example.com');
+      expect(result.email).toMatch(/^updated-tx-\d+@example\.com$/);
 
       // Clean up
       await prisma.user.delete({
@@ -212,12 +215,13 @@ describe('Encryption Integration Tests', () => {
 
   describe('Encryption Error Handling', () => {
     it('should handle encryption errors gracefully', async () => {
+      const uniqueEmail = `unencrypted-${Date.now()}-${Math.random().toString(36).slice(2, 9)}@example.com`;
       // Temporarily disable encryption
       process.env.ENCRYPTION_ENABLED = 'false';
 
       const user = await prisma.user.create({
         data: {
-          email: 'unencrypted@example.com',
+          email: uniqueEmail,
           password: 'hashedPassword',
           firstName: 'Unencrypted',
           lastName: 'User',
@@ -225,7 +229,7 @@ describe('Encryption Integration Tests', () => {
       });
 
       // Data should be stored as-is
-      expect(user.email).toBe('unencrypted@example.com');
+      expect(user.email).toBe(uniqueEmail);
 
       // Re-enable encryption
       process.env.ENCRYPTION_ENABLED = 'true';

@@ -597,5 +597,105 @@ if (response.status === 401) {
 
 ---
 
-**Last Updated**: December 23, 2025  
-**Version**: 2.0.0
+## End-to-End Auth Flow (Implementation Reference)
+
+This section describes **how** auth works in code so you can fix issues (e.g. "Invalid credentials", 401 on `/me`) without guessing.
+
+### 1. Frontend → Backend (Cookies, No localStorage)
+
+- **API base**: Frontend uses **Vite** env: `VITE_API_BASE_URL` (e.g. `http://localhost:3001`). See `frontend/src/api/client.ts` — `baseURL: import.meta.env.VITE_API_BASE_URL || ''`. If empty, requests go to same origin (Vite dev server); with Vite proxy `/api` → `http://localhost:3001`, that works. If set to `http://localhost:3001`, requests go directly to backend; cookies still work if CORS and cookie domain are correct. All auth requests use **credentials** (`withCredentials: true`) so cookies are sent.
+- **Login**: `POST /api/auth/login` with `{ email, password }`. Backend sets **HTTP-only** cookies: `accessToken`, `refreshToken`. Response body has `{ success, data: user }` (no token in body).
+- **Session check**: On app load, frontend calls `GET /api/auth/me`. Backend reads `accessToken` from cookie, validates JWT, loads user by `userId`, returns user or 401.
+- **401 on `/me` when not logged in**: Normal. No cookie or invalid/expired token → 401. Frontend sets `user = null`. Not a bug.
+- **Refresh**: When access token expires, frontend can call `POST /api/auth/refresh` (with `refreshToken` cookie). Backend issues new `accessToken` cookie.
+
+**Key files**: `frontend/src/api/auth.ts`, `frontend/src/api/client.ts` (withCredentials), `frontend/src/contexts/AuthContext.tsx` (checkAuth on mount, login sets user).
+
+### 2. Backend Auth Route → Auth Service
+
+- **Login route**: `backend/src/routes/auth.ts` → `POST /login` normalizes email (`trim`, `toLowerCase`), then calls `authService.login(email, password, ipAddress, userAgent)`.
+- **Auth service**: `backend/src/services/authService.ts`:
+  - **Login**: Finds user by email, checks password with bcrypt, creates session, returns user. If user not found → `UnauthorizedError('Invalid credentials')` → 401.
+  - **getUserById**: Used by `/me` and refresh; loads user by `id` from JWT. If not found → 401 "User not found".
+
+### 3. User Lookup When Encryption Is On (Critical)
+
+With **application-level encryption** (`ENCRYPTION_ENABLED=true` in `backend/.env`):
+
+- **Email is encrypted at rest**. The DB stores encrypted `email` and a searchable **`emailHash`** (SHA-256 of normalized email).
+- **Login must find user by `emailHash`**, not plain `email`. The auth service uses **`findUserByEncryptedEmail(prisma, email)`** from `backend/src/middleware/encryptionMiddleware.ts`:
+  - If encryption disabled: `prisma.user.findUnique({ where: { email } })`.
+  - If encryption enabled: `emailHash = encryptionService.hash(email)` then `prisma.user.findFirst({ where: { emailHash } })`.
+- **Same helper** is used for: **login**, **register** (check existing email), **forgot-password** (find user by email). Do **not** replace these with raw `prisma.user.findUnique({ where: { email } })` when encryption is on, or login will return 401 even with correct password.
+
+**Hash consistency**: `encryptionService.hash(value)` = `crypto.createHash('sha256').update(value).digest('hex')`. Demo seed uses the same for `emailHash`: normalize email (`trim`, `toLowerCase`) then same SHA-256 hex.
+
+### 4. Demo Users and `emailHash`
+
+- **Demo accounts** (Login page): `demo@example.com`, `demo-admin@example.com`, `demo-superadmin@example.com` — created by **`npm run seed:demo-users`** in `backend`.
+- **Seed script**: `backend/prisma/seed.demo-users.ts`. It **must** set **`emailHash`** for each user (same hash as above). If encryption is on and `emailHash` is null or wrong, login returns "Invalid credentials".
+- **When to re-run**: After DB reset, or after running another seed (e.g. `npm run seed` or `npm run seed:demo`) that creates/updates users **without** `emailHash`. Always run:
+
+  ```bash
+  cd backend && npm run seed:demo-users
+  ```
+
+  Then restart backend and try login again.
+
+### 5. Cookie and JWT Flow (Backend)
+
+- **Login**: `authService.login` → create session in DB → `generateTokens(userId)` → set cookies (`accessToken`, `refreshToken`) via `res.cookie(..., getCookieOptions(...))`.
+- **/me**: Auth middleware reads cookie, verifies JWT, sets `req.user = { id: userId }`. Route calls `authService.getUserById(req.user.id)` → `prisma.user.findUnique({ where: { id } })` (no email lookup).
+- **Refresh**: Reads `refreshToken` cookie, looks up session in DB, issues new access token, sets new `accessToken` cookie.
+- **Logout**: Deletes session, clears cookies.
+
+### 6. Quick Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|--------|----------------|-----|
+| **POST /api/auth/login → 401 "Invalid credentials"** | User not found by email (often encryption + missing/wrong `emailHash`). | 1) Run `cd backend && npm run seed:demo-users`. 2) Ensure auth service uses `findUserByEncryptedEmail` for login (see `authService.login`). 3) Restart backend. |
+| **GET /api/auth/me → 401 when not logged in** | No cookie or expired/invalid token. | Expected. After successful login, `/me` should 200. |
+| **GET /api/auth/me → 401 after login** | Token valid but `getUserById` returns null (e.g. user deleted, or wrong DB). | Check user exists by id; check backend uses same DB as seed. |
+| **Login works then stops** | Another seed or migration recreated users without `emailHash`. | Re-run `npm run seed:demo-users` and restart backend. |
+| **"Invalid credentials" with correct password** | Email lookup fails: encryption on but lookup by plain email, or `emailHash` not set. | Use `findUserByEncryptedEmail` for login path; ensure demo seed sets `emailHash`; re-run seed. |
+| **Auth breaks after unrelated code changes** | **Root cause**: With encryption on, login looks up by `emailHash`. If any seed or app path created/updated users without setting `emailHash`, those users get 401. **Fix**: All user create/update paths now set `emailHash` (authService, adminUserService, oauthService, seed.ts, seed.demo.ts). If auth still fails, check cookie/CORS and `VITE_API_BASE_URL`. | See "Why auth breaks after unrelated changes" (§7). |
+
+### 7. Why auth breaks after unrelated changes (root cause)
+
+Auth often "breaks" after changes that **don’t touch** auth code (e.g. new GDPR route, new frontend page). The **root cause** is usually:
+
+**Encryption + missing `emailHash`**
+
+- With `ENCRYPTION_ENABLED=true`, login finds users by **`emailHash`** (SHA-256 of normalized email), not plain email.
+- If any code path creates or updates a user **without** setting `emailHash`, that user cannot log in (401 "Invalid credentials").
+- **What was going wrong**: Only `seed.demo-users.ts` set `emailHash`. The main seed (`seed.ts`), `seed.demo.ts`, `authService.register`, `adminUserService.createUser`, and `oauthService.createOrUpdateUserFromOAuth` did **not** set `emailHash`. So after running `npm run seed` or `npm run seed:demo`, or after registering a new user or creating a user via admin/OAuth, those users had `emailHash = null` and login failed.
+
+**Permanent fix (implemented)**
+
+- Every place that creates or updates a user with an email now sets `emailHash` using the same format: normalize email (`trim().toLowerCase()`), then SHA-256 hex (same as `findUserByEncryptedEmail`).
+- **Updated files**: `authService.ts` (register), `adminUserService.ts` (create + update when email changes), `oauthService.ts` (create OAuth user), `prisma/seed.ts`, `prisma/seed.demo.ts`.
+- You no longer need to re-run `seed:demo-users` after other changes; any seed or app path that creates/updates users sets `emailHash` correctly.
+
+**Other possible causes (if auth still fails)**
+
+1. **Cookie / CORS**: Wrong `COOKIE_DOMAIN` or `FRONTEND_URL` → fix env (e.g. `FRONTEND_URL=http://localhost:3000`, `COOKIE_SECURE=false` for HTTP).
+2. **Frontend API base URL**: Wrong or missing `VITE_API_BASE_URL` → set in `frontend/.env` or use Vite proxy.
+3. **Auth code unchanged**: If none of the auth files were changed, the bug is usually env or one of the above.
+
+### 8. File Reference
+
+| Purpose | File |
+|--------|------|
+| Login/register/me/refresh routes | `backend/src/routes/auth.ts` |
+| Login logic, getUserById, find user by email | `backend/src/services/authService.ts` |
+| Encrypted-email lookup (use for login when encryption on) | `backend/src/middleware/encryptionMiddleware.ts` → `findUserByEncryptedEmail` |
+| Hash implementation | `backend/src/services/encryptionService.ts` → `hash(value)` |
+| Demo users seed (sets emailHash) | `backend/prisma/seed.demo-users.ts` |
+| Frontend auth API | `frontend/src/api/auth.ts` |
+| Frontend auth state & checkAuth | `frontend/src/contexts/AuthContext.tsx` |
+| API client (withCredentials) | `frontend/src/api/client.ts` |
+
+---
+
+**Last Updated**: February 2026  
+**Version**: 2.1.0

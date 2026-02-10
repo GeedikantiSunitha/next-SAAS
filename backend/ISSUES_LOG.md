@@ -703,3 +703,36 @@ npm test src/__tests__/auth.test.ts
 *The issue demonstrates why schema changes are HIGH RISK operations requiring extreme care.*
 
 *Logged: January 23, 2026 03:00*
+
+---
+
+## Manual Test Round 4 – Fix #8 (GDPR Download Link, 7.1.2)
+
+### Issue: Frontend test expected link with href after UI changed to button
+**Severity**: Low  
+**Impact**: DataExport.test.tsx failed (expected `<a href={downloadUrl}>`, got button)  
+**Root Cause**: We changed the download UI from `<a href={downloadUrl}>` to a **Button** that triggers credentialed `fetch()` so cookies are sent when API is on another origin. The test still asserted on a link with `href` and `download`.  
+**Resolution**: Updated test to expect `getByRole('button', { name: /download data export/i })` and `getByTestId('export-download-section')` instead of a link.  
+**Lesson**: When changing UI from link to button (or vice versa), update tests to match the new element and behaviour; avoid asserting on implementation details that have intentionally changed.
+
+*Logged: February 5, 2026*
+
+---
+
+## Root cause: Auth breaks after unrelated changes (emailHash)
+
+### Issue: Login fails after running seed or other changes; had to re-seed demo-users every time
+**Severity**: High  
+**Impact**: With `ENCRYPTION_ENABLED=true`, login returned 401 "Invalid credentials" for users created by `npm run seed`, `npm run seed:demo`, or by register/admin/OAuth. Only users from `seed:demo-users` could log in.  
+**Root Cause**: With encryption on, login finds users by **`emailHash`** (SHA-256 of normalized email), not plain email. Only `seed.demo-users.ts` set `emailHash` when creating/updating users. All other paths did **not** set `emailHash`:
+- `prisma/seed.ts` (npm run seed) – creates users without emailHash; also deletes all users first.
+- `prisma/seed.demo.ts` (npm run seed:demo) – upserts users without emailHash.
+- `authService.register` – created user without emailHash (new registrations couldn’t log in).
+- `adminUserService.createUser` / `updateUser` (email change) – no emailHash.
+- `oauthService.createOrUpdateUserFromOAuth` – created OAuth user without emailHash.
+
+So after any `npm run seed`, `npm run seed:demo`, or new signup/admin-created user/OAuth user, those users had `emailHash = null` and login failed.  
+**Resolution**: Every code path that creates or updates a user with an email now sets `emailHash` using the same format: normalize email (`trim().toLowerCase()`), then SHA-256 hex (via `getEncryptionService().hash()` in app code, or same formula in seed scripts). Updated: `authService.ts`, `adminUserService.ts`, `oauthService.ts`, `prisma/seed.ts`, `prisma/seed.demo.ts`.  
+**Lesson**: When login depends on a derived field (e.g. `emailHash` for encrypted-email lookup), **every** place that creates or updates that record must set the field. Relying on a single seed (`seed:demo-users`) is fragile; fix all seeds and app code so you don’t have to re-seed after each change.
+
+*Logged: February 5, 2026*

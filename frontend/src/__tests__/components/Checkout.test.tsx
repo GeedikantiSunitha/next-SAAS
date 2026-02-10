@@ -47,8 +47,20 @@ const mockCreatePaymentMutation = {
   reset: vi.fn(),
 };
 
+const mockCapturePaymentMutation = {
+  mutate: vi.fn(),
+  mutateAsync: vi.fn().mockResolvedValue(undefined),
+  isPending: false,
+  isError: false,
+  isSuccess: false,
+  error: null,
+  data: null,
+  reset: vi.fn(),
+};
+
 vi.mock('../../hooks/usePayments', () => ({
   useCreatePayment: vi.fn(() => mockCreatePaymentMutation),
+  useCapturePayment: vi.fn(() => mockCapturePaymentMutation),
 }));
 
 // Import component after mocks

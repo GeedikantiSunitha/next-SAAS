@@ -159,6 +159,12 @@ export class FieldEncryptionService {
 
       // Extract components
       const prefixLength = this.prefix.length;
+      const minLength = prefixLength + this.ivLength + this.tagLength + 1;
+
+      if (combined.length < minLength) {
+        throw new Error('Field decryption failed: invalid or tampered payload length');
+      }
+
       const prefix = combined.slice(0, prefixLength).toString();
 
       if (prefix !== this.prefix) {

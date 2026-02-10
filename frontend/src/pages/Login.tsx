@@ -34,12 +34,25 @@ export const Login = () => {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     mode: 'onBlur', // Validate on blur for better UX
     reValidateMode: 'onChange', // Re-validate on change after first submit
   });
+
+  // Demo accounts (must match backend seed: npm run seed:demo-users)
+  const DEMO_ACCOUNTS = [
+    { label: 'User', email: 'demo@example.com', password: 'DemoUser123!' },
+    { label: 'Admin', email: 'demo-admin@example.com', password: 'DemoAdmin123!' },
+    { label: 'Super Admin', email: 'demo-superadmin@example.com', password: 'DemoSuperAdmin123!' },
+  ] as const;
+  const fillDemo = (email: string, password: string) => {
+    setValue('email', email);
+    setValue('password', password);
+    setError(null);
+  };
 
   // Redirect if already authenticated (use useEffect to handle async state updates)
   // Only redirect if not currently submitting (to avoid redirect during form submission)
@@ -204,6 +217,30 @@ export const Login = () => {
         </form>
 
         <OAuthButtons mode="login" onSuccess={() => navigate('/dashboard', { replace: true })} />
+
+        <div className="rounded-lg border border-dashed border-muted-foreground/40 bg-muted/30 p-4 space-y-3">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Demo logins</p>
+          <p className="text-sm text-muted-foreground">Run <code className="text-xs bg-muted px-1 rounded">npm run seed:demo-users</code> in backend to create these accounts. If you get &quot;Invalid credentials&quot;, ensure the backend is running and re-run the seed.</p>
+          <ul className="space-y-2 text-sm">
+            {DEMO_ACCOUNTS.map(({ label, email, password }) => (
+              <li key={email} className="flex flex-wrap items-center gap-2">
+                <span className="font-medium text-foreground w-24">{label}:</span>
+                <span className="text-muted-foreground">{email}</span>
+                <span className="text-muted-foreground">/</span>
+                <span className="text-muted-foreground">{password}</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => fillDemo(email, password)}
+                >
+                  Fill
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
 
         <div className="text-center text-sm space-y-2">
           <div>

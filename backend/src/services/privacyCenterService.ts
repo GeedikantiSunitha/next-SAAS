@@ -195,7 +195,7 @@ export async function getPrivacyOverview(userId: string): Promise<PrivacyOvervie
         status: e.status,
         requestedAt: e.requestedAt,
         completedAt: e.completedAt,
-        downloadUrl: e.status === 'COMPLETED' ? `/api/gdpr/export/download/${e.id}` : null,
+        downloadUrl: e.status === 'COMPLETED' ? `/api/gdpr/exports/${e.id}/download` : null,
       })),
       deletions: deletions.map(d => ({
         id: d.id,

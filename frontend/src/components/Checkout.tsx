@@ -10,7 +10,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { loadStripe, StripeElementsOptions } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { useCreatePayment } from '../hooks/usePayments';
+import { useCreatePayment, useCapturePayment } from '../hooks/usePayments';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -27,6 +27,10 @@ const checkoutSchema = z.object({
 
 type CheckoutFormData = z.infer<typeof checkoutSchema>;
 
+// Stripe Elements requires amount > 0 or it throws IntegrationError on mount.
+// Use a nonzero default; the real amount is set when the user submits.
+export const DEFAULT_STRIPE_ELEMENTS_AMOUNT = 100;
+
 // Initialize Stripe with publishable key
 // Note: VITE_STRIPE_PUBLISHABLE_KEY must be set in environment variables
 const stripePromise = loadStripe(
@@ -38,6 +42,7 @@ const CheckoutForm = () => {
   const stripe = useStripe();
   const elements = useElements();
   const createPayment = useCreatePayment();
+  const capturePayment = useCapturePayment();
   const [isProcessing, setIsProcessing] = useState(false);
 
   const {
@@ -99,12 +104,25 @@ const CheckoutForm = () => {
           description: error.message || 'Payment could not be processed.',
           variant: 'error',
         });
-      } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+      } else if (paymentIntent && (paymentIntent.status === 'succeeded' || paymentIntent.status === 'requires_capture')) {
+        // With manual capture, Stripe returns requires_capture; call backend to capture so DB shows SUCCEEDED
+        try {
+          await capturePayment.mutateAsync({ id: payment.id });
+        } catch (captureErr: any) {
+          const errMsg = String(captureErr?.response?.data?.error || captureErr?.response?.data?.message || '').toLowerCase();
+          if (captureErr?.response?.status !== 400 || !errMsg.includes('already captured')) {
+            toast({
+              title: 'Capture failed',
+              description: captureErr?.message || 'Payment confirmed but capture failed.',
+              variant: 'error',
+            });
+            return;
+          }
+        }
         toast({
           title: 'Payment successful!',
           description: `Your payment of ${data.currency} ${data.amount} has been processed.`,
         });
-        // Redirect or show success page
         window.location.href = `/payments/success?payment_id=${payment.id}`;
       }
     } catch (error: any) {
@@ -208,7 +226,7 @@ export const Checkout = () => {
   const options: StripeElementsOptions = {
     mode: 'payment',
     currency: 'usd',
-    amount: 0, // Amount will be set dynamically when payment is created
+    amount: DEFAULT_STRIPE_ELEMENTS_AMOUNT,
   };
 
   return (

@@ -3,6 +3,8 @@ import jwt, { SignOptions } from 'jsonwebtoken';
 import crypto from 'crypto';
 import { prisma } from '../config/database';
 import config from '../config';
+import { findUserByEncryptedEmail } from '../middleware/encryptionMiddleware';
+import { getEncryptionService } from './encryptionService';
 import { ConflictError, UnauthorizedError, NotFoundError, ValidationError } from '../utils/errors';
 import { shouldRejectPassword, checkPasswordStrength } from '../utils/passwordStrength';
 import { sendPasswordResetEmail } from './emailService';
@@ -93,10 +95,8 @@ export const register = async (
     throw new ForbiddenError('Registration is currently disabled');
   }
 
-  // Check if user already exists (email must be unique)
-  const existingUser = await prisma.user.findUnique({
-    where: { email },
-  });
+  // Check if user already exists (use emailHash lookup when encryption is on)
+  const existingUser = await findUserByEncryptedEmail(prisma, email);
 
   if (existingUser) {
     throw new ConflictError('Email already registered');
@@ -114,10 +114,15 @@ export const register = async (
   // Hash password using bcrypt (12 rounds for security/performance balance)
   const hashedPassword = await hashPassword(password);
 
+  // Set emailHash so login works when ENCRYPTION_ENABLED=true (login looks up by emailHash)
+  const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : email;
+  const emailHash = getEncryptionService().hash(normalizedEmail);
+
   // Create user
   const user = await prisma.user.create({
     data: {
       email,
+      emailHash,
       password: hashedPassword,
       name,
     },
@@ -181,10 +186,8 @@ export const login = async (
   ipAddress?: string,
   userAgent?: string
 ) => {
-  // Find user by email (case-insensitive lookup handled by Prisma)
-  const user = await prisma.user.findUnique({
-    where: { email },
-  });
+  const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : email;
+  const user = await findUserByEncryptedEmail(prisma, normalizedEmail);
 
   if (!user) {
     // Generic error message to prevent email enumeration attacks
@@ -379,16 +382,11 @@ export const forgotPassword = async (email: string) => {
     throw new ForbiddenError('Password reset is currently disabled');
   }
 
-  // Find user by email
-  const user = await prisma.user.findUnique({
-    where: { email },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      isActive: true,
-    },
-  });
+  // Find user by email (use emailHash lookup when encryption is on)
+  const found = await findUserByEncryptedEmail(prisma, email);
+  const user = found
+    ? { id: found.id, email: found.email, name: found.name, isActive: found.isActive }
+    : null;
 
   // Security: Always return success to prevent email enumeration
   // Only send email if user exists and is active
@@ -526,14 +524,26 @@ export const resetPassword = async (token: string, newPassword: string) => {
     email: passwordReset.user.email,
   });
 
-  // Create notification for password reset
+  // Create notification for password reset (in-app and email when user has email enabled)
+  const passwordResetMessage = 'Your password has been successfully reset. If you did not make this change, please contact support immediately.';
   try {
     await createNotification({
       userId: passwordReset.userId,
       type: 'SUCCESS',
       channel: 'IN_APP',
       title: 'Password Reset Successful',
-      message: 'Your password has been successfully reset. If you did not make this change, please contact support immediately.',
+      message: passwordResetMessage,
+      data: {
+        action: 'PASSWORD_RESET',
+        timestamp: new Date().toISOString(),
+      },
+    });
+    await createNotification({
+      userId: passwordReset.userId,
+      type: 'SUCCESS',
+      channel: 'EMAIL',
+      title: 'Password Reset Successful',
+      message: passwordResetMessage,
       data: {
         action: 'PASSWORD_RESET',
         timestamp: new Date().toISOString(),

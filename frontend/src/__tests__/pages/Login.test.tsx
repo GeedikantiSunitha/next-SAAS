@@ -163,7 +163,7 @@ describe('Login Page', () => {
     await user.click(submitButton);
 
     await waitFor(() => {
-      expect(screen.getByText(/invalid credentials/i)).toBeInTheDocument();
+      expect(screen.getByTestId('error-message')).toHaveTextContent(/invalid credentials/i);
     }, { timeout: 3000 });
   });
 

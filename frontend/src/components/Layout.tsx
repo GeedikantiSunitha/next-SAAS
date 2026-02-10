@@ -31,6 +31,7 @@ export const Layout = ({ children, showHeader = true, showFooter = true }: Layou
         <Header
           isAuthenticated={isAuthenticated}
           userEmail={user?.email}
+          userRole={user?.role}
           onLogout={handleLogout}
         />
       )}

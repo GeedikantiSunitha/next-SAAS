@@ -48,26 +48,7 @@ router.post(
   }
 );
 
-// GET /api/admin/consent-versions/:consentType
-router.get('/:consentType', async (req: Request, res: Response): Promise<Response> => {
-  const consentType = req.params.consentType;
-
-  // Validate consent type
-  if (!Object.values(ConsentType).includes(consentType as ConsentType)) {
-    return res.status(400).json({
-      success: false,
-      error: 'Invalid consent type'
-    });
-  }
-
-  try {
-    const versions = await consentVersionService.getConsentVersions(consentType as ConsentType);
-    return res.json({ success: true, data: versions });
-  } catch (error: any) {
-    return res.status(500).json({ success: false, error: error.message });
-  }
-});
-
+// More specific paths first so Express matches /:consentType/active before /:consentType
 // GET /api/admin/consent-versions/:consentType/active
 router.get('/:consentType/active', async (req: Request, res: Response): Promise<Response> => {
   const consentType = req.params.consentType;
@@ -113,6 +94,26 @@ router.get('/:consentType/users-needing-reconsent', async (req: Request, res: Re
       count: users.length,
       data: users
     });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// GET /api/admin/consent-versions/:consentType
+router.get('/:consentType', async (req: Request, res: Response): Promise<Response> => {
+  const consentType = req.params.consentType;
+
+  // Validate consent type
+  if (!Object.values(ConsentType).includes(consentType as ConsentType)) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid consent type'
+    });
+  }
+
+  try {
+    const versions = await consentVersionService.getConsentVersions(consentType as ConsentType);
+    return res.json({ success: true, data: versions });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error.message });
   }

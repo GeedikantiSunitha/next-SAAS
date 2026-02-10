@@ -203,15 +203,15 @@ export const AcceptableUse = () => {
           <section className="mt-12 pt-8 border-t border-gray-300">
             <p className="text-sm text-gray-600">
               Related Policies:{' '}
-              <Link to="/legal/privacy" className="text-indigo-600 hover:underline">
+              <Link to="/privacy-policy" className="text-indigo-600 hover:underline">
                 Privacy Policy
               </Link>
               {' | '}
-              <Link to="/legal/terms" className="text-indigo-600 hover:underline">
+              <Link to="/terms" className="text-indigo-600 hover:underline">
                 Terms of Service
               </Link>
               {' | '}
-              <Link to="/legal/cookies" className="text-indigo-600 hover:underline">
+              <Link to="/cookie-policy" className="text-indigo-600 hover:underline">
                 Cookie Policy
               </Link>
             </p>

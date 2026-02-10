@@ -19,6 +19,12 @@ const statusColors: Record<string, string> = {
   PARTIALLY_REFUNDED: 'bg-orange-100 text-orange-800',
 };
 
+/** API returns amount in smallest unit (cents for USD). Display in major units. */
+function formatPaymentAmount(amount: number, currency: string): string {
+  const major = Number(amount) / 100;
+  return `${currency} ${major.toFixed(2)}`;
+}
+
 export const PaymentHistory = () => {
   const { data, isLoading, error } = usePayments();
 
@@ -56,6 +62,9 @@ export const PaymentHistory = () => {
     );
   }
 
+  // Backend returns totalCount; support optional pagination.total
+  const total = data.totalCount ?? data.pagination?.total ?? data.payments.length;
+
   return (
     <Card>
       <CardHeader>
@@ -64,7 +73,7 @@ export const PaymentHistory = () => {
           Payment History
         </CardTitle>
         <CardDescription>
-          {data.pagination.total} payment{data.pagination.total !== 1 ? 's' : ''} found
+          {total} payment{total !== 1 ? 's' : ''} found
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -88,7 +97,7 @@ export const PaymentHistory = () => {
                     <div className="flex items-center gap-2">
                       <DollarSign className="h-4 w-4" />
                       <span>
-                        {payment.currency} {Number(payment.amount).toFixed(2)}
+                        {formatPaymentAmount(Number(payment.amount), payment.currency)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">

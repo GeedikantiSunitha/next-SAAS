@@ -8,6 +8,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { vi } from 'vitest';
+import { AuthProvider } from '../../contexts/AuthContext';
 import PrivacyCenter from '../../pages/PrivacyCenter';
 import { privacyApi } from '../../api/privacy';
 
@@ -24,7 +25,7 @@ vi.mock('../../api/privacy', () => ({
   },
 }));
 
-// Helper to wrap component with providers
+// Helper to wrap component with providers (Layout uses useAuth, so AuthProvider is required)
 const renderWithProviders = (component: React.ReactElement) => {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -36,7 +37,9 @@ const renderWithProviders = (component: React.ReactElement) => {
   return render(
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        {component}
+        <AuthProvider>
+          {component}
+        </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
   );

@@ -13,6 +13,15 @@ import { useState, useEffect, useRef } from 'react';
 import { gdprApi, type CookiePreferences } from '../../api/gdpr';
 
 const COOKIE_VERSION = '1.0.0';
+const STORAGE_KEY = 'cookie_consent';
+
+const setStoredConsent = (preferences: CookiePreferences) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...preferences, version: COOKIE_VERSION }));
+  } catch {
+    // ignore
+  }
+};
 
 interface CookiePreferenceCenterProps {
   isOpen: boolean;
@@ -109,10 +118,11 @@ export const CookiePreferenceCenter = ({ isOpen, onClose, onSave }: CookiePrefer
         ...preferences,
         version: COOKIE_VERSION,
       });
+      setStoredConsent(preferences);
       onSave();
-    } catch (error) {
-      console.error('Failed to save cookie preferences:', error);
+    } catch {
       setError('Failed to save preferences. Please try again.');
+      // Do not call onSave() when API fails so parent knows save did not succeed
     } finally {
       setSaving(false);
     }

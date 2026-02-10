@@ -203,11 +203,11 @@ export const useRequestExport = () => {
   return useMutation({
     mutationFn: () => gdprApi.requestExport(),
     onSuccess: (data) => {
-      // Invalidate exports list
+      // Invalidate exports list so Download button appears when COMPLETED
       queryClient.invalidateQueries({ queryKey: gdprKeys.exports() });
       toast({
         title: 'Success',
-        description: data.message || 'Data export requested successfully',
+        description: (data.message || 'Data export generated.') + ' Download your data from Privacy Center → Data Export (or the Download button below).',
       });
     },
     onError: (error: any) => {

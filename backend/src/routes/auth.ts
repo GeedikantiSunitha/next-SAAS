@@ -335,7 +335,8 @@ router.post(
     body('password').notEmpty().withMessage('Password is required'),
   ]),
   asyncHandler(async (req, res) => {
-    const { email, password } = req.body;
+    const { email: rawEmail, password } = req.body;
+    const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : rawEmail;
     const ipAddress = getClientIp(req) || undefined;
     const userAgent = req.headers['user-agent'];
 
@@ -1022,6 +1023,9 @@ router.post(
     }
 
     try {
+      // redirect_uri must match the URL used in the authorize request (frontend)
+      const redirectUri = `${config.frontendUrl}/oauth/github/callback`;
+
       // Exchange code for access token
       const axios = require('axios');
       const tokenResponse = await axios.post(
@@ -1030,18 +1034,21 @@ router.post(
           client_id: githubClientId,
           client_secret: githubClientSecret,
           code,
+          redirect_uri: redirectUri,
         },
         {
           headers: {
             Accept: 'application/json',
+            'Content-Type': 'application/json',
           },
         }
       );
 
       if (tokenResponse.data.error) {
+        const msg = tokenResponse.data.error_description || tokenResponse.data.error || 'Failed to exchange GitHub code';
         res.status(400).json({
           success: false,
-          error: tokenResponse.data.error_description || 'Failed to exchange GitHub code',
+          error: msg,
         });
         return;
       }

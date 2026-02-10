@@ -5,10 +5,12 @@
  */
 
 import { prisma } from '../config/database';
+import config from '../config';
 import { DataExportStatus, DataDeletionStatus, DeletionType, ConsentType } from '@prisma/client';
 import logger from '../utils/logger';
-import { AppError, NotFoundError } from '../utils/errors';
+import { AppError, NotFoundError, ForbiddenError } from '../utils/errors';
 import { createAuditLog } from './auditService';
+import { sendDataDeletionRequestConfirmationEmail } from './emailService';
 import crypto from 'crypto';
 
 /**
@@ -218,6 +220,49 @@ export const requestDataDeletion = async (
       resourceId: deletionRequest.id,
       details: { deletionType, reason },
     });
+
+    // Send confirmation email (7.2) with link to confirm deletion request
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true, name: true },
+      });
+      if (user?.email) {
+        const confirmationLink = `${config.frontendUrl.replace(/\/$/, '')}/gdpr?confirmDeletion=${confirmationToken}`;
+        // Dev override: Resend sandbox only delivers to your Resend account email or delivered@resend.dev
+        const overrideTo = process.env.GDPR_CONFIRMATION_EMAIL_OVERRIDE?.trim();
+        const toEmail = overrideTo || user.email;
+        if (overrideTo) {
+          logger.info('Using GDPR confirmation email override (dev)', {
+            originalTo: user.email,
+            overrideTo,
+            requestId: deletionRequest.id,
+          });
+        }
+        await sendDataDeletionRequestConfirmationEmail({
+          to: toEmail,
+          name: user.name ?? undefined,
+          confirmationLink,
+        });
+        logger.info('Data deletion confirmation email sent', {
+          userId,
+          requestId: deletionRequest.id,
+          to: toEmail,
+        });
+      }
+    } catch (emailError: any) {
+      const msg = emailError?.message ?? String(emailError);
+      const isResendSandbox =
+        /only send|your own email|delivered@resend|recipient|domain/i.test(msg);
+      logger.warn('Data deletion confirmation email failed (request still created)', {
+        userId,
+        requestId: deletionRequest.id,
+        error: msg,
+        ...(isResendSandbox && {
+          hint: 'Resend sandbox (onboarding@resend.dev) only allows sending to your Resend account email or delivered@resend.dev. Use a user with that email to test, or verify a domain at resend.com.',
+        }),
+      });
+    }
 
     logger.info('Data deletion requested', {
       userId,
@@ -495,11 +540,120 @@ export const getUserExportRequests = async (userId: string) => {
 };
 
 /**
+ * Get export data as JSON string for download (validates ownership, status, expiry).
+ * Used by GET /api/gdpr/exports/:id/download.
+ */
+export const getExportDataForDownload = async (
+  requestId: string,
+  userId: string
+): Promise<string> => {
+  const request = await prisma.dataExportRequest.findUnique({
+    where: { id: requestId },
+  });
+
+  if (!request) {
+    throw new NotFoundError('Export request not found');
+  }
+
+  if (request.userId !== userId) {
+    throw new ForbiddenError('You do not have access to this export');
+  }
+
+  if (request.status !== DataExportStatus.COMPLETED) {
+    throw new AppError('Export is not ready for download', 400);
+  }
+
+  if (request.expiresAt && request.expiresAt < new Date()) {
+    throw new AppError('Download link has expired', 410);
+  }
+
+  const [
+    user,
+    sessions,
+    auditLogs,
+    notifications,
+    payments,
+    subscriptions,
+    consentRecords,
+  ] = await Promise.all([
+    prisma.user.findUnique({ where: { id: request.userId } }),
+    prisma.session.findMany({ where: { userId: request.userId } }),
+    prisma.auditLog.findMany({ where: { userId: request.userId } }),
+    prisma.notification.findMany({ where: { userId: request.userId } }),
+    prisma.payment.findMany({ where: { userId: request.userId }, include: { refunds: true } }),
+    prisma.subscription.findMany({ where: { userId: request.userId } }),
+    prisma.consentRecord.findMany({ where: { userId: request.userId } }),
+  ]);
+
+  const exportData = {
+    user: {
+      id: user?.id,
+      email: user?.email,
+      name: user?.name,
+      role: user?.role,
+      createdAt: user?.createdAt,
+      updatedAt: user?.updatedAt,
+    },
+    sessions: sessions.map(s => ({
+      id: s.id,
+      createdAt: s.createdAt,
+      expiresAt: s.expiresAt,
+      userAgent: s.userAgent,
+      ipAddress: s.ipAddress,
+    })),
+    auditLogs: auditLogs.map(a => ({
+      action: a.action,
+      resource: a.resource,
+      createdAt: a.createdAt,
+      ipAddress: a.ipAddress,
+    })),
+    notifications: notifications.map(n => ({
+      title: n.title,
+      message: n.message,
+      createdAt: n.createdAt,
+      status: n.status,
+    })),
+    payments: payments.map(p => ({
+      amount: p.amount,
+      currency: p.currency,
+      status: p.status,
+      createdAt: p.createdAt,
+      refunds: p.refunds,
+    })),
+    subscriptions,
+    consents: consentRecords,
+    exportMetadata: {
+      requestId,
+      generatedAt: new Date().toISOString(),
+      format: 'JSON',
+    },
+  };
+
+  return JSON.stringify(exportData, null, 2);
+};
+
+/**
  * Get user's data deletion requests
  */
 export const getUserDeletionRequests = async (userId: string) => {
   return prisma.dataDeletionRequest.findMany({
     where: { userId },
+    orderBy: { requestedAt: 'desc' },
+  });
+};
+
+/**
+ * List all data deletion requests (admin) with optional status filter
+ */
+export const listDeletionRequestsForAdmin = async (status?: DataDeletionStatus) => {
+  const where = status ? { status } : {};
+  return prisma.dataDeletionRequest.findMany({
+    where,
+    include: {
+      user: {
+        select: { id: true, email: true, name: true },
+      },
+    },
     orderBy: { requestedAt: 'desc' },
   });
 };

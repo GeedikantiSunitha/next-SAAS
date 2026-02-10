@@ -979,6 +979,133 @@ After investigation with TDD tests, Newsletter Management was actually fully imp
 
 ---
 
+## Issue #17: Data Deletion Confirmation Email Not Received (Resend Sandbox)
+
+**Issue ID**: MANUAL-017  
+**Priority**: 🟡 MEDIUM  
+**Status**: ✅ **RESOLVED** (Documented / Not a code bug)  
+**Date Reported**: February 2026  
+**Date Resolved**: February 2026
+
+**Test Cases Affected**: 7.2 (GDPR data deletion – confirmation email)
+
+**Tester Notes**:
+- On GDPR Settings → Data Deletion, clicked "Request Account Deletion"; UI shows "Pending Confirmation" and "Please check your email to confirm."
+- No confirmation email received.
+- `RESEND_API_KEY` is set in `backend/.env`.
+
+**Root Cause**:
+- Resend **sandbox** (when using `FROM_EMAIL=onboarding@resend.dev`) only delivers to:
+  1. The email address of your Resend account (the one you signed up with), or  
+  2. The test address: `delivered@resend.dev`
+- Demo user `demo@example.com` (and other non-allowed addresses) are **not** valid recipients in sandbox; Resend rejects or does not deliver. The API key is correct; the restriction is on **recipients**.
+
+**Resolution**:
+1. ✅ **Backend**: Improved logging in `gdprService.ts` when the confirmation email fails: log full error and, when it looks like a Resend sandbox error, add a hint that sandbox only allows sending to the Resend account email or `delivered@resend.dev`.
+2. ✅ **Docs**: Added section "Data deletion / confirmation emails (Resend)" in `docs/DEMO_CREDENTIALS.md` explaining sandbox recipient limits and how to test (use a user with Resend account email or `delivered@resend.dev`, or verify a domain in Resend).
+
+**How to avoid in future**:
+- For local/testing with Resend sandbox: create or use a user whose email is your Resend account email or `delivered@resend.dev` when testing data deletion (and other transactional emails).
+- Check backend terminal logs when an email "is not received"; the Resend error and hint are now logged.
+
+**Verification**:
+- Backend logs include Resend error and sandbox hint when send fails.
+- DEMO_CREDENTIALS.md documents Resend sandbox behavior and testing options.
+
+---
+
+## Issue #18: No Admin UI to Approve/Execute Data Deletion Requests
+
+**Issue ID**: MANUAL-018  
+**Priority**: 🟠 HIGH  
+**Status**: ✅ **RESOLVED**  
+**Date Reported**: February 2026  
+**Date Resolved**: February 2026
+
+**Test Cases Affected**: 7.2 (GDPR data deletion – who approves, where)
+
+**Tester Notes**:
+- "Who will approve this request and where? I went to admin and super admin and I can't see the option in both."
+- Privacy Center shows deletion requests as "Pending"; no admin UI to execute them.
+
+**Root Cause**:
+- Backend had `executeDataDeletion(requestId)` but no admin API or UI to list or execute deletion requests. Only the user can confirm via email link (PENDING → CONFIRMED); nothing was calling `executeDataDeletion` for CONFIRMED requests.
+
+**Resolution**:
+1. **Backend**: Added `listDeletionRequestsForAdmin(status?)` in gdprService; added admin routes:
+   - `GET /api/admin/gdpr/deletion-requests` (optional `?status=PENDING|CONFIRMED|...`)
+   - `POST /api/admin/gdpr/deletion-requests/:id/execute` (admin-only; audits who executed).
+2. **Frontend**: Added **Admin → Data Deletions** page (`/admin/data-deletions`) with:
+   - List of all deletion requests (user, status, type, requested date, reason).
+   - Status filter dropdown.
+   - **Execute deletion** button for requests with status **CONFIRMED** (user has already confirmed via email).
+   - Note: **PENDING** = waiting for user to confirm via email; only **CONFIRMED** requests can be executed by admin.
+
+**How to avoid in future**:
+- Admin and Super Admin can now use **Admin Panel → Data Deletions** to view and execute confirmed deletion requests. If the user never received the confirmation email (e.g. Resend sandbox), the request stays PENDING; use a user with an allowed email to test the full flow, or document an optional "confirm on behalf" admin action if needed.
+
+**Verification**:
+- Admin/Super Admin: go to **Admin → Data Deletions** to see the list and execute CONFIRMED requests.
+
+---
+
+## Issue #19: CSRF Protection Not Implemented (11.3.3)
+
+**Issue ID**: MANUAL-019  
+**Priority**: 🟠 HIGH  
+**Status**: ✅ **RESOLVED**  
+**Date Reported**: February 2026  
+**Date Resolved**: February 2026
+
+**Test Cases Affected**: 11.3.3 (CSRF protection)
+
+**Tester Notes**:
+- CSRF protection not implemented; state-changing requests not protected by token.
+
+**Root Cause**:
+- Only SameSite cookies and CORS were in place; no explicit CSRF token (double-submit cookie) for POST/PUT/PATCH/DELETE.
+
+**Resolution**:
+1. **Backend**: Added `backend/src/middleware/csrf.ts` – double-submit cookie: generate token, set cookie (not HttpOnly), validate X-CSRF-Token header on POST/PUT/PATCH/DELETE; disabled when NODE_ENV=test. Added GET `/api/csrf-token` to return token and set cookie. CORS allowedHeaders includes X-CSRF-Token. Middleware applied in app.ts before routes.
+2. **Frontend**: In `frontend/src/api/client.ts`, added getCsrfToken() (fetches GET /api/csrf-token), cached token, and request interceptor that adds X-CSRF-Token header for POST/PUT/PATCH/DELETE.
+3. **Tests**: `backend/src/__tests__/middleware/csrf.test.ts` – 8 tests (disabled in test env; enabled in development: GET passes, POST without token 403, POST with valid token passes).
+
+**How to avoid in future**:
+- Keep CSRF middleware and frontend token send in sync; new state-changing endpoints are protected automatically.
+
+**Verification**:
+- Unit tests pass. In development, POST without token returns 403; with token (from GET /api/csrf-token) passes.
+
+---
+
+## Issue #20: Email Notifications Not Received (6.3.1)
+
+**Issue ID**: MANUAL-020  
+**Priority**: 🟠 HIGH  
+**Status**: ✅ **RESOLVED**  
+**Date Reported**: February 2026  
+**Date Resolved**: February 2026
+
+**Test Cases Affected**: 6.3.1 (Receive email notification)
+
+**Tester Notes**:
+- Email notifications not received for key events.
+
+**Root Cause**:
+- Backend only sent IN_APP channel for password reset success, profile updated, payment initiated, and payment successful; no EMAIL channel for these events. notificationService already supported EMAIL and respected user preference emailEnabled.
+
+**Resolution**:
+1. **Backend**: For each of these events, added a second createNotification call with channel EMAIL (in addition to IN_APP): authService (password reset success), profileService (profile updated), paymentService (payment initiated, payment successful). User preference emailEnabled is already checked in notificationService.createNotification.
+2. **Docs**: In docs/DEMO_CREDENTIALS.md added note that email notifications (6.3.1) use same Resend sandbox limits; use user with allowed email to test.
+
+**How to avoid in future**:
+- When adding new user-facing events, consider sending both IN_APP and EMAIL (createNotification twice) so users with email enabled receive emails.
+
+**Verification**:
+- notificationService tests pass. Password reset, profile update, and payment flows now create EMAIL notifications when user has emailEnabled.
+
+---
+
 ## Backend Unit Test Failures
 
 **Issue ID**: BACKEND-001  
@@ -1049,8 +1176,8 @@ After investigation with TDD tests, Newsletter Management was actually fully imp
 
 ## Summary Statistics
 
-**Total Issues Tracked**: 16 (Manual) + 5 (Backend) = 21  
-**Resolved**: 18 ✅ (13 Manual + 5 Backend)  
+**Total Issues Tracked**: 20 (Manual) + 5 (Backend) = 25  
+**Resolved**: 22 ✅ (17 Manual + 5 Backend)  
 **In Progress**: 0  
 **Failed/Not Started**: 0  
 **Deferred**: 1 ⏸️ (Microsoft OAuth)  
@@ -1068,6 +1195,45 @@ After investigation with TDD tests, Newsletter Management was actually fully imp
 
 ---
 
+## Issue #21: Five Fixes (Backend Tampered Ciphertext, MFA #5 #2 #3 #6) – TDD
+
+**Issue ID**: MANUAL-021  
+**Priority**: 🟠 HIGH  
+**Status**: ✅ **RESOLVED**  
+**Date**: February 2026
+
+**Summary**: Implemented 5 items with TDD per MANUAL_TEST_ROUND4_REVIEW_AND_FIX_PLAN.md and AI_RULES.md.
+
+**1. Backend – fieldEncryptionService tampered ciphertext**
+- **Symptom**: Test "should throw error for tampered ciphertext" failed – decrypt(tampered) did not throw.
+- **Root cause**: Tampered base64 could decode to a buffer that did not trigger auth-tag failure in all cases; no explicit length validation.
+- **Resolution**: In `decryptWithKey`, added minimum length check: `combined.length >= prefixLength + ivLength + tagLength + 1`; if not, throw. Tampered payload now fails validation.
+- **Files**: `backend/src/services/fieldEncryptionService.ts`.
+
+**2. Fix #5 – Copy Backup Codes (TotpSetupModal)**
+- **Symptom**: "Copy Backup Codes" copied empty string; state `backupCodes` was never set from API.
+- **Resolution**: TDD: added test in `TotpSetupModal.test.tsx` that clipboard receives `setupData.backupCodes.join('\n')`. Fixed `handleCopyBackupCodes` to use `setupData?.backupCodes ?? backupCodes`.
+- **Files**: `frontend/src/components/TotpSetupModal.tsx`, `frontend/src/__tests__/components/TotpSetupModal.test.tsx`.
+
+**3. Fix #2 – TOTP modal scrollable (verification visible)**
+- **Symptom**: Verification input and "Verify & Enable" could be below the fold.
+- **Resolution**: TDD: added test for `data-totp-modal-content` and `overflow-y-auto`. Added scrollable wrapper: `overflow-y-auto max-h-[min(60vh,28rem)]` and `data-totp-modal-content`.
+- **Files**: `frontend/src/components/TotpSetupModal.tsx`, `frontend/src/__tests__/components/TotpSetupModal.test.tsx`.
+
+**4. Fix #3 – MFA methods API returns isEnabled after enable**
+- **Symptom**: Disable MFA UI visibility depends on API returning `isEnabled: true` after enable.
+- **Resolution**: TDD: added backend test in `mfaService.test.ts` – "should return method with isEnabled true after enableMfa (Fix #3)". Confirms getMfaMethods returns isEnabled true after enableMfa; no code change needed (behavior already correct).
+- **Files**: `backend/src/__tests__/services/mfaService.test.ts`.
+
+**5. Fix #6 – Email MFA sandbox / not configured message**
+- **Symptom**: Testers may not know why OTP email does not arrive (Resend sandbox).
+- **Resolution**: TDD: added test in `EmailMfaSetupModal.test.tsx` – when setup fails with error containing "email", modal shows "Email service is not configured" and "contact your administrator or use TOTP MFA". Behavior already present; test locks it in.
+- **Files**: `frontend/src/__tests__/components/EmailMfaSetupModal.test.tsx`.
+
+**Verification**: Backend: `npm test fieldEncryptionService.test`, `npm test mfaService.test` (getMfaMethods). Frontend: `npm test TotpSetupModal.test`, `npm test EmailMfaSetupModal.test`.
+
+---
+
 ## Notes
 
 - All resolved issues were verified using TDD approach
@@ -1078,4 +1244,5 @@ After investigation with TDD tests, Newsletter Management was actually fully imp
 
 ---
 
-**Last Updated**: January 14, 2025, 03:00 UTC
+**Last Updated**: February 2026 (Issue #21: Five fixes – tampered ciphertext, MFA #5 #2 #3 #6)
+

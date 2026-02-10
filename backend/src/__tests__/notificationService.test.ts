@@ -13,12 +13,14 @@ jest.mock('../services/emailService');
 
 describe('Notification Service', () => {
   let testUserId: string;
+  let testUserEmail: string;
 
   beforeEach(async () => {
-    // Create test user
+    // Use unique email per run to avoid emailHash unique constraint (e.g. when tests run in parallel)
+    testUserEmail = `notification-test-${Date.now()}-${Math.random().toString(36).slice(2, 9)}@example.com`;
     const user = await prisma.user.create({
       data: {
-        email: 'test@example.com',
+        email: testUserEmail,
         password: 'hashedpassword',
         name: 'Test User',
       },
@@ -65,7 +67,7 @@ describe('Notification Service', () => {
       expect(notification.channel).toBe('EMAIL');
       expect(emailService.sendNotificationEmail).toHaveBeenCalledWith(
         expect.objectContaining({
-          to: 'test@example.com',
+          to: testUserEmail,
           title: 'Welcome!',
           message: 'Thanks for joining',
         })

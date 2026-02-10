@@ -27,6 +27,7 @@ import {
 } from '../../components/ui/modal';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { PasswordStrengthIndicator } from '../../components/PasswordStrengthIndicator';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface User {
   id: string;
@@ -53,6 +54,8 @@ export const AdminUsers = () => {
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user: currentUser } = useAuth();
+  const canChangeRole = currentUser?.role === 'SUPER_ADMIN';
 
   const limit = 20;
 
@@ -416,6 +419,7 @@ export const AdminUsers = () => {
       {/* Create User Modal */}
       {showCreateModal && (
         <CreateUserModal
+          canChangeRole={canChangeRole}
           onClose={() => setShowCreateModal(false)}
           onSubmit={(data) => createMutation.mutate(data)}
           isLoading={createMutation.isPending}
@@ -426,6 +430,7 @@ export const AdminUsers = () => {
       {showEditModal && selectedUser && (
         <EditUserModal
           user={selectedUser}
+          canChangeRole={canChangeRole}
           onClose={() => {
             setShowEditModal(false);
             setSelectedUser(null);
@@ -466,12 +471,13 @@ export const AdminUsers = () => {
 
 // Create User Modal Component
 interface CreateUserModalProps {
+  canChangeRole: boolean;
   onClose: () => void;
   onSubmit: (data: any) => void;
   isLoading: boolean;
 }
 
-const CreateUserModal = ({ onClose, onSubmit, isLoading }: CreateUserModalProps) => {
+const CreateUserModal = ({ canChangeRole, onClose, onSubmit, isLoading }: CreateUserModalProps) => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -525,22 +531,29 @@ const CreateUserModal = ({ onClose, onSubmit, isLoading }: CreateUserModalProps)
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           />
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Role
-          </label>
-          <select
-            value={formData.role}
-            onChange={(e) =>
-              setFormData({ ...formData, role: e.target.value as any })
-            }
-            className="w-full px-3 py-2 border rounded-md"
-          >
-            <option value="USER">User</option>
-            <option value="ADMIN">Admin</option>
-            <option value="SUPER_ADMIN">Super Admin</option>
-          </select>
-        </div>
+        {canChangeRole ? (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Role
+            </label>
+            <select
+              value={formData.role}
+              onChange={(e) =>
+                setFormData({ ...formData, role: e.target.value as any })
+              }
+              className="w-full px-3 py-2 border rounded-md"
+            >
+              <option value="USER">User</option>
+              <option value="ADMIN">Admin</option>
+              <option value="SUPER_ADMIN">Super Admin</option>
+            </select>
+          </div>
+        ) : (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+            <p className="text-sm text-muted-foreground">User (only Super Admin can set role)</p>
+          </div>
+        )}
         <div className="flex items-center">
           <input
             type="checkbox"
@@ -570,12 +583,13 @@ const CreateUserModal = ({ onClose, onSubmit, isLoading }: CreateUserModalProps)
 // Edit User Modal Component
 interface EditUserModalProps {
   user: User;
+  canChangeRole: boolean;
   onClose: () => void;
   onSubmit: (data: any) => void;
   isLoading: boolean;
 }
 
-const EditUserModal = ({ user, onClose, onSubmit, isLoading }: EditUserModalProps) => {
+const EditUserModal = ({ user, canChangeRole, onClose, onSubmit, isLoading }: EditUserModalProps) => {
   const [formData, setFormData] = useState({
     email: user.email,
     name: user.name || '',
@@ -590,9 +604,9 @@ const EditUserModal = ({ user, onClose, onSubmit, isLoading }: EditUserModalProp
     const submitData: any = {
       email: formData.email,
       name: formData.name,
-      role: formData.role,
       isActive: formData.isActive,
     };
+    if (canChangeRole) submitData.role = formData.role;
     if (changePassword && formData.password) {
       submitData.password = formData.password;
     }
@@ -627,22 +641,29 @@ const EditUserModal = ({ user, onClose, onSubmit, isLoading }: EditUserModalProp
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           />
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Role
-          </label>
-          <select
-            value={formData.role}
-            onChange={(e) =>
-              setFormData({ ...formData, role: e.target.value as any })
-            }
-            className="w-full px-3 py-2 border rounded-md"
-          >
-            <option value="USER">User</option>
-            <option value="ADMIN">Admin</option>
-            <option value="SUPER_ADMIN">Super Admin</option>
-          </select>
-        </div>
+        {canChangeRole ? (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Role
+            </label>
+            <select
+              value={formData.role}
+              onChange={(e) =>
+                setFormData({ ...formData, role: e.target.value as any })
+              }
+              className="w-full px-3 py-2 border rounded-md"
+            >
+              <option value="USER">User</option>
+              <option value="ADMIN">Admin</option>
+              <option value="SUPER_ADMIN">Super Admin</option>
+            </select>
+          </div>
+        ) : (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+            <p className="text-sm text-muted-foreground">{user.role} (only Super Admin can change role)</p>
+          </div>
+        )}
         <div className="flex items-center">
           <input
             type="checkbox"

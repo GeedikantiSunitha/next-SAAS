@@ -18,6 +18,8 @@
     "prisma:studio": "prisma studio",
     "seed": "tsx prisma/seed.ts",
     "seed:demo": "tsx prisma/seed.demo.ts",
+    "seed:demo-users": "tsx prisma/seed.demo-users.ts",
+    "seed:feature-flags": "tsx prisma/seed.featureFlags.ts",
     "test:email": "tsx scripts/test-email-resend.ts",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix"

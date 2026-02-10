@@ -248,7 +248,30 @@ export const sendDataExportReadyEmail = async (params: {
 };
 
 /**
+ * Send data deletion request confirmation email (GDPR 7.2)
+ * Sent when user requests deletion; contains link to confirm the request.
+ */
+export const sendDataDeletionRequestConfirmationEmail = async (params: {
+  to: string;
+  name?: string;
+  confirmationLink: string;
+}) => {
+  const html = renderTemplate('data-deletion-request-confirmation', {
+    name: params.name || 'User',
+    email: params.to,
+    confirmationLink: params.confirmationLink,
+  });
+
+  return sendEmail({
+    to: params.to,
+    subject: 'Confirm your data deletion request',
+    html,
+  });
+};
+
+/**
  * Send data deletion confirmation email (GDPR)
+ * Sent after deletion is executed; confirms account has been deleted.
  */
 export const sendDataDeletionConfirmationEmail = async (params: {
   to: string;

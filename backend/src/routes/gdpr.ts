@@ -83,6 +83,26 @@ router.get(
 );
 
 /**
+ * GET /api/gdpr/exports/:id/download
+ * Download completed export as JSON (GDPR Right to Access).
+ * Returns 404 if not found, 403 if not owner, 410 if expired, 400 if not COMPLETED.
+ */
+router.get(
+  '/exports/:id/download',
+  asyncHandler(async (req, res) => {
+    const requestId = req.params.id;
+    const userId = req.user!.id;
+
+    const jsonString = await gdprService.getExportDataForDownload(requestId, userId);
+
+    const filename = `data-export-${requestId}.json`;
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(jsonString);
+  })
+);
+
+/**
  * @swagger
  * /api/gdpr/deletion:
  *   post:

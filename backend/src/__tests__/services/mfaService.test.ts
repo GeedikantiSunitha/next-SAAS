@@ -215,6 +215,19 @@ describe('MFA Service', () => {
       expect(methods[0].isEnabled).toBe(false);
     });
 
+    it('should return method with isEnabled true after enableMfa (Fix #3 - Disable MFA UI)', async () => {
+      const { secret } = await mfaService.setupTotp(testUser.id);
+      const speakeasy = require('speakeasy');
+      const token = speakeasy.totp({ secret, encoding: 'base32' });
+
+      await mfaService.enableMfa(testUser.id, 'TOTP', token);
+
+      const methods = await mfaService.getMfaMethods(testUser.id);
+      expect(methods).toHaveLength(1);
+      expect(methods[0].method).toBe('TOTP');
+      expect(methods[0].isEnabled).toBe(true);
+    });
+
     it('should return empty array if no MFA methods', async () => {
       const methods = await mfaService.getMfaMethods(testUser.id);
       expect(methods).toHaveLength(0);

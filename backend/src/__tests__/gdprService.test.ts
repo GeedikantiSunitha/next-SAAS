@@ -7,6 +7,11 @@
 import * as gdprService from '../services/gdprService';
 import { prisma } from '../config/database';
 import { DataExportStatus, DataDeletionStatus, DeletionType, ConsentType } from '@prisma/client';
+import * as emailService from '../services/emailService';
+
+jest.mock('../services/emailService', () => ({
+  sendDataDeletionRequestConfirmationEmail: jest.fn().mockResolvedValue(undefined),
+}));
 
 describe('GDPR Service', () => {
   let testUserId: string;
@@ -127,6 +132,33 @@ describe('GDPR Service', () => {
 
       expect(result.deletionType).toBe(DeletionType.HARD);
       expect(result.reason).toBe('GDPR right to be forgotten');
+    });
+
+    it('should send confirmation email when deletion is requested (7.2)', async () => {
+      (emailService.sendDataDeletionRequestConfirmationEmail as jest.Mock).mockClear();
+      // Ensure override is unset so the test asserts email goes to user, not override
+      const prevOverride = process.env.GDPR_CONFIRMATION_EMAIL_OVERRIDE;
+      delete process.env.GDPR_CONFIRMATION_EMAIL_OVERRIDE;
+      const user = await prisma.user.findUnique({ where: { id: testUserId }, select: { email: true, name: true } });
+      expect(user?.email).toBeDefined();
+
+      const result = await gdprService.requestDataDeletion(
+        testUserId,
+        DeletionType.SOFT,
+        'Test reason'
+      );
+
+      expect(result.confirmationToken).toBeDefined();
+      expect(emailService.sendDataDeletionRequestConfirmationEmail).toHaveBeenCalledTimes(1);
+      expect(emailService.sendDataDeletionRequestConfirmationEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: user!.email,
+          name: user!.name ?? undefined,
+          confirmationLink: expect.stringContaining(result.confirmationToken!),
+        })
+      );
+      // Restore override for other tests / env
+      if (prevOverride !== undefined) process.env.GDPR_CONFIRMATION_EMAIL_OVERRIDE = prevOverride;
     });
   });
 

@@ -26,19 +26,45 @@ const apiClient = axios.create({
   },
 });
 
+/** Cached CSRF token for state-changing requests (double-submit cookie). */
+let csrfTokenCache: string | null = null;
+
+/**
+ * Fetch CSRF token from backend (sets cookie and returns token).
+ * Used for POST/PUT/PATCH/DELETE so backend can validate double-submit.
+ */
+export async function getCsrfToken(): Promise<string | null> {
+  if (csrfTokenCache) return csrfTokenCache;
+  try {
+    const base = import.meta.env.VITE_API_BASE_URL || '';
+    const res = await fetch(`${base}/api/csrf-token`, { credentials: 'include' });
+    const data = await res.json();
+    if (data?.token) {
+      csrfTokenCache = data.token;
+      return csrfTokenCache;
+    }
+  } catch {
+    // Ignore (e.g. backend not running or CORS)
+  }
+  return null;
+}
+
 /**
  * Request Interceptor
- * With cookie-based authentication, cookies are sent automatically by the browser.
- * No need to manually add Authorization header - backend reads token from cookie.
- * 
- * Note: We keep backward compatibility by checking for Authorization header,
- * but cookies are the preferred method.
+ * - Adds X-CSRF-Token header for state-changing requests (CSRF protection).
+ * - Cookies are sent automatically by browser (withCredentials: true).
  */
 apiClient.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    // Cookies are sent automatically by browser (withCredentials: true)
-    // Backend reads token from cookie first, then falls back to Authorization header
-    // No need to manually add Authorization header for cookie-based auth
+  async (config: InternalAxiosRequestConfig) => {
+    const method = (config.method || 'get').toUpperCase();
+    const isStateChanging = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
+    const isCsrfEndpoint = config.url?.includes('/csrf-token');
+    if (isStateChanging && !isCsrfEndpoint) {
+      const token = await getCsrfToken();
+      if (token) {
+        config.headers.set('X-CSRF-Token', token);
+      }
+    }
     return config;
   },
   (error) => Promise.reject(error)

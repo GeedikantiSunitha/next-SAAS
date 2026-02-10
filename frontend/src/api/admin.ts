@@ -287,6 +287,17 @@ export const adminApi = {
   },
 
   /**
+   * Refund a payment (admin only)
+   */
+  refundPayment: async (
+    paymentId: string,
+    body?: { amount?: number; reason?: string }
+  ): Promise<{ success: boolean; data: any; message?: string }> => {
+    const response = await apiClient.post(`/api/admin/payments/${paymentId}/refund`, body ?? {});
+    return response.data;
+  },
+
+  /**
    * Get subscriptions
    */
   getSubscriptions: async (params?: {
@@ -310,6 +321,44 @@ export const adminApi = {
    */
   updateSettings: async (settings: any): Promise<{ success: boolean; data: any }> => {
     const response = await apiClient.put('/api/admin/settings', { settings });
+    return response.data;
+  },
+
+  /**
+   * List data deletion requests (admin)
+   */
+  getDeletionRequests: async (params?: {
+    status?: string;
+  }): Promise<{
+    success: boolean;
+    data: Array<{
+      id: string;
+      userId: string;
+      status: string;
+      deletionType: string;
+      requestedAt: string;
+      scheduledFor: string | null;
+      completedAt: string | null;
+      reason: string | null;
+      confirmedAt: string | null;
+      user: { id: string; email: string | null; name: string | null };
+    }>;
+  }> => {
+    const response = await apiClient.get('/api/admin/gdpr/deletion-requests', {
+      params,
+    });
+    return response.data;
+  },
+
+  /**
+   * Execute a confirmed data deletion request (admin)
+   */
+  executeDeletionRequest: async (
+    requestId: string
+  ): Promise<{ success: boolean; data: any; message: string }> => {
+    const response = await apiClient.post(
+      `/api/admin/gdpr/deletion-requests/${requestId}/execute`
+    );
     return response.data;
   },
 };

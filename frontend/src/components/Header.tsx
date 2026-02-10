@@ -7,20 +7,24 @@
 
 import { Link } from 'react-router-dom';
 import { Button } from './ui/button';
-import { LogOut, User } from 'lucide-react';
+import { LogOut, User, LayoutDashboard } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { NotificationBell } from './NotificationBell';
 
 interface HeaderProps {
   isAuthenticated?: boolean;
   userEmail?: string;
+  userRole?: string;
   onLogout?: () => void;
   className?: string;
 }
 
+const isAdmin = (role?: string) => role === 'ADMIN' || role === 'SUPER_ADMIN';
+
 export const Header = ({
   isAuthenticated = false,
   userEmail,
+  userRole,
   onLogout,
   className,
 }: HeaderProps) => {
@@ -60,6 +64,14 @@ export const Header = ({
                 <Button asChild variant="ghost">
                   <Link to="/profile">Profile</Link>
                 </Button>
+                {isAdmin(userRole) && (
+                  <Button asChild variant="outline" size="sm" className="gap-1.5">
+                    <Link to="/admin/dashboard">
+                      <LayoutDashboard className="h-4 w-4" aria-hidden />
+                      Admin Panel
+                    </Link>
+                  </Button>
+                )}
                 <NotificationBell />
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <User className="h-4 w-4" />

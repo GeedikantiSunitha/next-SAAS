@@ -1,16 +1,21 @@
 /**
  * Data Export Component
- * 
- * Allows users to request and download their data export (GDPR Right to Access)
+ *
+ * Allows users to request and download their data export (GDPR Right to Access).
+ * Download uses credentialed fetch so cookies are sent when API is on a different origin.
  */
 
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Skeleton } from '../ui/skeleton';
 import { useExportRequests, useRequestExport } from '../../hooks/useGdpr';
+import { useToast } from '../../hooks/use-toast';
 import { Download, CheckCircle, Clock, XCircle, FileText } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { DataExportRequest, ExportsResponse } from '../../api/gdpr';
+
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 
 const getStatusIcon = (status: string) => {
   switch (status) {
@@ -46,6 +51,41 @@ const getStatusLabel = (status: string) => {
 export const DataExport = () => {
   const { data: exportRequests, isLoading, error } = useExportRequests();
   const requestExportMutation = useRequestExport();
+  const { toast } = useToast();
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const handleDownload = async (exportReq: DataExportRequest) => {
+    if (!exportReq.downloadUrl) return;
+    const url = exportReq.downloadUrl.startsWith('http')
+      ? exportReq.downloadUrl
+      : `${apiBaseUrl}${exportReq.downloadUrl}`;
+    setDownloadingId(exportReq.id);
+    try {
+      const res = await fetch(url, { credentials: 'include' });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(res.status === 410 ? 'Download link has expired' : text || `Download failed (${res.status})`);
+      }
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = `data-export-${exportReq.id}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(objectUrl);
+      toast({ title: 'Download started', description: 'Your data export is downloading.', variant: 'success' });
+    } catch (err) {
+      toast({
+        title: 'Download failed',
+        description: err instanceof Error ? err.message : 'Could not download export',
+        variant: 'error',
+      });
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -108,25 +148,32 @@ export const DataExport = () => {
                     Requested {formatDistanceToNow(new Date(latestExport.requestedAt), { addSuffix: true })}
                   </p>
                   {latestExport.status === 'COMPLETED' && latestExport.downloadUrl && (
-                    <div className="mt-3">
-                      <Button asChild>
-                        <a
-                          href={latestExport.downloadUrl}
-                          download
-                          className="flex items-center gap-2"
-                        >
-                          <Download className="h-4 w-4" />
-                          Download Data Export
-                        </a>
+                    <div className="mt-3" data-testid="export-download-section">
+                      <Button
+                        onClick={() => handleDownload(latestExport)}
+                        disabled={downloadingId === latestExport.id}
+                        className="flex items-center gap-2"
+                      >
+                        {downloadingId === latestExport.id ? (
+                          <>
+                            <Clock className="h-4 w-4 animate-spin" />
+                            Downloading...
+                          </>
+                        ) : (
+                          <>
+                            <Download className="h-4 w-4" />
+                            Download Data Export
+                          </>
+                        )}
                       </Button>
                       <p className="text-xs text-muted-foreground mt-2">
                         Download link expires in 7 days
                       </p>
                     </div>
                   )}
-                  {latestExport.status === 'PENDING' || latestExport.status === 'PROCESSING' && (
+                  {(latestExport.status === 'PENDING' || latestExport.status === 'PROCESSING') && (
                     <p className="text-sm text-muted-foreground">
-                      Your data export is being prepared. You will receive an email when it's ready.
+                      Your data export is being prepared. You will receive an email when it&apos;s ready.
                     </p>
                   )}
                 </div>
@@ -164,7 +211,7 @@ export const DataExport = () => {
                 {exports.slice(1).map((exportReq: DataExportRequest) => (
                   <div
                     key={exportReq.id}
-                    className="flex items-center justify-between p-2 border rounded text-sm"
+                    className="flex items-center justify-between p-2 border rounded text-sm flex-wrap gap-2"
                   >
                     <div className="flex items-center gap-2">
                       {getStatusIcon(exportReq.status)}
@@ -173,6 +220,22 @@ export const DataExport = () => {
                     <span className="text-muted-foreground">
                       {formatDistanceToNow(new Date(exportReq.requestedAt), { addSuffix: true })}
                     </span>
+                    {exportReq.status === 'COMPLETED' && exportReq.downloadUrl && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownload(exportReq)}
+                        disabled={downloadingId === exportReq.id}
+                        className="flex items-center gap-1"
+                      >
+                        {downloadingId === exportReq.id ? (
+                          <Clock className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Download className="h-3 w-3" />
+                        )}
+                        Download
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>

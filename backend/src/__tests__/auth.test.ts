@@ -200,16 +200,19 @@ describe('Auth API', () => {
       expect(response.body.success).toBe(false);
     });
 
-    it('should reject invalid email', async () => {
+    it('should reject invalid email format (1.1.5)', async () => {
       const response = await request(app)
         .post('/api/auth/register')
         .send({
           email: 'invalid-email',
           password: 'Password123!',
+          acceptedTerms: true,
+          acceptedPrivacy: true,
         });
 
       expect(response.status).toBe(400);
       expect(response.body.success).toBe(false);
+      expect(response.body.error || JSON.stringify(response.body.errors || [])).toMatch(/invalid|email|validation/i);
     });
   });
 
@@ -311,7 +314,20 @@ describe('Auth API', () => {
       // Secure flag depends on NODE_ENV, so we just verify cookie exists
     });
 
-    it('should reject invalid email', async () => {
+    it('should reject invalid email format on login (1.1.5)', async () => {
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({
+          email: 'invalid-email',
+          password: 'anything',
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error || JSON.stringify(response.body.errors || [])).toMatch(/invalid|email|validation/i);
+    });
+
+    it('should reject nonexistent user with valid email format', async () => {
       const response = await request(app)
         .post('/api/auth/login')
         .send({

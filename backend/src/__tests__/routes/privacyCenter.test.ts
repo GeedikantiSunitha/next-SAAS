@@ -103,7 +103,7 @@ describe('Privacy Center API Endpoints', () => {
               status: 'COMPLETED',
               requestedAt: new Date(),
               completedAt: new Date(),
-              downloadUrl: '/api/gdpr/export/download/export-1',
+              downloadUrl: '/api/gdpr/exports/export-1/download',
             },
           ],
           deletions: [

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { getCsrfToken } from '../middleware/csrf';
 import authRoutes from './auth';
 import healthRoutes from './health';
 import profileRoutes from './profile';
@@ -19,6 +20,9 @@ import accessibilityRoutes from './accessibility';
 import { getMetrics } from './metrics';
 
 const router = Router();
+
+// CSRF token endpoint (GET; no auth required so frontend can get token before login)
+router.get('/csrf-token', (req, res) => getCsrfToken(req, res));
 
 // Mount routes
 router.use('/health', healthRoutes);

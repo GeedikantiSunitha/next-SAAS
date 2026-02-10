@@ -14,7 +14,9 @@ export const SkipToContent: React.FC<SkipToContentProps> = ({
     const target = document.getElementById(targetId);
     if (target) {
       target.focus();
-      target.scrollIntoView();
+      if (typeof target.scrollIntoView === 'function') {
+        target.scrollIntoView();
+      }
     }
   };
 

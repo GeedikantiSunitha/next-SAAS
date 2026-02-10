@@ -8,12 +8,21 @@
  *   npm run seed:demo
  *   or
  *   tsx prisma/seed.demo.ts
+ *
+ * IMPORTANT: When ENCRYPTION_ENABLED=true, login looks up users by emailHash.
+ * Every user create/update must set emailHash (same format as seed.ts and authService).
  */
 
+import * as crypto from 'crypto';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
+
+// Must match authService / encryptionMiddleware: login looks up by emailHash (SHA-256 of normalized email)
+function emailHash(email: string): string {
+  return crypto.createHash('sha256').update(email.trim().toLowerCase()).digest('hex');
+}
 
 async function main() {
   console.log('🌱 Seeding demo data...');
@@ -23,16 +32,19 @@ async function main() {
   const userPassword = await bcrypt.hash('UserDemo123!', 12);
 
   // Create or update admin user
+  const adminEmail = 'admin@demo.com';
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@demo.com' },
+    where: { email: adminEmail },
     update: {
       password: adminPassword,
       name: 'Admin User',
       role: 'SUPER_ADMIN',
       isActive: true,
+      emailHash: emailHash(adminEmail),
     },
     create: {
-      email: 'admin@demo.com',
+      email: adminEmail,
+      emailHash: emailHash(adminEmail),
       password: adminPassword,
       name: 'Admin User',
       role: 'SUPER_ADMIN',
@@ -43,16 +55,19 @@ async function main() {
   console.log('✅ Admin user created/updated:', admin.email);
 
   // Create or update regular user
+  const userEmail = 'user@demo.com';
   const user = await prisma.user.upsert({
-    where: { email: 'user@demo.com' },
+    where: { email: userEmail },
     update: {
       password: userPassword,
       name: 'Demo User',
       role: 'USER',
       isActive: true,
+      emailHash: emailHash(userEmail),
     },
     create: {
-      email: 'user@demo.com',
+      email: userEmail,
+      emailHash: emailHash(userEmail),
       password: userPassword,
       name: 'Demo User',
       role: 'USER',
