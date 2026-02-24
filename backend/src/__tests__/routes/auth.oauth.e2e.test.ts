@@ -38,10 +38,10 @@ app.use(errorHandler);
 
 describe('OAuth E2E Tests', () => {
   beforeEach(async () => {
-    // Clean up test data
     await prisma.auditLog.deleteMany();
     await prisma.session.deleteMany();
     await prisma.user.deleteMany();
+    await prisma.featureFlag.deleteMany({});
   });
 
   afterEach(async () => {
@@ -103,6 +103,48 @@ describe('OAuth E2E Tests', () => {
   });
 
   describe('POST /api/auth/oauth/:provider', () => {
+    it('should return 401 when google_oauth feature flag is disabled in database', async () => {
+      await prisma.featureFlag.upsert({
+        where: { key: 'google_oauth' },
+        create: { key: 'google_oauth', enabled: false, description: 'Enable Google OAuth' },
+        update: { enabled: false },
+      });
+
+      const response = await request(app)
+        .post('/api/auth/oauth/google')
+        .send({ token: 'test-token' });
+
+      expect(response.status).toBeGreaterThanOrEqual(400);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toMatch(/google.*not enabled/i);
+
+      await prisma.featureFlag.update({
+        where: { key: 'google_oauth' },
+        data: { enabled: true },
+      }).catch(() => {});
+    });
+
+    it('should return 401 when github_oauth feature flag is disabled in database', async () => {
+      await prisma.featureFlag.upsert({
+        where: { key: 'github_oauth' },
+        create: { key: 'github_oauth', enabled: false, description: 'Enable GitHub OAuth' },
+        update: { enabled: false },
+      });
+
+      const response = await request(app)
+        .post('/api/auth/oauth/github')
+        .send({ token: 'test-token' });
+
+      expect(response.status).toBeGreaterThanOrEqual(400);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toMatch(/github.*not enabled/i);
+
+      await prisma.featureFlag.update({
+        where: { key: 'github_oauth' },
+        data: { enabled: true },
+      }).catch(() => {});
+    });
+
     it('should return error for invalid provider', async () => {
       const response = await request(app)
         .post('/api/auth/oauth/invalid-provider')

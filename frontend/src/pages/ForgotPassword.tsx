@@ -15,6 +15,7 @@ import { Label } from '../components/ui/label';
 import { Layout } from '../components/Layout';
 import { authApi } from '../api/auth';
 import { useToast } from '../hooks/use-toast';
+import { usePublicFeatureFlag } from '../hooks/useFeatureFlag';
 
 const forgotPasswordSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -26,6 +27,8 @@ export const ForgotPassword = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const { toast } = useToast();
+  const { enabled: passwordResetEnabled } = usePublicFeatureFlag('password_reset');
+  const { enabled: registrationEnabled } = usePublicFeatureFlag('registration');
 
   const {
     register,
@@ -60,6 +63,28 @@ export const ForgotPassword = () => {
       setIsSubmitting(false);
     }
   };
+
+  if (!passwordResetEnabled) {
+    return (
+      <Layout>
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/20 py-12 px-4">
+          <div className="w-full max-w-md space-y-8 p-8 bg-card rounded-lg shadow-elegant border animate-fade-in">
+            <div>
+              <h1 className="text-2xl font-bold text-center">Forgot Password</h1>
+              <p className="mt-2 text-center text-sm text-muted-foreground">
+                Password reset is currently disabled. Please contact support if you need assistance.
+              </p>
+            </div>
+            <div className="text-center">
+              <Link to="/login" className="text-primary hover:underline">
+                Back to Login
+              </Link>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -101,12 +126,14 @@ export const ForgotPassword = () => {
                 Back to Login
               </Link>
             </div>
+            {registrationEnabled && (
             <div>
               <span className="text-muted-foreground">Don't have an account? </span>
               <Link to="/register" className="text-primary hover:underline">
                 Register
               </Link>
             </div>
+            )}
           </div>
         </div>
       </div>

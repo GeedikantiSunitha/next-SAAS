@@ -15,6 +15,7 @@ interface AccessLogProps {
 const AccessLog: React.FC<AccessLogProps> = ({ initialData, showDetails = false, onExport }) => {
   const [entries, setEntries] = useState<AccessLogEntry[]>(initialData || []);
   const [loading, setLoading] = useState(!initialData);
+  const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     accessType: '',
     dataCategory: '',
@@ -31,9 +32,8 @@ const AccessLog: React.FC<AccessLogProps> = ({ initialData, showDetails = false,
 
   useEffect(() => {
     if (!initialData) {
-      fetchAccessLog();
+      fetchAccessLog(1, filters);
     } else if (initialData.length > 0) {
-      // Update pagination when using initial data
       setPagination(prev => ({
         ...prev,
         total: initialData.length,
@@ -42,58 +42,52 @@ const AccessLog: React.FC<AccessLogProps> = ({ initialData, showDetails = false,
     }
   }, []);
 
-  const fetchAccessLog = async () => {
+  // Accept explicit page/filter overrides to avoid stale closure bugs
+  const fetchAccessLog = async (
+    pageOverride?: number,
+    filtersOverride?: typeof filters
+  ) => {
     setLoading(true);
-    try {
-      const params: any = {
-        page: pagination.page,
-        pageSize: pagination.pageSize,
-      };
+    setError(null);
+    const f = filtersOverride ?? filters;
+    const page = pageOverride ?? pagination.page;
 
-      if (filters.accessType) params.accessType = filters.accessType;
-      if (filters.startDate) params.startDate = filters.startDate;
-      if (filters.endDate) params.endDate = filters.endDate;
+    try {
+      const params: any = { page, pageSize: pagination.pageSize };
+      if (f.accessType) params.accessType = f.accessType;
+      if (f.dataCategory) params.dataCategory = f.dataCategory;
+      if (f.startDate) params.startDate = f.startDate;
+      if (f.endDate) params.endDate = f.endDate;
 
       const response = await privacyApi.getAccessLog(params);
       setEntries(response.entries);
       setPagination(response.pagination);
-    } catch (error) {
-      console.error('Error fetching access log:', error);
+    } catch (err) {
+      setError('Failed to load access log. Please try again.');
+      console.error('Error fetching access log:', err);
     } finally {
       setLoading(false);
     }
   };
 
   const handleFilterChange = async (key: string, value: string) => {
-    setFilters({ ...filters, [key]: value });
-    if (key === 'accessType') {
-      // Immediately fetch when access type changes
-      const params: any = {
-        page: pagination.page,
-        pageSize: pagination.pageSize,
-        accessType: value,
-      };
-      if (filters.startDate) params.startDate = filters.startDate;
-      if (filters.endDate) params.endDate = filters.endDate;
-
-      try {
-        const response = await privacyApi.getAccessLog(params);
-        setEntries(response.entries);
-        setPagination(response.pagination);
-      } catch (error) {
-        console.error('Error fetching access log:', error);
-      }
+    const newFilters = { ...filters, [key]: value };
+    setFilters(newFilters);
+    // Immediately re-fetch when dropdown filters change
+    if (key === 'accessType' || key === 'dataCategory') {
+      setPagination(prev => ({ ...prev, page: 1 }));
+      await fetchAccessLog(1, newFilters);
     }
   };
 
   const handleApplyFilters = () => {
-    setPagination({ ...pagination, page: 1 });
-    fetchAccessLog();
+    setPagination(prev => ({ ...prev, page: 1 }));
+    fetchAccessLog(1);
   };
 
   const handlePageChange = (newPage: number) => {
-    setPagination({ ...pagination, page: newPage });
-    fetchAccessLog();
+    setPagination(prev => ({ ...prev, page: newPage }));
+    fetchAccessLog(newPage);
   };
 
   const formatTimestamp = (timestamp: string): string => {
@@ -129,6 +123,12 @@ const AccessLog: React.FC<AccessLogProps> = ({ initialData, showDetails = false,
   return (
     <div className="access-log">
       <h2>Access Log</h2>
+
+      {error && (
+        <div className="error-banner" role="alert">
+          {error}
+        </div>
+      )}
 
       {/* Filters */}
       <div className="log-filters">

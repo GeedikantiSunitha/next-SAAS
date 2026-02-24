@@ -6,6 +6,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Login } from '../../pages/Login';
 import { AuthProvider } from '../../contexts/AuthContext';
 import { authApi } from '../../api/auth';
+import * as featureFlagsApi from '../../api/featureFlags';
+
+// Mock feature flags (Login uses usePublicFeatureFlag for password_reset)
+vi.mock('../../api/featureFlags', () => ({
+  getFeatureFlag: vi.fn(),
+  getPublicFeatureFlag: vi.fn().mockResolvedValue({ data: { enabled: true } }),
+}));
 
 // Mock auth API (not the context - let the real context work)
 vi.mock('../../api/auth', () => ({
@@ -51,6 +58,7 @@ const createWrapper = () => {
 describe('Login Page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(featureFlagsApi.getPublicFeatureFlag).mockResolvedValue({ data: { enabled: true } });
     // Mock authApi methods - cookie-based auth returns user only (no accessToken in body)
     (authApi.login as any).mockResolvedValue({
       success: true,
@@ -198,6 +206,33 @@ describe('Login Page', () => {
         accessToken: 'token',
       },
     });
+  });
+
+  it('should not display Register link when registration flag is disabled', async () => {
+    vi.mocked(featureFlagsApi.getPublicFeatureFlag).mockImplementation((flagName: string) =>
+      Promise.resolve({ data: { enabled: flagName !== 'registration' } })
+    );
+
+    render(<Login />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+    });
+
+    expect(screen.queryByRole('link', { name: /register|sign up/i })).not.toBeInTheDocument();
+  });
+
+  it('should not display Forgot Password link when password_reset flag is disabled', async () => {
+    vi.mocked(featureFlagsApi.getPublicFeatureFlag).mockResolvedValue({ data: { enabled: false } });
+
+    render(<Login />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+    });
+
+    // Forgot Password link should not be present
+    expect(screen.queryByRole('link', { name: /forgot password/i })).not.toBeInTheDocument();
   });
 
   it('should navigate to dashboard on successful login', async () => {

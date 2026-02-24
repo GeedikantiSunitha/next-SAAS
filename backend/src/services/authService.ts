@@ -89,9 +89,8 @@ export const register = async (
   ipAddress?: string,
   userAgent?: string
 ) => {
-  // Check if registration is enabled via feature flag
-  // Allows admins to temporarily disable registration
-  if (!config.features.registration) {
+  const { isFeatureEnabled } = await import('./featureFlagRuntimeService');
+  if (!(await isFeatureEnabled('registration'))) {
     throw new ForbiddenError('Registration is currently disabled');
   }
 
@@ -377,8 +376,8 @@ import { ForbiddenError } from '../utils/errors';
  * Generates a reset token and sends email
  */
 export const forgotPassword = async (email: string) => {
-  // Check if password reset is enabled
-  if (!config.features.passwordReset) {
+  const { isFeatureEnabled } = await import('./featureFlagRuntimeService');
+  if (!(await isFeatureEnabled('password_reset'))) {
     throw new ForbiddenError('Password reset is currently disabled');
   }
 
@@ -447,8 +446,8 @@ export const forgotPassword = async (email: string) => {
  * Reset password using token
  */
 export const resetPassword = async (token: string, newPassword: string) => {
-  // Check if password reset is enabled
-  if (!config.features.passwordReset) {
+  const { isFeatureEnabled } = await import('./featureFlagRuntimeService');
+  if (!(await isFeatureEnabled('password_reset'))) {
     throw new ForbiddenError('Password reset is currently disabled');
   }
 

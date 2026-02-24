@@ -102,6 +102,23 @@ describe('Checkout', () => {
     expect(screen.getByRole('button', { name: /pay/i })).toBeInTheDocument();
   });
 
+  it('should not show a $ currency icon inside the amount input field', () => {
+    render(<Checkout />, { wrapper: createWrapper() });
+
+    const amountInput = screen.getByLabelText(/amount/i);
+    const inputWrapper = amountInput.parentElement;
+    // No SVG icon should be rendered alongside the amount input
+    const svgIcons = inputWrapper?.querySelectorAll('svg');
+    expect(svgIcons?.length).toBe(0);
+  });
+
+  it('should not add extra left padding to amount input for a currency icon', () => {
+    render(<Checkout />, { wrapper: createWrapper() });
+
+    const amountInput = screen.getByLabelText(/amount/i);
+    expect(amountInput).not.toHaveClass('pl-10');
+  });
+
   it('should show validation error for invalid amount', async () => {
     const user = userEvent.setup();
 

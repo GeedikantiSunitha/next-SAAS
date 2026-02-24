@@ -30,14 +30,16 @@ vi.mock('../../../api/admin', () => ({
 // Mock useToast
 vi.mock('../../../hooks/use-toast');
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { retry: false },
-    mutations: { retry: false },
-  },
-});
+const createQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, gcTime: 0 },
+      mutations: { retry: false },
+    },
+  });
 
 const renderAdminSecurityIncidents = () => {
+  const queryClient = createQueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
@@ -93,7 +95,6 @@ describe('AdminSecurityIncidents', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient.clear();
     vi.stubGlobal('confirm', vi.fn(() => true));
 
     // Mock useToast

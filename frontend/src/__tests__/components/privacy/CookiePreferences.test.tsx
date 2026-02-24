@@ -173,4 +173,23 @@ describe('CookiePreferences Component', () => {
     render(<CookiePreferences preferences={mockPreferences} onUpdate={vi.fn()} />);
     expect(screen.getByRole('link', { name: /Cookie Policy/i })).toBeInTheDocument();
   });
+
+  it('should update displayed values when preferences prop changes externally', () => {
+    const initialPrefs = {
+      essential: true,
+      analytics: false,
+      marketing: false,
+      functional: false,
+    };
+    const { rerender } = render(
+      <CookiePreferences preferences={initialPrefs} onUpdate={vi.fn()} />
+    );
+
+    expect(screen.getByRole('switch', { name: /Analytics Cookies/i })).not.toBeChecked();
+
+    const updatedPrefs = { ...initialPrefs, analytics: true };
+    rerender(<CookiePreferences preferences={updatedPrefs} onUpdate={vi.fn()} />);
+
+    expect(screen.getByRole('switch', { name: /Analytics Cookies/i })).toBeChecked();
+  });
 });

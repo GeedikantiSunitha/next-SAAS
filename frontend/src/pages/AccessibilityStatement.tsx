@@ -1,7 +1,9 @@
 import React from 'react';
 import { SkipToContent } from '../components/accessibility/SkipToContent';
+import { usePlatformShortcuts } from '../hooks/usePlatformShortcuts';
 
 export const AccessibilityStatement: React.FC = () => {
+  const { modifier, alt } = usePlatformShortcuts();
   return (
     <>
       <SkipToContent targetId="main-content" />
@@ -74,31 +76,31 @@ export const AccessibilityStatement: React.FC = () => {
                       <tr>
                         <td className="py-2">Skip to main content</td>
                         <td className="py-2">
-                          <kbd className="px-2 py-1 bg-white rounded">Alt + S</kbd>
+                          <kbd className="px-2 py-1 bg-white rounded">{alt} + S</kbd>
                         </td>
                       </tr>
                       <tr>
                         <td className="py-2">Toggle high contrast</td>
                         <td className="py-2">
-                          <kbd className="px-2 py-1 bg-white rounded">Alt + C</kbd>
+                          <kbd className="px-2 py-1 bg-white rounded">{alt} + C</kbd>
                         </td>
                       </tr>
                       <tr>
                         <td className="py-2">Toggle reduced motion</td>
                         <td className="py-2">
-                          <kbd className="px-2 py-1 bg-white rounded">Alt + M</kbd>
+                          <kbd className="px-2 py-1 bg-white rounded">{alt} + M</kbd>
                         </td>
                       </tr>
                       <tr>
                         <td className="py-2">Increase font size</td>
                         <td className="py-2">
-                          <kbd className="px-2 py-1 bg-white rounded">Ctrl + +</kbd>
+                          <kbd className="px-2 py-1 bg-white rounded">{modifier} + +</kbd>
                         </td>
                       </tr>
                       <tr>
                         <td className="py-2">Decrease font size</td>
                         <td className="py-2">
-                          <kbd className="px-2 py-1 bg-white rounded">Ctrl + -</kbd>
+                          <kbd className="px-2 py-1 bg-white rounded">{modifier} + -</kbd>
                         </td>
                       </tr>
                     </tbody>

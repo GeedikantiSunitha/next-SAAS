@@ -10,6 +10,9 @@ export const API_TIMEOUT = parseInt(import.meta.env.VITE_API_TIMEOUT || '10000')
 export const ENABLE_REGISTRATION = import.meta.env.VITE_ENABLE_REGISTRATION !== 'false';
 export const ENABLE_PASSWORD_RESET = import.meta.env.VITE_ENABLE_PASSWORD_RESET !== 'false';
 
+/** Flags that exist in DB but are not implemented - hide from admin UI to avoid confusion */
+export const FEATURE_FLAGS_HIDDEN_FROM_ADMIN = ['email_verification'] as const;
+
 // Storage Keys
 export const STORAGE_KEYS = {
   ACCESS_TOKEN: 'accessToken',

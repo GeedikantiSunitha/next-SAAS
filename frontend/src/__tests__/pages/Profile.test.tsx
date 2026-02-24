@@ -15,6 +15,7 @@ import { Profile } from '../../pages/Profile';
 import { AuthProvider } from '../../contexts/AuthContext';
 import { profileApi } from '../../api/profile';
 import { authApi } from '../../api/auth';
+import * as featureFlagsApi from '../../api/featureFlags';
 import { Toaster } from '../../components/ui/toaster';
 
 // Mock profile API
@@ -31,6 +32,12 @@ vi.mock('../../api/auth', () => ({
   authApi: {
     getMe: vi.fn(),
   },
+}));
+
+// Mock feature flags (Profile uses useFeatureFlag for password_reset)
+vi.mock('../../api/featureFlags', () => ({
+  getFeatureFlag: vi.fn().mockResolvedValue({ data: { enabled: true } }),
+  getPublicFeatureFlag: vi.fn(),
 }));
 
 // Mock navigate
@@ -298,6 +305,25 @@ describe('Profile Page', () => {
       const successMessages = screen.getAllByText(/profile updated successfully/i);
       expect(successMessages.length).toBeGreaterThan(0);
     }, { timeout: 3000 });
+  });
+
+  it('should not display Change Password card when password_reset feature flag is disabled', async () => {
+    vi.mocked(featureFlagsApi.getFeatureFlag).mockResolvedValueOnce({
+      data: { enabled: false },
+    });
+
+    render(
+      <TestWrapper>
+        <Profile />
+      </TestWrapper>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('test@example.com')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByRole('heading', { name: /change password/i })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/current password/i)).not.toBeInTheDocument();
   });
 
   it('should allow changing password', async () => {

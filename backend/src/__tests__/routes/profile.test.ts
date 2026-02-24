@@ -8,6 +8,7 @@
 import request from 'supertest';
 import app from '../../app';
 import { createTestUser } from '../../tests/setup';
+import { prisma } from '../../config/database';
 
 // Helper to get auth token from login
 const getAuthCookie = async (email: string, password: string): Promise<string> => {
@@ -321,6 +322,39 @@ describe('Profile API', () => {
   });
 
   describe('PUT /api/profile/password', () => {
+    it('should return 403 when password_reset feature flag is disabled in database', async () => {
+      await prisma.featureFlag.upsert({
+        where: { key: 'password_reset' },
+        create: {
+          key: 'password_reset',
+          enabled: false,
+          description: 'Enable password reset',
+        },
+        update: { enabled: false },
+      });
+
+      await createTestUser({
+        email: 'profile-password-flag@example.com',
+        password: await require('bcryptjs').hash('OldPassword123!', 12),
+      });
+
+      const cookie = await getAuthCookie('profile-password-flag@example.com', 'OldPassword123!');
+
+      const response = await request(app)
+        .put('/api/profile/password')
+        .set('Cookie', cookie)
+        .send({
+          currentPassword: 'OldPassword123!',
+          newPassword: 'NewPassword123!',
+        });
+
+      expect(response.status).toBe(403);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toContain('Password reset is currently disabled');
+
+      await prisma.featureFlag.deleteMany({ where: { key: 'password_reset' } });
+    });
+
     it('should change password with correct current password', async () => {
       // Create user with unique email
       const uniqueEmail = `profile-password-change-${Date.now()}@example.com`;

@@ -10,6 +10,7 @@ import { Label } from '../components/ui/label';
 import { PasswordStrengthIndicator } from '../components/PasswordStrengthIndicator';
 import { Layout } from '../components/Layout';
 import { OAuthButtons } from '../components/OAuthButtons';
+import { usePublicFeatureFlag } from '../hooks/useFeatureFlag';
 
 const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -19,7 +20,10 @@ const registerSchema = z.object({
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
     .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
     .regex(/[0-9]/, 'Password must contain at least one number'),
-  name: z.string().min(1, 'Name is required').optional(),
+  name: z.preprocess(
+    (val) => (typeof val === 'string' && val.trim() === '' ? undefined : val),
+    z.string().min(1, 'Name is required').optional()
+  ),
   acceptedTerms: z.boolean().refine((val) => val === true, {
     message: 'You must accept the Terms of Service',
   }),
@@ -33,6 +37,7 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 export const Register = () => {
   const navigate = useNavigate();
   const { register: registerUser, isAuthenticated } = useAuth();
+  const { enabled: registrationEnabled } = usePublicFeatureFlag('registration');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -85,6 +90,28 @@ export const Register = () => {
       setIsSubmitting(false);
     }
   };
+
+  if (!registrationEnabled) {
+    return (
+      <Layout>
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/20 py-12 px-4">
+          <div className="w-full max-w-md space-y-8 p-8 bg-card rounded-lg shadow-elegant border animate-fade-in">
+            <div>
+              <h1 className="text-2xl font-bold text-center">Create Account</h1>
+              <p className="mt-2 text-center text-sm text-muted-foreground">
+                Registration is currently disabled. Please contact support if you need assistance.
+              </p>
+            </div>
+            <div className="text-center">
+              <Link to="/login" className="text-primary hover:underline">
+                Back to Login
+              </Link>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>

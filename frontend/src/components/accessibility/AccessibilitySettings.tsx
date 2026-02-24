@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { usePlatformShortcuts } from '../../hooks/usePlatformShortcuts';
 
 interface AccessibilitySettingsState {
   highContrast: boolean;
@@ -7,6 +8,7 @@ interface AccessibilitySettingsState {
 }
 
 export const AccessibilitySettings: React.FC = () => {
+  const { modifier, alt } = usePlatformShortcuts();
   const [settings, setSettings] = useState<AccessibilitySettingsState>({
     highContrast: false,
     reduceMotion: false,
@@ -180,23 +182,23 @@ export const AccessibilitySettings: React.FC = () => {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span>Skip to main content:</span>
-              <kbd className="px-2 py-1 bg-gray-100 rounded">Alt + S</kbd>
+              <kbd className="px-2 py-1 bg-gray-100 rounded">{alt} + S</kbd>
             </div>
             <div className="flex justify-between">
               <span>Toggle high contrast:</span>
-              <kbd className="px-2 py-1 bg-gray-100 rounded">Alt + C</kbd>
+              <kbd className="px-2 py-1 bg-gray-100 rounded">{alt} + C</kbd>
             </div>
             <div className="flex justify-between">
               <span>Toggle reduced motion:</span>
-              <kbd className="px-2 py-1 bg-gray-100 rounded">Alt + M</kbd>
+              <kbd className="px-2 py-1 bg-gray-100 rounded">{alt} + M</kbd>
             </div>
             <div className="flex justify-between">
               <span>Increase font size:</span>
-              <kbd className="px-2 py-1 bg-gray-100 rounded">Ctrl + +</kbd>
+              <kbd className="px-2 py-1 bg-gray-100 rounded">{modifier} + +</kbd>
             </div>
             <div className="flex justify-between">
               <span>Decrease font size:</span>
-              <kbd className="px-2 py-1 bg-gray-100 rounded">Ctrl + -</kbd>
+              <kbd className="px-2 py-1 bg-gray-100 rounded">{modifier} + -</kbd>
             </div>
           </div>
         </div>

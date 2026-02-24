@@ -8,6 +8,7 @@
 import { Link } from 'react-router-dom';
 import { Button } from './ui/button';
 import { LogOut, User, LayoutDashboard } from 'lucide-react';
+import { usePublicFeatureFlag } from '../hooks/useFeatureFlag';
 import { cn } from '../lib/utils';
 import { NotificationBell } from './NotificationBell';
 
@@ -28,6 +29,9 @@ export const Header = ({
   onLogout,
   className,
 }: HeaderProps) => {
+  const { enabled: passwordResetEnabled } = usePublicFeatureFlag('password_reset');
+  const { enabled: registrationEnabled } = usePublicFeatureFlag('registration');
+
   return (
     <header role="banner" className={cn('bg-card border-b shadow-sm sticky top-0 z-50', className)}>
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -49,12 +53,16 @@ export const Header = ({
                 <Button asChild variant="ghost">
                   <Link to="/login">Login</Link>
                 </Button>
+                {registrationEnabled && (
                 <Button asChild variant="outline">
                   <Link to="/register">Register</Link>
                 </Button>
+                )}
+                {passwordResetEnabled && (
                 <Button asChild variant="ghost" size="sm">
                   <Link to="/forgot-password">Forgot Password</Link>
                 </Button>
+                )}
               </>
             ) : (
               <>

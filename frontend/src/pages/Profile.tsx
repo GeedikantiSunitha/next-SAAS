@@ -13,6 +13,7 @@ import { Skeleton } from '../components/ui/skeleton';
 import { Layout } from '../components/Layout';
 import { useToast } from '../hooks/use-toast';
 import { useProfile, useUpdateProfile, useChangePassword } from '../hooks/useProfile';
+import { useFeatureFlag } from '../hooks/useFeatureFlag';
 import { MfaSettings } from '../components/MfaSettings';
 import { ConnectedAccounts } from '../components/ConnectedAccounts';
 import { AccessibilitySettings } from '../components/accessibility/AccessibilitySettings';
@@ -61,6 +62,7 @@ export const Profile = () => {
   
   // React Query hooks
   const { data: profileData, isLoading: profileLoading, error: profileError } = useProfile();
+  const { enabled: passwordResetEnabled } = useFeatureFlag('password_reset');
   const updateProfileMutation = useUpdateProfile();
   const changePasswordMutation = useChangePassword();
   
@@ -322,7 +324,8 @@ export const Profile = () => {
               </CardContent>
             </Card>
 
-            {/* Password Change Card */}
+            {/* Password Change Card - only show when password reset is enabled */}
+            {passwordResetEnabled && (
             <Card className="animate-fade-in">
               <CardHeader>
                 <CardTitle>Change Password</CardTitle>
@@ -364,6 +367,7 @@ export const Profile = () => {
                 </form>
               </CardContent>
             </Card>
+            )}
 
             {/* MFA Settings Card */}
             <MfaSettings />

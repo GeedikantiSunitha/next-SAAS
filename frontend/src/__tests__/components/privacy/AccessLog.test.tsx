@@ -257,4 +257,66 @@ describe('AccessLog Component', () => {
     expect(screen.getByText('admin@company.com')).toBeInTheDocument();
     expect(screen.queryByText('user@example.com')).not.toBeInTheDocument();
   });
+
+  it('should include dataCategory in API call when data category filter changes', async () => {
+    render(<AccessLog initialData={mockAccessLog} />);
+
+    const dataCategorySelect = screen.getByLabelText(/Data Category/i);
+    fireEvent.change(dataCategorySelect, { target: { value: 'PROFILE' } });
+
+    await waitFor(() => {
+      expect(privacyApi.getAccessLog).toHaveBeenCalledWith(
+        expect.objectContaining({ dataCategory: 'PROFILE' })
+      );
+    });
+  });
+
+  it('should send page 1 when applying filters', async () => {
+    (privacyApi.getAccessLog as any).mockResolvedValue({
+      entries: mockAccessLog,
+      pagination: { page: 1, pageSize: 10, total: 30, totalPages: 3 },
+    });
+
+    render(<AccessLog />);
+    await waitFor(() => expect(screen.getByText('admin@company.com')).toBeInTheDocument());
+
+    fireEvent.change(screen.getByLabelText(/Start Date/i), {
+      target: { value: '2024-01-01' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Apply Filters/i }));
+
+    await waitFor(() => {
+      const calls = (privacyApi.getAccessLog as any).mock.calls;
+      const lastCall = calls[calls.length - 1][0];
+      expect(lastCall.page).toBe(1);
+    });
+  });
+
+  it('should send correct page number when navigating to next page', async () => {
+    (privacyApi.getAccessLog as any).mockResolvedValue({
+      entries: mockAccessLog,
+      pagination: { page: 1, pageSize: 10, total: 30, totalPages: 3 },
+    });
+
+    render(<AccessLog />);
+    await waitFor(() => expect(screen.getByText('admin@company.com')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: /Next/i }));
+
+    await waitFor(() => {
+      const calls = (privacyApi.getAccessLog as any).mock.calls;
+      const lastCall = calls[calls.length - 1][0];
+      expect(lastCall.page).toBe(2);
+    });
+  });
+
+  it('should show error message when API fails to load', async () => {
+    (privacyApi.getAccessLog as any).mockRejectedValue(new Error('API error'));
+
+    render(<AccessLog />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Failed to load access log/i)).toBeInTheDocument();
+    });
+  });
 });

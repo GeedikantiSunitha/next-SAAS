@@ -49,7 +49,8 @@ describe('Admin Feature Flags Service - Unit Tests', () => {
 
   describe('getAllFeatureFlags', () => {
     it('should return all feature flags from database', async () => {
-      // Arrange: Create feature flags in database
+      // Arrange: Clean slate - seed/other tests may have created flags
+      await prisma.featureFlag.deleteMany({});
       await prisma.featureFlag.createMany({
         data: [
           { key: 'registration', enabled: true, description: 'User registration' },

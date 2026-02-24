@@ -15,7 +15,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { CreditCard, Loader2, DollarSign } from 'lucide-react';
+import { CreditCard, Loader2 } from 'lucide-react';
 import { useToast } from '../hooks/use-toast';
 // Currency type imported but not used directly in this file
 
@@ -140,19 +140,15 @@ const CheckoutForm = () => {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div>
         <Label htmlFor="amount">Amount</Label>
-        <div className="relative">
-          <DollarSign className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-          <Input
-            id="amount"
-            type="number"
-            step="0.01"
-            min="0.01"
-            placeholder="0.00"
-            className="pl-10"
-            {...register('amount', { valueAsNumber: true })}
-            error={errors.amount?.message}
-          />
-        </div>
+        <Input
+          id="amount"
+          type="number"
+          step="0.01"
+          min="0.01"
+          placeholder="0.00"
+          {...register('amount', { valueAsNumber: true })}
+          error={errors.amount?.message}
+        />
       </div>
 
       <div>

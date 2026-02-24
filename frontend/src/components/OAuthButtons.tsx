@@ -15,6 +15,7 @@ import { authApi } from '../api/auth';
 import { useAuth } from '../contexts/AuthContext';
 import { Chrome, Github } from 'lucide-react';
 import { initiateOAuth } from '../utils/oauth';
+import { usePublicFeatureFlag } from '../hooks/useFeatureFlag';
 
 interface OAuthButtonsProps {
   onSuccess?: () => void;
@@ -24,6 +25,8 @@ interface OAuthButtonsProps {
 export const OAuthButtons = ({}: OAuthButtonsProps) => {
   const [loading, setLoading] = useState<'google' | 'github' | 'microsoft' | null>(null);
   const { toast } = useToast();
+  const { enabled: googleOAuthEnabled } = usePublicFeatureFlag('google_oauth');
+  const { enabled: githubOAuthEnabled } = usePublicFeatureFlag('github_oauth');
 
   /**
    * Handle OAuth flow with provider
@@ -59,6 +62,9 @@ export const OAuthButtons = ({}: OAuthButtonsProps) => {
     }
   };
 
+  const hasAnyOAuth = googleOAuthEnabled || githubOAuthEnabled;
+  if (!hasAnyOAuth) return null;
+
   return (
     <div className="space-y-3">
       <div className="relative">
@@ -73,7 +79,7 @@ export const OAuthButtons = ({}: OAuthButtonsProps) => {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        {/* Note: Changed from grid-cols-3 to grid-cols-2 since Microsoft is commented out */}
+        {googleOAuthEnabled && (
         <Button
           type="button"
           variant="outline"
@@ -93,7 +99,9 @@ export const OAuthButtons = ({}: OAuthButtonsProps) => {
             </span>
           )}
         </Button>
+        )}
 
+        {githubOAuthEnabled && (
         <Button
           type="button"
           variant="outline"
@@ -113,6 +121,7 @@ export const OAuthButtons = ({}: OAuthButtonsProps) => {
             </span>
           )}
         </Button>
+        )}
 
         {/* Microsoft OAuth - Coming Soon (commented out for now) */}
         {/* 

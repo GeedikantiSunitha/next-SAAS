@@ -17,9 +17,8 @@
 
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import { BrowserRouter } from 'react-router-dom';
 import { CookiePolicy } from '../../pages/CookiePolicy';
-import { AuthProvider } from '../../contexts/AuthContext';
+import { createPageWrapper } from '../utils/testWrapper';
 
 // Mock useNavigate
 const mockNavigate = vi.fn();
@@ -32,13 +31,7 @@ vi.mock('react-router-dom', async () => {
 });
 
 const renderWithRouter = (component: React.ReactElement) => {
-  return render(
-    <BrowserRouter>
-      <AuthProvider>
-        {component}
-      </AuthProvider>
-    </BrowserRouter>
-  );
+  return render(component, { wrapper: createPageWrapper() });
 };
 
 describe('CookiePolicy Page', () => {

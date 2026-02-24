@@ -197,5 +197,13 @@ function useToast() {
   };
 }
 
+/** Resets all global toast state — call this in test beforeEach to prevent state bleed */
+export const _resetToastState = () => {
+  toastTimeouts.forEach((timeout) => clearTimeout(timeout));
+  toastTimeouts.clear();
+  memoryState = { toasts: [] };
+  listeners.length = 0;
+};
+
 export { useToast, toast };
 

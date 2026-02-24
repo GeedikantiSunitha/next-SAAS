@@ -2,8 +2,16 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Register } from '../../pages/Register';
 import { useAuth } from '../../contexts/AuthContext';
+import * as featureFlagsApi from '../../api/featureFlags';
+
+// Mock feature flags
+vi.mock('../../api/featureFlags', () => ({
+  getFeatureFlag: vi.fn(),
+  getPublicFeatureFlag: vi.fn().mockResolvedValue({ data: { enabled: true } }),
+}));
 
 // Mock auth context
 vi.mock('../../contexts/AuthContext', async () => {
@@ -24,23 +32,56 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+  queryClient.setQueryData(['featureFlag', 'public', 'registration'], { data: { enabled: true } });
+  return ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>{children}</BrowserRouter>
+    </QueryClientProvider>
+  );
+};
+
 describe('Register Page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(featureFlagsApi.getPublicFeatureFlag).mockResolvedValue({ data: { enabled: true } });
     (useAuth as any).mockReturnValue({
       register: vi.fn().mockResolvedValue(undefined),
       isAuthenticated: false,
     });
   });
 
-  it('should render register form', () => {
+  it('should show disabled message when registration flag is disabled', async () => {
+    vi.mocked(featureFlagsApi.getPublicFeatureFlag).mockResolvedValue({ data: { enabled: false } });
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient.setQueryData(['featureFlag', 'public', 'registration'], { data: { enabled: false } });
+
     render(
-      <BrowserRouter>
-        <Register />
-      </BrowserRouter>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <Register />
+        </BrowserRouter>
+      </QueryClientProvider>
     );
 
-    expect(screen.getByText('Create Account')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/registration is currently disabled/i)).toBeInTheDocument();
+    });
+    expect(screen.queryByRole('button', { name: /register/i })).not.toBeInTheDocument();
+  });
+
+  it('should render register form', async () => {
+    render(<Register />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByText('Create Account')).toBeInTheDocument();
+    });
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /register/i })).toBeInTheDocument();
@@ -48,11 +89,7 @@ describe('Register Page', () => {
 
   it('should validate email format', async () => {
     const user = userEvent.setup();
-    render(
-      <BrowserRouter>
-        <Register />
-      </BrowserRouter>
-    );
+    render(<Register />, { wrapper: createWrapper() });
 
     const emailInput = screen.getByLabelText(/email/i) as HTMLInputElement;
     const form = emailInput.closest('form') as HTMLFormElement;
@@ -74,11 +111,7 @@ describe('Register Page', () => {
 
   it('should validate password strength', async () => {
     const user = userEvent.setup();
-    render(
-      <BrowserRouter>
-        <Register />
-      </BrowserRouter>
-    );
+    render(<Register />, { wrapper: createWrapper() });
 
     const emailInput = screen.getByLabelText(/email/i);
     const passwordInput = screen.getByLabelText(/password/i);
@@ -97,11 +130,7 @@ describe('Register Page', () => {
 
   it('should validate password contains uppercase', async () => {
     const user = userEvent.setup();
-    render(
-      <BrowserRouter>
-        <Register />
-      </BrowserRouter>
-    );
+    render(<Register />, { wrapper: createWrapper() });
 
     const emailInput = screen.getByLabelText(/email/i);
     const passwordInput = screen.getByLabelText(/password/i);
@@ -124,13 +153,9 @@ describe('Register Page', () => {
       isAuthenticated: false,
     });
 
-    render(
-      <BrowserRouter>
-        <Register />
-      </BrowserRouter>
-    );
+    render(<Register />, { wrapper: createWrapper() });
 
-    const emailInput = screen.getByLabelText(/email/i);
+    const emailInput = await screen.findByLabelText(/email/i);
     const passwordInput = screen.getByLabelText(/password/i);
     const nameInput = screen.getByLabelText(/name/i);
     const termsCheckbox = screen.getByLabelText(/I accept the.*Terms of Service/i);
@@ -159,13 +184,9 @@ describe('Register Page', () => {
       isAuthenticated: false,
     });
 
-    render(
-      <BrowserRouter>
-        <Register />
-      </BrowserRouter>
-    );
+    render(<Register />, { wrapper: createWrapper() });
 
-    const emailInput = screen.getByLabelText(/email/i);
+    const emailInput = await screen.findByLabelText(/email/i);
     const passwordInput = screen.getByLabelText(/password/i);
     const nameInput = screen.getByLabelText(/name/i);
     const termsCheckbox = screen.getByLabelText(/I accept the.*Terms of Service/i);

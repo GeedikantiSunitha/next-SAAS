@@ -22,6 +22,7 @@ vi.mock('../../api/privacy', () => ({
     requestDataExport: vi.fn(),
     requestAccountDeletion: vi.fn(),
     updateCookiePreferences: vi.fn(),
+    unlinkOAuthAccount: vi.fn(),
   },
 }));
 
@@ -340,6 +341,42 @@ describe('PrivacyCenter Page', () => {
 
       await waitFor(() => {
         expect(screen.getByRole('button', { name: /Request Account Deletion/i })).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Connected Accounts', () => {
+    it('should call unlinkOAuthAccount when disconnect is confirmed', async () => {
+      const mockDataWithAccounts = {
+        ...mockPrivacyData,
+        connectedAccounts: [
+          { provider: 'google', connectedAt: '2024-01-01T10:00:00Z' },
+        ],
+      };
+      (privacyApi.getPrivacyOverview as any).mockResolvedValue(mockDataWithAccounts);
+      (privacyApi.unlinkOAuthAccount as any).mockResolvedValue(undefined);
+
+      renderWithProviders(<PrivacyCenter />);
+
+      // Navigate to Connected Accounts tab
+      await waitFor(() => {
+        fireEvent.click(screen.getByRole('button', { name: /Connected Accounts/i }));
+      });
+
+      // Click the first Disconnect button
+      await waitFor(() => {
+        expect(screen.getAllByRole('button', { name: /Disconnect/i })).toHaveLength(1);
+      });
+      fireEvent.click(screen.getAllByRole('button', { name: /Disconnect/i })[0]);
+
+      // Confirm in the inline confirmation dialog
+      await waitFor(() => {
+        expect(screen.getByText(/Are you sure you want to disconnect/i)).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getAllByRole('button', { name: /Disconnect/i })[1]);
+
+      await waitFor(() => {
+        expect(privacyApi.unlinkOAuthAccount).toHaveBeenCalledWith('google');
       });
     });
   });

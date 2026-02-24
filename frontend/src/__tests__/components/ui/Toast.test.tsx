@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Toaster } from '../../../components/ui/toaster';
-import { useToast } from '../../../hooks/use-toast';
+import { useToast, _resetToastState } from '../../../hooks/use-toast';
 
 // Test component that uses toast
 function TestComponent({ message, variant, duration }: { message: string; variant?: 'default' | 'success' | 'error' | 'warning'; duration?: number }) {
@@ -29,12 +29,12 @@ function TestComponent({ message, variant, duration }: { message: string; varian
 
 describe('Toast Component', () => {
   beforeEach(() => {
-    // Clear any existing toasts and reset state
     vi.clearAllMocks();
+    // Reset module-level toast state so tests don't bleed into each other
+    _resetToastState();
   });
 
   afterEach(() => {
-    // Clean up timers
     vi.useRealTimers();
   });
 

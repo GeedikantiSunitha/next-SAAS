@@ -7,11 +7,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { OAuthButtons } from '../../components/OAuthButtons';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../hooks/use-toast';
 import { initiateOAuth } from '../../utils/oauth';
+import * as featureFlagsApi from '../../api/featureFlags';
 import * as React from 'react';
+
+vi.mock('../../api/featureFlags', () => ({
+  getFeatureFlag: vi.fn(),
+  getPublicFeatureFlag: vi.fn().mockResolvedValue({ data: { enabled: true } }),
+}));
 
 // Mock dependencies
 vi.mock('../../contexts/AuthContext');
@@ -22,7 +29,14 @@ vi.mock('react-router-dom', () => ({
 }));
 
 const createWrapper = () => {
-  return ({ children }: { children: React.ReactNode }) => <>{children}</>;
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  queryClient.setQueryData(['featureFlag', 'public', 'google_oauth'], { data: { enabled: true } });
+  queryClient.setQueryData(['featureFlag', 'public', 'github_oauth'], { data: { enabled: true } });
+  return ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
 };
 
 describe('OAuthButtons Component', () => {
@@ -49,14 +63,70 @@ describe('OAuthButtons Component', () => {
     });
   });
 
-  it('should render OAuth buttons', () => {
+  it('should not render OAuth section when both google_oauth and github_oauth flags are disabled', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient.setQueryData(['featureFlag', 'public', 'google_oauth'], { data: { enabled: false } });
+    queryClient.setQueryData(['featureFlag', 'public', 'github_oauth'], { data: { enabled: false } });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <OAuthButtons />
+      </QueryClientProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByText(/or continue with/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/google/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/github/i)).not.toBeInTheDocument();
+    });
+  });
+
+  it('should not render Google button when google_oauth flag is disabled', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient.setQueryData(['featureFlag', 'public', 'google_oauth'], { data: { enabled: false } });
+    queryClient.setQueryData(['featureFlag', 'public', 'github_oauth'], { data: { enabled: true } });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <OAuthButtons />
+      </QueryClientProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/or continue with/i)).toBeInTheDocument();
+      expect(screen.queryByText(/google/i)).not.toBeInTheDocument();
+      expect(screen.getByText(/github/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should not render GitHub button when github_oauth flag is disabled', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient.setQueryData(['featureFlag', 'public', 'google_oauth'], { data: { enabled: true } });
+    queryClient.setQueryData(['featureFlag', 'public', 'github_oauth'], { data: { enabled: false } });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <OAuthButtons />
+      </QueryClientProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/or continue with/i)).toBeInTheDocument();
+      expect(screen.getByText(/google/i)).toBeInTheDocument();
+      expect(screen.queryByText(/github/i)).not.toBeInTheDocument();
+    });
+  });
+
+  it('should render OAuth buttons', async () => {
     vi.stubEnv('VITE_GOOGLE_CLIENT_ID', 'test-google-id');
     vi.stubEnv('VITE_GITHUB_CLIENT_ID', 'test-github-id');
     // Note: Microsoft OAuth is commented out in component (coming soon)
 
     render(<OAuthButtons />, { wrapper: createWrapper() });
 
-    expect(screen.getByText(/or continue with/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/or continue with/i)).toBeInTheDocument();
+    });
     expect(screen.getByText(/google/i)).toBeInTheDocument();
     expect(screen.getByText(/github/i)).toBeInTheDocument();
     // Microsoft button is not rendered (commented out in component)

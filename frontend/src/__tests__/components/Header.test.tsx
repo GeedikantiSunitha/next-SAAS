@@ -11,6 +11,12 @@ import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Header } from '../../components/Header';
+import * as featureFlagsApi from '../../api/featureFlags';
+
+vi.mock('../../api/featureFlags', () => ({
+  getPublicFeatureFlag: vi.fn(),
+  getFeatureFlag: vi.fn(),
+}));
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -32,6 +38,12 @@ const renderWithRouter = (component: React.ReactElement) => {
 };
 
 describe('Header Component', () => {
+  beforeEach(() => {
+    vi.mocked(featureFlagsApi.getPublicFeatureFlag).mockImplementation((flagName: string) =>
+      Promise.resolve({ data: { enabled: true } })
+    );
+  });
+
   it('should render header with navigation', () => {
     renderWithRouter(<Header />);
     expect(screen.getByRole('banner')).toBeInTheDocument();
@@ -49,16 +61,37 @@ describe('Header Component', () => {
     expect(screen.getByRole('link', { name: /login/i })).toHaveAttribute('href', '/login');
   });
 
-  it('should display register link when not authenticated', () => {
+  it('should display register link when not authenticated and registration flag enabled', async () => {
     renderWithRouter(<Header isAuthenticated={false} />);
-    expect(screen.getByRole('link', { name: /register|sign up/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /register|sign up/i })).toHaveAttribute('href', '/register');
+    const registerLink = await screen.findByRole('link', { name: /register|sign up/i });
+    expect(registerLink).toHaveAttribute('href', '/register');
   });
 
-  it('should display forgot password link when not authenticated', () => {
+  it('should not display register link when registration flag is disabled', async () => {
+    vi.mocked(featureFlagsApi.getPublicFeatureFlag).mockImplementation((flagName: string) =>
+      Promise.resolve({ data: { enabled: flagName !== 'registration' } })
+    );
     renderWithRouter(<Header isAuthenticated={false} />);
-    expect(screen.getByRole('link', { name: /forgot password/i })).toBeInTheDocument();
+    await new Promise((r) => setTimeout(r, 100));
+    expect(screen.queryByRole('link', { name: /register|sign up/i })).not.toBeInTheDocument();
+  });
+
+  it('should display forgot password link when not authenticated and password_reset flag enabled', async () => {
+    vi.mocked(featureFlagsApi.getPublicFeatureFlag).mockResolvedValue({
+      data: { enabled: true },
+    });
+    renderWithRouter(<Header isAuthenticated={false} />);
+    await screen.findByRole('link', { name: /forgot password/i });
     expect(screen.getByRole('link', { name: /forgot password/i })).toHaveAttribute('href', '/forgot-password');
+  });
+
+  it('should not display forgot password link when password_reset flag is disabled', async () => {
+    vi.mocked(featureFlagsApi.getPublicFeatureFlag).mockResolvedValue({
+      data: { enabled: false },
+    });
+    renderWithRouter(<Header isAuthenticated={false} />);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByRole('link', { name: /forgot password/i })).not.toBeInTheDocument();
   });
 
   it('should display dashboard link when authenticated', () => {

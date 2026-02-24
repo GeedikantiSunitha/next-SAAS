@@ -162,6 +162,7 @@ class PrivacyApi {
     startDate?: string;
     endDate?: string;
     accessType?: string;
+    dataCategory?: string;
   }): Promise<{
     entries: AccessLogEntry[];
     pagination: {
@@ -233,6 +234,13 @@ class PrivacyApi {
       granted,
     });
     return response.data;
+  }
+
+  /**
+   * Unlink an OAuth provider from the current account
+   */
+  async unlinkOAuthAccount(provider: string): Promise<void> {
+    await this.axios.post('/auth/oauth/unlink', { provider });
   }
 
   /**

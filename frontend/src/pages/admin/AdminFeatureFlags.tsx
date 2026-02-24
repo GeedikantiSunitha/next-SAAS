@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AdminLayout } from '../../components/admin/AdminLayout';
 import { adminApi } from '../../api/admin';
+import { FEATURE_FLAGS_HIDDEN_FROM_ADMIN } from '../../lib/constants';
 import { Button } from '../../components/ui/button';
 import { Skeleton } from '../../components/ui/skeleton';
 import { useToast } from '../../hooks/use-toast';
@@ -34,7 +35,9 @@ export const AdminFeatureFlags = () => {
     },
   });
 
-  const flags = data?.data?.flags || [];
+  const allFlags = data?.data?.flags || [];
+  const hiddenSet = new Set(FEATURE_FLAGS_HIDDEN_FROM_ADMIN);
+  const flags = allFlags.filter((flag: { key: string }) => !hiddenSet.has(flag.key));
 
   const handleToggle = (key: string, currentEnabled: boolean) => {
     updateMutation.mutate({ key, enabled: !currentEnabled });

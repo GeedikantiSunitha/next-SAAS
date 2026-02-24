@@ -4,7 +4,7 @@
  */
 
 import { prisma } from '../config/database';
-import { NotFoundError, ConflictError, UnauthorizedError, ValidationError } from '../utils/errors';
+import { NotFoundError, ConflictError, UnauthorizedError, ValidationError, ForbiddenError } from '../utils/errors';
 import { hashPassword, comparePassword } from './authService';
 import { shouldRejectPassword, checkPasswordStrength } from '../utils/passwordStrength';
 import { createAuditLog } from './auditService';
@@ -180,6 +180,11 @@ export const changePassword = async (
   ipAddress?: string,
   userAgent?: string
 ) => {
+  const { isFeatureEnabled } = await import('./featureFlagRuntimeService');
+  if (!(await isFeatureEnabled('password_reset'))) {
+    throw new ForbiddenError('Password reset is currently disabled');
+  }
+
   // Check if user exists
   const user = await prisma.user.findUnique({
     where: { id: userId },

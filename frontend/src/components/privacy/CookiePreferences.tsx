@@ -3,7 +3,7 @@
  * Manages cookie consent and preferences
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { privacyApi } from '../../api/privacy';
 
 interface CookiePreferencesProps {
@@ -20,6 +20,11 @@ const CookiePreferences: React.FC<CookiePreferencesProps> = ({ preferences, onUp
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [localPreferences, setLocalPreferences] = useState(preferences);
+
+  // Re-sync local state whenever the parent provides updated preferences
+  useEffect(() => {
+    setLocalPreferences(preferences);
+  }, [preferences]);
 
   const cookieCategories = [
     {

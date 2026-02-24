@@ -62,7 +62,8 @@ describe('AdminDataRetention', () => {
   it('should render data retention page', () => {
     renderAdminDataRetention();
 
-    expect(screen.getByText('Data Retention')).toBeInTheDocument();
+    // Use getByRole to target the page heading specifically (sidebar also has "Data Retention" link)
+    expect(screen.getByRole('heading', { name: 'Data Retention', level: 1 })).toBeInTheDocument();
   });
 
   it('should display page description', () => {

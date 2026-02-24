@@ -6,10 +6,9 @@
  */
 
 import { render, screen } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
 import { describe, it, expect, vi } from 'vitest';
 import { Landing } from '../../pages/Landing';
-import { AuthProvider } from '../../contexts/AuthContext';
+import { createPageWrapper } from '../utils/testWrapper';
 
 // Mock useNavigate
 const mockNavigate = vi.fn();
@@ -22,13 +21,7 @@ vi.mock('react-router-dom', async () => {
 });
 
 const renderWithRouter = (component: React.ReactElement) => {
-  return render(
-    <BrowserRouter>
-      <AuthProvider>
-        {component}
-      </AuthProvider>
-    </BrowserRouter>
-  );
+  return render(component, { wrapper: createPageWrapper() });
 };
 
 describe('Landing Page', () => {

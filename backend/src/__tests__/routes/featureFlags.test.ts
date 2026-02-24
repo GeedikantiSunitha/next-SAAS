@@ -88,6 +88,77 @@ describe('Feature Flags Routes', () => {
 
       expect(response.status).toBe(401);
     });
+
+    it('should return DB value for password_reset when flag exists in database (admin toggle)', async () => {
+      await prisma.featureFlag.upsert({
+        where: { key: 'password_reset' },
+        create: { key: 'password_reset', enabled: false, description: 'Enable password reset' },
+        update: { enabled: false },
+      });
+
+      const response = await request(app)
+        .get('/api/feature-flags/password_reset')
+        .set('Authorization', `Bearer ${userToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.enabled).toBe(false);
+
+      await prisma.featureFlag.update({
+        where: { key: 'password_reset' },
+        data: { enabled: true },
+      });
+
+      const responseEnabled = await request(app)
+        .get('/api/feature-flags/password_reset')
+        .set('Authorization', `Bearer ${userToken}`);
+
+      expect(responseEnabled.body.data.enabled).toBe(true);
+    });
+
+    it('should return DB value for registration when flag exists in database', async () => {
+      await prisma.featureFlag.upsert({
+        where: { key: 'registration' },
+        create: { key: 'registration', enabled: false, description: 'Enable registration' },
+        update: { enabled: false },
+      });
+
+      const response = await request(app)
+        .get('/api/feature-flags/registration')
+        .set('Authorization', `Bearer ${userToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.enabled).toBe(false);
+
+      await prisma.featureFlag.update({ where: { key: 'registration' }, data: { enabled: true } });
+    });
+  });
+
+  describe('GET /api/feature-flags/public/:flagName', () => {
+    it('should return password_reset flag without auth', async () => {
+      await prisma.featureFlag.upsert({
+        where: { key: 'password_reset' },
+        create: { key: 'password_reset', enabled: false, description: 'Enable password reset' },
+        update: { enabled: false },
+      });
+
+      const response = await request(app)
+        .get('/api/feature-flags/public/password_reset');
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.enabled).toBe(false);
+
+      await prisma.featureFlag.update({ where: { key: 'password_reset' }, data: { enabled: true } });
+    });
+
+    it('should return 400 for invalid public flag', async () => {
+      const response = await request(app)
+        .get('/api/feature-flags/public/invalid_flag');
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+    });
   });
 
   describe('GET /api/feature-flags', () => {

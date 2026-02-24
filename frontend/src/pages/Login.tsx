@@ -12,6 +12,7 @@ import { OAuthButtons } from '../components/OAuthButtons';
 import { MfaVerification } from '../components/MfaVerification';
 import { authApi } from '../api/auth';
 import { useToast } from '../hooks/use-toast';
+import { usePublicFeatureFlag } from '../hooks/useFeatureFlag';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -30,6 +31,8 @@ export const Login = () => {
   const [mfaMethod, setMfaMethod] = useState<'TOTP' | 'EMAIL' | null>(null);
   const [mfaError, setMfaError] = useState<string | null>(null);
   const [isVerifyingMfa, setIsVerifyingMfa] = useState(false);
+  const { enabled: passwordResetEnabled } = usePublicFeatureFlag('password_reset');
+  const { enabled: registrationEnabled } = usePublicFeatureFlag('registration');
 
   const {
     register,
@@ -243,17 +246,21 @@ export const Login = () => {
         </div>
 
         <div className="text-center text-sm space-y-2">
+          {passwordResetEnabled && (
           <div>
             <Link to="/forgot-password" className="text-primary hover:underline">
               Forgot Password?
             </Link>
           </div>
+          )}
+          {registrationEnabled && (
           <div>
             <span className="text-muted-foreground">Don't have an account? </span>
             <Link to="/register" className="text-primary hover:underline">
               Register
             </Link>
           </div>
+          )}
         </div>
       </div>
     </div>

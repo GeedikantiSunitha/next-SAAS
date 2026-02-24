@@ -45,6 +45,14 @@ const PrivacyCenter: React.FC = () => {
     },
   });
 
+  // Disconnect (unlink) an OAuth provider
+  const disconnectAccountMutation = useMutation({
+    mutationFn: (provider: string) => privacyApi.unlinkOAuthAccount(provider),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['privacy-overview'] });
+    },
+  });
+
   if (isLoading) {
     return (
       <Layout>
@@ -101,7 +109,12 @@ const PrivacyCenter: React.FC = () => {
       case 'cookies':
         return <CookiePreferences preferences={data.cookiePreferences} onUpdate={handleDataUpdate} />;
       case 'accounts':
-        return <ConnectedAccounts accounts={data.connectedAccounts} />;
+        return (
+          <ConnectedAccounts
+            accounts={data.connectedAccounts}
+            onDisconnect={(provider) => disconnectAccountMutation.mutate(provider)}
+          />
+        );
       case 'access':
         return <AccessLog initialData={data.recentAccess} />;
       default:

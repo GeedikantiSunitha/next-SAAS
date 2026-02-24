@@ -8,7 +8,6 @@ import axios from 'axios';
 import { OAuthProvider, OAuthProfile } from '../services/oauthService';
 import { UnauthorizedError } from './errors';
 import logger from './logger';
-import config from '../config';
 
 /**
  * Verify Google OAuth token and get user profile
@@ -115,33 +114,31 @@ const verifyMicrosoftToken = async (token: string): Promise<OAuthProfile> => {
 
 /**
  * Verify OAuth token and return user profile
+ * Checks feature flag from DB first (admin-togglable), then config fallback
  */
 export const verifyOAuthToken = async (
   provider: OAuthProvider,
   token: string
 ): Promise<OAuthProfile> => {
+  const flagKey =
+    provider === 'google'
+      ? 'google_oauth'
+      : provider === 'github'
+        ? 'github_oauth'
+        : 'microsoft_oauth';
+
+  const { isFeatureEnabled } = await import('../services/featureFlagRuntimeService');
+  if (!(await isFeatureEnabled(flagKey))) {
+    throw new UnauthorizedError(`${provider.charAt(0).toUpperCase() + provider.slice(1)} OAuth is not enabled`);
+  }
+
   switch (provider) {
     case 'google':
-      // In tests, allow even if not configured (mocked)
-      if (process.env.NODE_ENV !== 'test' && !config.oauth.google.enabled) {
-        throw new UnauthorizedError('Google OAuth is not enabled');
-      }
       return verifyGoogleToken(token);
-
     case 'github':
-      // In tests, allow even if not configured (mocked)
-      if (process.env.NODE_ENV !== 'test' && !config.oauth.github.enabled) {
-        throw new UnauthorizedError('GitHub OAuth is not enabled');
-      }
       return verifyGitHubToken(token);
-
     case 'microsoft':
-      // In tests, allow even if not configured (mocked)
-      if (process.env.NODE_ENV !== 'test' && !config.oauth.microsoft?.enabled) {
-        throw new UnauthorizedError('Microsoft OAuth is not enabled');
-      }
       return verifyMicrosoftToken(token);
-
     default:
       throw new UnauthorizedError(`Unsupported OAuth provider: ${provider}`);
   }

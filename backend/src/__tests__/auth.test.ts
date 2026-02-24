@@ -29,6 +29,33 @@ describe('Auth API', () => {
     });
   });
   describe('POST /api/auth/register', () => {
+    it('should return 403 when registration feature flag is disabled in database', async () => {
+      await prisma.featureFlag.upsert({
+        where: { key: 'registration' },
+        create: { key: 'registration', enabled: false, description: 'Enable registration' },
+        update: { enabled: false },
+      });
+
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send({
+          email: 'registration-disabled@example.com',
+          password: 'Password123!',
+          name: 'New User',
+          acceptedTerms: true,
+          acceptedPrivacy: true,
+        });
+
+      expect(response.status).toBe(403);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toContain('Registration is currently disabled');
+
+      await prisma.featureFlag.update({
+        where: { key: 'registration' },
+        data: { enabled: true },
+      });
+    });
+
     it('should register a new user', async () => {
       const response = await request(app)
         .post('/api/auth/register')

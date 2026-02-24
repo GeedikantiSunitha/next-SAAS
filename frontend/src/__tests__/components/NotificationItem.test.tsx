@@ -3,7 +3,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { NotificationItem } from '../../components/NotificationItem';
 import { Notification } from '../../api/notifications';
 import { useMarkAsRead, useDeleteNotification } from '../../hooks/useNotifications';
@@ -84,13 +85,66 @@ describe('NotificationItem', () => {
     expect(mockMarkAsRead).toHaveBeenCalledWith('1');
   });
 
-  it('should call delete when delete button is clicked', () => {
+  it('should show confirmation dialog when delete button is clicked', async () => {
+    const user = userEvent.setup();
     render(<NotificationItem notification={mockNotification} />);
 
     const deleteButton = screen.getByTestId('delete-button');
-    deleteButton.click();
+    await user.click(deleteButton);
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText(/delete notification/i)).toBeInTheDocument();
+  });
+
+  it('should NOT call delete immediately when delete button is clicked', async () => {
+    const user = userEvent.setup();
+    render(<NotificationItem notification={mockNotification} />);
+
+    const deleteButton = screen.getByTestId('delete-button');
+    await user.click(deleteButton);
+
+    // Dialog should appear but delete should NOT have been called yet
+    expect(mockDelete).not.toHaveBeenCalled();
+  });
+
+  it('should call delete only after confirming in the dialog', async () => {
+    const user = userEvent.setup();
+    render(<NotificationItem notification={mockNotification} />);
+
+    // Click Delete button → dialog appears
+    await user.click(screen.getByTestId('delete-button'));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    // Click the confirm button in the dialog
+    await user.click(screen.getByRole('button', { name: /delete/i }));
 
     expect(mockDelete).toHaveBeenCalledWith('1');
+  });
+
+  it('should NOT call delete when cancelling the confirmation dialog', async () => {
+    const user = userEvent.setup();
+    render(<NotificationItem notification={mockNotification} />);
+
+    // Click Delete button → dialog appears
+    await user.click(screen.getByTestId('delete-button'));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    // Click Cancel in the dialog
+    await user.click(screen.getByRole('button', { name: /cancel/i }));
+
+    expect(mockDelete).not.toHaveBeenCalled();
+  });
+
+  it('should close the confirmation dialog after cancelling', async () => {
+    const user = userEvent.setup();
+    render(<NotificationItem notification={mockNotification} />);
+
+    await user.click(screen.getByTestId('delete-button'));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /cancel/i }));
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('should disable buttons when mutation is pending', () => {

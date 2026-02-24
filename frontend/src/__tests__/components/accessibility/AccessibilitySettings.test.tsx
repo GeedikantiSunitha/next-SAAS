@@ -110,6 +110,47 @@ describe('AccessibilitySettings Component', () => {
     expect(screen.getByText(/Keyboard Shortcuts/i)).toBeInTheDocument();
   });
 
+  describe('Platform-aware keyboard shortcut display', () => {
+    const originalPlatform = navigator.platform;
+
+    afterEach(() => {
+      Object.defineProperty(navigator, 'platform', {
+        value: originalPlatform,
+        configurable: true,
+      });
+    });
+
+    it('should show Ctrl for font size shortcuts on Windows/Linux', () => {
+      Object.defineProperty(navigator, 'platform', { value: 'Win32', configurable: true });
+      render(<AccessibilitySettings />);
+      expect(screen.getByText('Ctrl + +')).toBeInTheDocument();
+      expect(screen.getByText('Ctrl + -')).toBeInTheDocument();
+    });
+
+    it('should show ⌘ for font size shortcuts on Mac', () => {
+      Object.defineProperty(navigator, 'platform', { value: 'MacIntel', configurable: true });
+      render(<AccessibilitySettings />);
+      expect(screen.getByText('⌘ + +')).toBeInTheDocument();
+      expect(screen.getByText('⌘ + -')).toBeInTheDocument();
+    });
+
+    it('should show Alt for accessibility toggle shortcuts on Windows/Linux', () => {
+      Object.defineProperty(navigator, 'platform', { value: 'Win32', configurable: true });
+      render(<AccessibilitySettings />);
+      expect(screen.getByText('Alt + S')).toBeInTheDocument();
+      expect(screen.getByText('Alt + C')).toBeInTheDocument();
+      expect(screen.getByText('Alt + M')).toBeInTheDocument();
+    });
+
+    it('should show ⌥ for accessibility toggle shortcuts on Mac', () => {
+      Object.defineProperty(navigator, 'platform', { value: 'MacIntel', configurable: true });
+      render(<AccessibilitySettings />);
+      expect(screen.getByText('⌥ + S')).toBeInTheDocument();
+      expect(screen.getByText('⌥ + C')).toBeInTheDocument();
+      expect(screen.getByText('⌥ + M')).toBeInTheDocument();
+    });
+  });
+
   it('should be fully keyboard navigable', () => {
     render(<AccessibilitySettings />);
     const firstToggle = screen.getByLabelText(/High Contrast Mode/i);

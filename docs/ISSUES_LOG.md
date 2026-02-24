@@ -3023,3 +3023,62 @@ Updated test assertions to be more flexible:
 ### Status: ✅ RESOLVED
 
 ---
+
+## Issue #100: Feature Flags Admin Toggle Not Enforced in UI/Backend
+
+**Severity**: HIGH  
+**Phase**: Manual Testing (4.3 Feature Flags)  
+**Reported**: Tester found that toggling feature flags in Admin UI did not affect the app (e.g., password reset disabled but users could still change password)
+
+### Problem
+- Admin toggles feature flags in DB via Admin → Feature Flags
+- Backend services (authService, profileService) read from `config` (env vars) at startup, not DB
+- Public `/api/feature-flags` returned env-based values, not DB
+- Frontend used build-time constants (VITE_ENABLE_*) or never fetched live flags
+
+### Root Cause
+Two separate systems: (1) Admin feature flags stored in DB, (2) config/env vars used at runtime. No connection between them.
+
+### Resolution
+1. **Backend** - Created `featureFlagRuntimeService.ts` that reads from DB first, falls back to config
+2. **Backend** - Wired authService (forgotPassword, resetPassword, register) and profileService (changePassword) to use `isFeatureEnabled()` from runtime service
+3. **Backend** - Updated `/api/feature-flags/:flagName` to return DB value for password_reset, registration, email_verification
+4. **Backend** - Added public route `GET /api/feature-flags/public/:flagName` (no auth) for Login/ForgotPassword pages
+5. **Frontend** - Profile: hide Change Password card when `password_reset` disabled (useFeatureFlag)
+6. **Frontend** - Login, Header: hide Forgot Password link when disabled (usePublicFeatureFlag)
+7. **Frontend** - ForgotPassword: show disabled message when flag off
+
+### Prevention Strategy
+1. **Single source of truth**: Admin-togglable flags must be read from DB at runtime
+2. **TDD**: Added 20+ tests (backend + frontend) for flag enforcement
+3. **Flag mapping**: CONFIG_FALLBACK in runtime service maps DB keys to config when flag not in DB
+
+### Status: ✅ RESOLVED
+
+---
+
+## Issue #101: Frontend Tests - No QueryClient Set (Header uses usePublicFeatureFlag)
+
+**Severity**: HIGH  
+**Phase**: Frontend Test Suite  
+**Date**: Feb 2026
+
+### Problem
+- 146 frontend tests failed with: `Error: No QueryClient set, use QueryClientProvider to set one`
+- Failed tests: Landing, AcceptableUse, CookiePolicy, DataProcessingAgreement, PrivacyPolicy, SecurityPolicy, TermsOfService
+- Header component uses `usePublicFeatureFlag` (React Query), but tests rendered pages with Layout/Header without QueryClientProvider
+
+### Root Cause
+After adding feature flag support to Header (usePublicFeatureFlag for registration, password_reset), any page using Layout (which includes Header) now requires QueryClientProvider. Tests that used only BrowserRouter + AuthProvider did not provide it.
+
+### Resolution
+1. Created `frontend/src/__tests__/utils/testWrapper.tsx` with `createPageWrapper()` that provides QueryClientProvider, BrowserRouter, AuthProvider, and prefills feature flag query cache
+2. Updated 7 test files to use `render(component, { wrapper: createPageWrapper() })` instead of manual BrowserRouter + AuthProvider
+
+### Prevention Strategy
+1. **Shared wrapper**: Use createPageWrapper for any test that renders pages using Layout (Landing, policy pages, etc.)
+2. **Prefill cache**: createPageWrapper sets `['featureFlag', 'public', 'password_reset']` and `['featureFlag', 'public', 'registration']` so Header renders without API calls
+
+### Status: ✅ RESOLVED
+
+---

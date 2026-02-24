@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ForgotPassword } from '../../pages/ForgotPassword';
 import { authApi } from '../../api/auth';
+import * as featureFlagsApi from '../../api/featureFlags';
 import { useToast } from '../../hooks/use-toast';
 import { AuthProvider } from '../../contexts/AuthContext';
 
@@ -14,6 +15,12 @@ vi.mock('../../api/auth', () => ({
   },
 }));
 
+// Mock feature flags (ForgotPassword uses usePublicFeatureFlag for password_reset)
+vi.mock('../../api/featureFlags', () => ({
+  getFeatureFlag: vi.fn(),
+  getPublicFeatureFlag: vi.fn().mockResolvedValue({ data: { enabled: true } }),
+}));
+
 // Mock useToast
 vi.mock('../../hooks/use-toast', () => ({
   useToast: vi.fn(() => ({
@@ -21,13 +28,21 @@ vi.mock('../../hooks/use-toast', () => ({
   })),
 }));
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { retry: false },
-  },
-});
+const createQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+    },
+  });
 
 const renderForgotPassword = () => {
+  const queryClient = createQueryClient();
+  queryClient.setQueryData(['featureFlag', 'public', 'password_reset'], {
+    data: { enabled: true },
+  });
+  queryClient.setQueryData(['featureFlag', 'public', 'registration'], {
+    data: { enabled: true },
+  });
   return render(
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
@@ -42,14 +57,39 @@ const renderForgotPassword = () => {
 describe('ForgotPassword', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(featureFlagsApi.getPublicFeatureFlag).mockResolvedValue({ data: { enabled: true } });
   });
 
-  it('should render forgot password form', () => {
+  it('should show disabled message when password_reset flag is disabled', async () => {
+    const queryClient = createQueryClient();
+    queryClient.setQueryData(['featureFlag', 'public', 'password_reset'], {
+      data: { enabled: false },
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <BrowserRouter>
+            <ForgotPassword />
+          </BrowserRouter>
+        </AuthProvider>
+      </QueryClientProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/password reset is currently disabled/i)).toBeInTheDocument();
+    });
+    expect(screen.queryByLabelText(/email/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /send reset instructions/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /back to login/i })).toBeInTheDocument();
+  });
+
+  it('should render forgot password form', async () => {
     renderForgotPassword();
 
+    const emailInput = await screen.findByRole('textbox', { name: /email/i }, { timeout: 3000 });
+    expect(emailInput).toBeInTheDocument();
     // Use heading selector to get the h1, not the link in header
     expect(screen.getByRole('heading', { name: /forgot password/i })).toBeInTheDocument();
-    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /send reset instructions/i })).toBeInTheDocument();
   });
 
@@ -58,7 +98,7 @@ describe('ForgotPassword', () => {
     const mockForgotPassword = vi.mocked(authApi.forgotPassword);
     renderForgotPassword();
 
-    const emailInput = screen.getByLabelText(/email/i);
+    const emailInput = await screen.findByRole('textbox', { name: /email/i }, { timeout: 3000 });
     const submitButton = screen.getByRole('button', { name: /send reset instructions/i });
     
     // Type invalid email
@@ -98,7 +138,7 @@ describe('ForgotPassword', () => {
 
     renderForgotPassword();
 
-    const emailInput = screen.getByLabelText(/email/i);
+    const emailInput = await screen.findByRole('textbox', { name: /email/i }, { timeout: 3000 });
     await user.type(emailInput, 'test@example.com');
     await user.click(screen.getByRole('button', { name: /send reset instructions/i }));
 
@@ -121,7 +161,7 @@ describe('ForgotPassword', () => {
 
     renderForgotPassword();
 
-    const emailInput = screen.getByLabelText(/email/i);
+    const emailInput = await screen.findByRole('textbox', { name: /email/i }, { timeout: 3000 });
     await user.type(emailInput, 'test@example.com');
     await user.click(screen.getByRole('button', { name: /send reset instructions/i }));
 
@@ -152,7 +192,7 @@ describe('ForgotPassword', () => {
 
     renderForgotPassword();
 
-    const emailInput = screen.getByLabelText(/email/i);
+    const emailInput = await screen.findByRole('textbox', { name: /email/i }, { timeout: 3000 });
     await user.type(emailInput, 'test@example.com');
     await user.click(screen.getByRole('button', { name: /send reset instructions/i }));
 
@@ -173,7 +213,7 @@ describe('ForgotPassword', () => {
 
     renderForgotPassword();
 
-    const emailInput = screen.getByLabelText(/email/i);
+    const emailInput = await screen.findByRole('textbox', { name: /email/i }, { timeout: 3000 });
     const submitButton = screen.getByRole('button', { name: /send reset instructions/i });
 
     await user.type(emailInput, 'test@example.com');
@@ -195,9 +235,30 @@ describe('ForgotPassword', () => {
     expect(loginLinks[0]).toHaveAttribute('href', '/login');
   });
 
-  it('should have link to register page', () => {
+  it('should not display Register link when registration flag is disabled', async () => {
+    const queryClient = createQueryClient();
+    queryClient.setQueryData(['featureFlag', 'public', 'password_reset'], { data: { enabled: true } });
+    queryClient.setQueryData(['featureFlag', 'public', 'registration'], { data: { enabled: false } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <BrowserRouter>
+            <ForgotPassword />
+          </BrowserRouter>
+        </AuthProvider>
+      </QueryClientProvider>
+    );
+
+    const emailInput = await screen.findByRole('textbox', { name: /email/i }, { timeout: 3000 });
+    expect(emailInput).toBeInTheDocument();
+    // "Don't have an account? Register" block is hidden when registration is disabled
+    expect(screen.queryByText(/don't have an account/i)).not.toBeInTheDocument();
+  });
+
+  it('should have link to register page', async () => {
     renderForgotPassword();
 
+    await screen.findByRole('textbox', { name: /email/i }, { timeout: 3000 });
     // There might be multiple register links (page + footer), so get all and check first one
     const registerLinks = screen.getAllByRole('link', { name: /register/i });
     expect(registerLinks.length).toBeGreaterThan(0);

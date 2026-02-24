@@ -4,8 +4,10 @@
  * Displays a single notification with actions
  */
 
+import { useState } from 'react';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
+import { ConfirmDialog } from './ConfirmDialog';
 import { useMarkAsRead, useDeleteNotification } from '../hooks/useNotifications';
 import { Notification } from '../api/notifications';
 import { formatDistanceToNow } from 'date-fns';
@@ -17,6 +19,7 @@ interface NotificationItemProps {
 }
 
 export const NotificationItem = ({ notification }: NotificationItemProps) => {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const markAsReadMutation = useMarkAsRead();
   const deleteMutation = useDeleteNotification();
 
@@ -29,8 +32,17 @@ export const NotificationItem = ({ notification }: NotificationItemProps) => {
     }
   };
 
-  const handleDelete = () => {
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = () => {
     deleteMutation.mutate(notification.id);
+    setShowDeleteConfirm(false);
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteConfirm(false);
   };
 
   return (
@@ -102,7 +114,7 @@ export const NotificationItem = ({ notification }: NotificationItemProps) => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleDelete}
+                onClick={handleDeleteClick}
                 disabled={deleteMutation.isPending}
                 data-testid="delete-button"
               >
@@ -113,6 +125,18 @@ export const NotificationItem = ({ notification }: NotificationItemProps) => {
           </div>
         </div>
       </CardContent>
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        title="Delete Notification"
+        description="Are you sure you want to delete this notification? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="destructive"
+        loading={deleteMutation.isPending}
+      />
     </Card>
   );
 };

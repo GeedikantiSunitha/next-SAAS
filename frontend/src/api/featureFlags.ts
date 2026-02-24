@@ -12,10 +12,19 @@ export interface FeatureFlagResponse {
 }
 
 /**
- * Get feature flag status from backend
+ * Get feature flag status from backend (requires authentication)
  */
 export const getFeatureFlag = async (flagName: string): Promise<{ data: FeatureFlagResponse }> => {
   const response = await apiClient.get(`/api/feature-flags/${flagName}`);
+  return response.data;
+};
+
+/**
+ * Get public feature flag (no auth - for Login, ForgotPassword, Header)
+ * Use for password_reset, registration only
+ */
+export const getPublicFeatureFlag = async (flagName: string): Promise<{ data: FeatureFlagResponse }> => {
+  const response = await apiClient.get(`/api/feature-flags/public/${flagName}`);
   return response.data;
 };
 

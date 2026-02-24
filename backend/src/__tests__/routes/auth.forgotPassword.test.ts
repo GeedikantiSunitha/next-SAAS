@@ -18,6 +18,8 @@ describe('Forgot Password Endpoints', () => {
   beforeEach(async () => {
     // Clean up password resets
     await prisma.passwordReset.deleteMany();
+    // Clean up feature flags (so tests start with config fallback)
+    await prisma.featureFlag.deleteMany();
     // Clean up users
     await prisma.user.deleteMany();
     // Create test user
@@ -29,6 +31,7 @@ describe('Forgot Password Endpoints', () => {
 
   afterEach(async () => {
     await prisma.passwordReset.deleteMany();
+    await prisma.featureFlag.deleteMany();
     await prisma.user.deleteMany();
   });
 
@@ -99,6 +102,24 @@ describe('Forgot Password Endpoints', () => {
       expect(newToken?.token).not.toBe('old-token');
     });
 
+    it('should return 403 when password_reset feature flag is disabled in database', async () => {
+      await prisma.featureFlag.create({
+        data: {
+          key: 'password_reset',
+          enabled: false,
+          description: 'Enable password reset',
+        },
+      });
+
+      const response = await request(app)
+        .post('/api/auth/forgot-password')
+        .send({ email: testUser.email })
+        .expect(403);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toContain('Password reset is currently disabled');
+    });
+
     it('should require email field', async () => {
       const response = await request(app)
         .post('/api/auth/forgot-password')
@@ -150,6 +171,24 @@ describe('Forgot Password Endpoints', () => {
         },
       });
       resetToken = passwordReset.token;
+    });
+
+    it('should return 403 when password_reset feature flag is disabled in database', async () => {
+      await prisma.featureFlag.create({
+        data: {
+          key: 'password_reset',
+          enabled: false,
+          description: 'Enable password reset',
+        },
+      });
+
+      const response = await request(app)
+        .post(`/api/auth/reset-password/${resetToken}`)
+        .send({ password: 'NewPassword123!' })
+        .expect(403);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toContain('Password reset is currently disabled');
     });
 
     it('should reset password with valid token', async () => {

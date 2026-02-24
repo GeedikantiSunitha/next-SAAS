@@ -10,6 +10,7 @@ import { Button } from './ui/button';
 import { Skeleton } from './ui/skeleton';
 import { useOAuthMethods, useLinkOAuth, useUnlinkOAuth } from '../hooks/useOAuth';
 import { useToast } from '../hooks/use-toast';
+import { useFeatureFlag } from '../hooks/useFeatureFlag';
 import { ConfirmDialog } from './ConfirmDialog';
 import { Chrome, Github, CheckCircle, Link2, Unlink } from 'lucide-react';
 import { initiateOAuth } from '../utils/oauth';
@@ -19,6 +20,8 @@ export const ConnectedAccounts = () => {
   const linkOAuthMutation = useLinkOAuth();
   const unlinkOAuthMutation = useUnlinkOAuth();
   const { toast } = useToast();
+  const { enabled: googleOAuthEnabled } = useFeatureFlag('google_oauth');
+  const { enabled: githubOAuthEnabled } = useFeatureFlag('github_oauth');
   
   const [showUnlinkDialog, setShowUnlinkDialog] = useState(false);
   const [providerToUnlink, setProviderToUnlink] = useState<'google' | 'github' | null>(null);
@@ -117,7 +120,8 @@ export const ConnectedAccounts = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Google Account */}
+          {/* Google Account - only shown when google_oauth flag is enabled */}
+          {googleOAuthEnabled && (
           <div className="flex items-center justify-between p-4 border rounded-lg">
             <div className="flex items-center gap-3">
               <Chrome className="h-5 w-5 text-blue-600" />
@@ -155,8 +159,10 @@ export const ConnectedAccounts = () => {
               )}
             </div>
           </div>
+          )}
 
-          {/* GitHub Account */}
+          {/* GitHub Account - only shown when github_oauth flag is enabled */}
+          {githubOAuthEnabled && (
           <div className="flex items-center justify-between p-4 border rounded-lg">
             <div className="flex items-center gap-3">
               <Github className="h-5 w-5 text-gray-900 dark:text-gray-100" />
@@ -194,6 +200,7 @@ export const ConnectedAccounts = () => {
               )}
             </div>
           </div>
+          )}
 
           <div className="text-xs text-muted-foreground pt-2">
             Linking an account allows you to sign in using that provider in addition to your password.
