@@ -50,6 +50,14 @@ export async function getCsrfToken(): Promise<string | null> {
 }
 
 /**
+ * Clear cached CSRF token. Call on logout so next session gets a fresh token.
+ * Backend clears csrf cookie on logout; stale cache would cause validation failures.
+ */
+export function clearCsrfToken(): void {
+  csrfTokenCache = null;
+}
+
+/**
  * Request Interceptor
  * - Adds X-CSRF-Token header for state-changing requests (CSRF protection).
  * - Cookies are sent automatically by browser (withCredentials: true).

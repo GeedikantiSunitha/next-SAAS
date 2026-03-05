@@ -1234,6 +1234,237 @@ After investigation with TDD tests, Newsletter Management was actually fully imp
 
 ---
 
+## Issue #22: Email Delivery Failures (Resend Sandbox) – Test Cases 1.3, 3.3.1, 6.3.1, 7.2.2
+
+**Issue ID**: MANUAL-022  
+**Priority**: 🟡 MEDIUM (configuration, not code bug)  
+**Status**: ⚠️ **PARTIAL** (documented; tester action required)  
+**Date Reported**: March 4, 2026
+
+**Test Cases Affected**: 1.3.1–1.3.5 (Password Reset), 3.3.1 (Enable Email MFA), 6.3.1 (Receive Email Notification), 7.2.2 (Confirm Deletion via Email)
+
+**Tester Notes**:
+- "Email not received in inbox for password reset"
+- "Verification code not sending to email" (Email MFA setup)
+- "Didn't receive email for password reset with link. Tested with Gmail ID"
+- "Not getting email on Gmail account" (deletion confirmation)
+
+**Root Cause**:
+- Resend sandbox (default `onboarding@resend.dev`) **only delivers** to: (1) Resend account email, (2) `delivered@resend.dev`
+- Testing with `user@demo.com`, `demo@example.com`, or Gmail addresses will **not** receive emails
+
+**Code Verification**:
+- `authService.sendPasswordResetEmail`, `gdprService.sendDataDeletionRequestConfirmationEmail`, `notificationService.sendNotificationEmail`, `mfaService.sendEmailOtp` — all exist and are called
+- Emails are sent; Resend sandbox blocks delivery to non-allowed addresses
+
+**How to Avoid in Future**:
+1. Use a user whose email is your **Resend account email** or **`delivered@resend.dev`** when testing password reset, Email MFA, notifications, or deletion confirmation
+2. Or set `GDPR_CONFIRMATION_EMAIL_OVERRIDE` in `backend/.env` to an allowed address for deletion flow
+3. See `docs/DEMO_CREDENTIALS.md` for full instructions
+
+**Resolution**: Documentation only; no code change required. Testers must use allowed recipient addresses.
+
+---
+
+## Issue #23: Newsletter API 404 (Create/Schedule/Send) – TDD
+
+**Issue ID**: MANUAL-023  
+**Priority**: 🟠 HIGH  
+**Status**: ✅ **RESOLVED**  
+**Date Reported**: March 4, 2026  
+**Date Resolved**: March 4, 2026
+
+**Test Cases Affected**: 8.6.1 (Create Newsletter), 8.6.2 (Schedule Newsletter), 8.6.3 (Send Newsletter)
+
+**Tester Notes**:
+- "After putting the info. when hitting create newsletter, showing error Request failed with error code 404"
+
+**Root Cause**:
+- Frontend `newsletter.ts` used paths without `/api` prefix: `/newsletter`, `/newsletter/subscribe`, etc.
+- Vite proxy only forwards `/api` to backend; backend routes at `/api/newsletter`
+- Requests to `/newsletter` hit frontend → 404
+
+**Resolution (TDD)**:
+1. **RED**: Updated `frontend/src/__tests__/api/newsletter.test.ts` to expect `/api/newsletter` paths → 11 tests failed
+2. **GREEN**: Changed all paths in `frontend/src/api/newsletter.ts` from `/newsletter` to `/api/newsletter`
+3. Added test for `scheduleNewsletter` to lock in correct path
+
+**Files Changed**:
+- `frontend/src/api/newsletter.ts` — all paths now use `/api/newsletter`
+- `frontend/src/__tests__/api/newsletter.test.ts` — expectations + scheduleNewsletter test
+
+**Verification**: `npm test src/__tests__/api/newsletter.test.ts` — 12 tests passing
+
+**How to Avoid in Future**: All API paths must include `/api` prefix when using Vite proxy (baseURL ''). Backend mounts routes under `app.use('/api', routes)`.
+
+---
+
+## Issue #24: Privacy Center Cookie Preferences 404 – TDD
+
+**Issue ID**: MANUAL-024  
+**Priority**: 🟠 HIGH  
+**Status**: ✅ **RESOLVED**  
+**Date Reported**: March 4, 2026  
+**Date Resolved**: March 4, 2026
+
+**Test Cases Affected**: Privacy Center – Cookie Preferences, Connected Accounts, Access Log
+
+**Tester Notes**:
+- "Cookie Preferences, Connected Accounts, Access Log - functionalities not working"
+
+**Root Cause**:
+1. Frontend `privacy.ts` called `POST /gdpr/cookie-consent` but backend expects `POST /gdpr/consents/cookies` → 404
+2. `privacyCenterService.getPrivacyOverview` used `cookieConsent = null` (hardcoded) instead of fetching from `gdprService.getCookieConsent`
+
+**Resolution (TDD)**:
+1. **RED**: Created `frontend/src/__tests__/api/privacy.test.ts` — expect `/gdpr/consents/cookies`; added backend test for cookie prefs from gdprService
+2. **GREEN**: Fixed `privacy.ts` path; updated `privacyCenterService` to call `gdprService.getCookieConsent(userId)`
+
+**Files Changed**:
+- `frontend/src/api/privacy.ts` — `/gdpr/cookie-consent` → `/gdpr/consents/cookies`
+- `frontend/src/__tests__/api/privacy.test.ts` — new API path test
+- `backend/src/services/privacyCenterService.ts` — call gdprService.getCookieConsent for overview
+- `backend/src/__tests__/services/privacyCenterService.test.ts` — test for cookie prefs from gdprService
+
+**Verification**: Frontend and backend tests passing
+
+**How to Avoid in Future**: Align frontend API paths with backend route definitions. Backend cookie consent: `/api/gdpr/consents/cookies`.
+
+---
+
+## Issue #25: Email MFA Login – OTP Not Sent (TDD)
+
+**Issue ID**: MANUAL-025  
+**Priority**: 🔴 CRITICAL  
+**Status**: ✅ **RESOLVED**  
+**Date Reported**: March 4, 2026  
+**Date Resolved**: March 5, 2026
+
+**Test Cases Affected**: 3.3.2 (Login with Email MFA), 3.3.1 (Enable Email MFA flow)
+
+**Tester Notes**:
+- "Verification code not sending to email"
+- "No field available to enter verification code" (related to TOTP; Email MFA OTP never arrived)
+
+**Root Cause**:
+- Auth route returns `requiresMfa: true, mfaMethod: 'EMAIL'` when Email MFA is required
+- Route never called `mfaService.sendEmailOtp(userId)` — OTP was not sent
+- User saw MFA input but no email arrived
+
+**Resolution (TDD)**:
+1. **RED**: Created `auth.login.emailMfa.test.ts` — expect sendEmailOtp called when login returns requiresMfa + EMAIL
+2. **GREEN**: Added `if (loginResult.mfaMethod === 'EMAIL') { await mfaService.sendEmailOtp(loginResult.user.id); }` in auth route before creating temp session
+
+**Files Changed**:
+- `backend/src/routes/auth.ts` — import mfaService; call sendEmailOtp when EMAIL MFA required
+- `backend/src/__tests__/routes/auth.login.emailMfa.test.ts` — new test
+
+**Verification**: `npm test auth.login.emailMfa.test` — pass
+
+**How to Avoid in Future**: When adding MFA methods, ensure the login flow triggers the appropriate verification delivery (OTP email for Email MFA, etc.).
+
+---
+
+## Issue #26: CSRF Token Cache Not Cleared on Logout (TDD)
+
+**Issue ID**: MANUAL-026  
+**Priority**: 🔴 CRITICAL  
+**Status**: ✅ **RESOLVED**  
+**Date Reported**: March 4, 2026  
+**Date Resolved**: March 5, 2026
+
+**Test Cases Affected**: 11.3.3 (CSRF Protection)
+
+**Tester Notes**:
+- "Getting the CSRF token itself, even if I don't refresh the page after deleting the CSRF token"
+
+**Root Cause**:
+- Frontend caches CSRF token in `csrfTokenCache`; never cleared on logout
+- Backend clears access/refresh cookies on logout but not csrf_token cookie
+- After logout, stale cached token could cause validation failures or security issues
+
+**Resolution (TDD)**:
+1. **RED**: Added test in `client.test.ts` — clearCsrfToken() clears cache so next getCsrfToken fetches fresh
+2. **GREEN**: Added `clearCsrfToken()` to client.ts; AuthContext calls it in logout finally block; backend clears csrf_token cookie on logout
+
+**Files Changed**:
+- `frontend/src/api/client.ts` — added clearCsrfToken(), export getCsrfToken
+- `frontend/src/contexts/AuthContext.tsx` — call clearCsrfToken() on logout
+- `frontend/src/__tests__/api/client.test.ts` — CSRF clear test
+- `frontend/src/__tests__/contexts/AuthContext.test.tsx` — verify clearCsrfToken called on logout
+- `backend/src/routes/auth.ts` — clear csrf_token cookie on logout
+
+**Verification**: client.test, AuthContext.test — all pass
+
+**How to Avoid in Future**: When implementing logout, clear all auth-related caches (CSRF, tokens) and ensure backend clears corresponding cookies.
+
+---
+
+## Issue #27: Feature Flags UI Not Following Admin Toggle (TDD)
+
+**Issue ID**: MANUAL-027  
+**Priority**: 🟠 HIGH  
+**Status**: ✅ **RESOLVED**  
+**Date Reported**: March 4, 2026  
+**Date Resolved**: March 5, 2026
+
+**Test Cases Affected**: 4.3 (Feature Flags), Admin 4.3
+
+**Tester Notes**:
+- "Toggle succeeds but UI doesn't follow changes: password_reset disabled but users can still change password"
+
+**Root Cause**:
+- useFeatureFlag and usePublicFeatureFlag had staleTime: 5 minutes
+- No refetchOnWindowFocus — users kept stale cache when switching tabs
+- Admin toggles updated DB but other clients' React Query cache stayed stale
+
+**Resolution (TDD)**:
+1. **RED**: Added test — useQuery called with staleTime ≤ 60s and refetchOnWindowFocus: true
+2. **GREEN**: Reduced staleTime from 5min to 60s; added refetchOnWindowFocus: true for both hooks
+
+**Files Changed**:
+- `frontend/src/hooks/useFeatureFlag.ts` — staleTime 60*1000, refetchOnWindowFocus: true
+- `frontend/src/__tests__/hooks/useFeatureFlag.test.tsx` — cache settings test
+
+**Verification**: useFeatureFlag.test — 5 tests pass
+
+**How to Avoid in Future**: For admin-configurable data, use short staleTime and refetchOnWindowFocus so changes propagate within ~1 min or on tab focus.
+
+---
+
+## Issue #28: Register Name Optional (TDD)
+
+**Issue ID**: MANUAL-028  
+**Priority**: 🟡 MEDIUM  
+**Status**: ✅ **RESOLVED**  
+**Date Reported**: March 4, 2026  
+**Date Resolved**: March 5, 2026
+
+**Test Cases Affected**: Misc - Register Page (Name optional)
+
+**Tester Notes**:
+- "Name is optional, Name left blank - Fail, It is showing error that Name is required"
+
+**Root Cause**:
+- Backend: express-validator `optional()` only skips when field is absent; `name: ""` fails `isLength({min:1})`
+- Frontend: Zod preprocess converts "" to undefined, but edge cases could still send ""
+
+**Resolution (TDD)**:
+1. **RED**: Added backend tests — register with name omitted, register with name: "" → expect 201
+2. **GREEN**: Backend validator `optional({ checkFalsy: true })` + custom validator for length; route normalizes empty name to undefined; frontend schema already handles "" via preprocess
+
+**Files Changed**:
+- `backend/src/middleware/validation.ts` — name: optional({ checkFalsy: true }), custom length validator
+- `backend/src/routes/auth.ts` — nameOrUndefined normalization
+- `backend/src/__tests__/auth.test.ts` — name omitted + empty string tests
+- `frontend/src/__tests__/pages/Register.test.tsx` — optional name test
+
+**Verification**: Backend auth tests, frontend Register tests — pass
+
+**How to Avoid in Future**: Use optional({ checkFalsy: true }) for optional string fields that may receive "" from forms.
+
+---
+
 ## Notes
 
 - All resolved issues were verified using TDD approach
@@ -1244,5 +1475,130 @@ After investigation with TDD tests, Newsletter Management was actually fully imp
 
 ---
 
-**Last Updated**: February 2026 (Issue #21: Five fixes – tampered ciphertext, MFA #5 #2 #3 #6)
+## Issue #29: Checkout Currency Symbol Redundant (Issue 23 – TDD)
+
+**Issue ID**: MANUAL-029  
+**Priority**: 🟢 LOW  
+**Status**: ✅ **RESOLVED**  
+**Date Reported**: March 4, 2026  
+**Date Resolved**: March 5, 2026
+
+**Test Cases Affected**: Misc - Make payment page (currency options)
+
+**Tester Notes**:
+- "$ sign unnecessary in amount field since currency is selected in next field"
+- Currency dropdown showed "USD ($)", "INR (₹)" etc. — redundant when user already selects currency
+
+**Root Cause**:
+- Currency select options included symbol in label: "USD ($)", "INR (₹)", "EUR (€)", "GBP (£)"
+- Symbol is redundant — user selects currency, symbol is implied
+
+**Resolution (TDD)**:
+1. **RED**: Added test in `Checkout.test.tsx` — currency options show "USD", "INR", etc. (no symbol)
+2. **GREEN**: Changed `Checkout.tsx` option labels from "USD ($)" → "USD", "INR (₹)" → "INR", etc.
+
+**Files Changed**:
+- `frontend/src/components/Checkout.tsx` — removed symbol from currency option labels
+- `frontend/src/__tests__/components/Checkout.test.tsx` — added "should show currency options without redundant symbol (Issue 23)" test
+
+**Verification**: `npm test src/__tests__/components/Checkout.test.tsx` — 7 tests pass
+
+**How to Avoid in Future**: Currency dropdown labels should show code only (USD, INR) when the symbol is implied by selection; avoid duplicating symbol in both amount field context and dropdown.
+
+---
+
+## Issue #30: Admin Users Role Filter Not Persisting (Issue 2 – TDD)
+
+**Issue ID**: MANUAL-030  
+**Priority**: 🟡 MEDIUM  
+**Status**: ✅ **RESOLVED**  
+**Date Reported**: March 4, 2026  
+**Date Resolved**: March 5, 2026
+
+**Test Cases Affected**: 8.2.3 (Filter Users by Role)
+
+**Tester Notes**:
+- "Filter by role works initially"
+- "Filter does not persist on page refresh"
+
+**Root Cause**:
+- roleFilter stored in React useState only
+- Not synced with URL search params
+- On page refresh, state resets to default
+
+**Resolution (TDD)**:
+1. **RED**: Created `AdminUsers.filters.test.tsx` — roleFilter initializes from ?role=; URL updates when role changes
+2. **GREEN**: Added useSearchParams; roleFilter derived from searchParams.get('role'); setRoleFilter updates URL; clearFilters clears role from URL
+3. Added data-testid="role-filter" for tests
+4. Updated AdminUsers.toggle.test.tsx to wrap in MemoryRouter (required for useSearchParams)
+
+**Files Changed**:
+- `frontend/src/pages/admin/AdminUsers.tsx` — useSearchParams, roleFilter from URL, data-testid
+- `frontend/src/__tests__/pages/admin/AdminUsers.filters.test.tsx` — new filter persistence tests
+- `frontend/src/__tests__/pages/admin/AdminUsers.toggle.test.tsx` — MemoryRouter wrapper
+
+**Verification**: `npm test src/__tests__/pages/admin/AdminUsers` — 8 tests pass
+
+**How to Avoid in Future**: For filters that should persist on refresh, sync with URL search params using useSearchParams. Wrap components that use router hooks in Router for tests.
+
+---
+
+## Issue #31: Payment Filters (Admin + User) – TDD
+
+**Issue ID**: MANUAL-031  
+**Priority**: 🟡 MEDIUM  
+**Status**: ✅ **RESOLVED**  
+**Date Reported**: March 4, 2026  
+**Date Resolved**: March 5, 2026
+
+**Test Cases Affected**: 8.5.2 (Filter Payments), 5.2.2 (Filter Payment History)
+
+**Tester Notes**:
+- "No filter option in the admin/payments"
+- "No filter available in payment history"
+
+**Root Cause**:
+- AdminPayments: getPayments called with page, limit only; backend supports status, userId, startDate, endDate
+- PaymentHistory: usePayments() called with no params; API supports status, page, pageSize
+
+**Resolution (TDD)**:
+1. **RED**: AdminPayments.filters.test.tsx — status filter UI exists; getPayments called with status when selected
+2. **GREEN**: AdminPayments — added status filter dropdown; pass status to getPayments
+3. **RED**: PaymentHistory.test.tsx — status filter exists; usePayments called with status when selected
+4. **GREEN**: PaymentHistory — added status filter; pass params to usePayments; show filter in empty state too
+
+**Files Changed**:
+- `frontend/src/pages/admin/AdminPayments.tsx` — status filter dropdown, queryParams
+- `frontend/src/components/PaymentHistory.tsx` — status filter, usePayments(params)
+- `frontend/src/__tests__/pages/admin/AdminPayments.filters.test.tsx` — new
+- `frontend/src/__tests__/components/PaymentHistory.test.tsx` — filter test, fixed display test
+
+**Verification**: AdminPayments.filters.test (2), PaymentHistory.test (5) — all pass
+
+**How to Avoid in Future**: When backend supports filter params, add corresponding filter UI and pass params to API calls. Include filter in both populated and empty states.
+
+---
+
+## Verification: Features Marked "No Code Changes" (Run/Create Tests)
+
+**Date**: March 5, 2026
+
+Ran or created TDD tests to confirm features reported as "exists" are working:
+
+| Issue | Feature | Tests | Result |
+|-------|---------|-------|--------|
+| 5/17 | Admin Refund | admin.refund.test.ts (5), AdminPayments refund button | ✅ PASS |
+| 13 | Disable MFA | auth.mfa.test (disable), MfaSettings.test.tsx | ✅ PASS |
+| 10-11 | Network/Offline | NetworkErrorBanner.test.tsx (NEW - 5 tests) | ✅ PASS |
+| 22 | Notification delete confirmation | NotificationItem.test.tsx (11 tests) | ✅ PASS |
+
+**New tests created**:
+- `frontend/src/__tests__/components/NetworkErrorBanner.test.tsx` — offline, timeout, network-error, Retry button
+- `AdminPayments.filters.test.tsx` — added "should show Refund button for succeeded payments"
+
+**E2E**: `tests/e2e/error-handling-network.focused.spec.ts` exists for 12.2.1/12.2.2 (requires servers).
+
+---
+
+**Last Updated**: March 5, 2026 (Verification tests)
 

@@ -174,6 +174,34 @@ describe('Register Page', () => {
     });
   });
 
+  it('should allow registration with name left blank (optional)', async () => {
+    const user = userEvent.setup();
+    const mockRegister = vi.fn().mockResolvedValue(undefined);
+    (useAuth as any).mockReturnValue({
+      register: mockRegister,
+      isAuthenticated: false,
+    });
+
+    render(<Register />, { wrapper: createWrapper() });
+
+    const emailInput = await screen.findByLabelText(/email/i);
+    const passwordInput = screen.getByLabelText(/password/i);
+    const termsCheckbox = screen.getByLabelText(/I accept the.*Terms of Service/i);
+    const privacyCheckbox = screen.getByLabelText(/I accept the.*Privacy Policy/i);
+    const submitButton = screen.getByRole('button', { name: /register/i });
+
+    await user.type(emailInput, 'no-name@example.com');
+    await user.type(passwordInput, 'Password123!');
+    // Leave name blank - do not type in name field
+    await user.click(termsCheckbox);
+    await user.click(privacyCheckbox);
+    await user.click(submitButton);
+
+    await waitFor(() => {
+      expect(mockRegister).toHaveBeenCalledWith('no-name@example.com', 'Password123!', undefined, true, true);
+    });
+  });
+
   it('should display error message on register failure', async () => {
     const user = userEvent.setup();
     const mockRegister = vi.fn().mockRejectedValue({

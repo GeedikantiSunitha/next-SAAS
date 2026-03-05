@@ -8,6 +8,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 import { AdminUsers } from '../../../pages/admin/AdminUsers';
 import { adminApi } from '../../../api/admin';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -67,7 +68,9 @@ describe('AdminUsers - Toggle Active Status', () => {
   it('should show toggle button for each user', async () => {
     render(
       <QueryClientProvider client={queryClient}>
-        <AdminUsers />
+        <MemoryRouter initialEntries={['/admin/users']}>
+          <AdminUsers />
+        </MemoryRouter>
       </QueryClientProvider>
     );
 
@@ -91,7 +94,9 @@ describe('AdminUsers - Toggle Active Status', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <AdminUsers />
+        <MemoryRouter initialEntries={['/admin/users']}>
+          <AdminUsers />
+        </MemoryRouter>
       </QueryClientProvider>
     );
 
@@ -155,7 +160,9 @@ describe('AdminUsers - Toggle Active Status', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <AdminUsers />
+        <MemoryRouter initialEntries={['/admin/users']}>
+          <AdminUsers />
+        </MemoryRouter>
       </QueryClientProvider>
     );
 

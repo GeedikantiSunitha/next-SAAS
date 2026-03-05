@@ -50,12 +50,15 @@ export const validators = {
     .matches(/[@$!%*?&#]/)
     .withMessage('Password must contain at least one special character (@$!%*?&#)'),
 
-  // Name validation
+  // Name validation (optional - empty string treated as absent)
   name: body('name')
-    .optional()
+    .optional({ checkFalsy: true })
     .trim()
-    .isLength({ min: 1, max: 100 })
-    .withMessage('Name must be between 1 and 100 characters'),
+    .custom((value) => {
+      if (!value || value.length === 0) return true;
+      if (value.length > 100) throw new Error('Name must be between 1 and 100 characters');
+      return true;
+    }),
 
   // UUID validation
   uuid: (field: string) =>

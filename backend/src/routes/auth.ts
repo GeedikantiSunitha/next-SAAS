@@ -1,6 +1,7 @@
 import { Router, CookieOptions } from 'express';
 import { body } from 'express-validator';
 import * as authService from '../services/authService';
+import * as mfaService from '../services/mfaService';
 import { validate, validators } from '../middleware/validation';
 import { authenticate } from '../middleware/auth';
 import { authLimiter, oauthLimiter } from '../middleware/security';
@@ -159,6 +160,9 @@ router.post(
     const ipAddress = getClientIp(req) || undefined;
     const userAgent = req.headers['user-agent'];
 
+    // Normalize name: empty string or whitespace-only → undefined (optional field)
+    const nameOrUndefined = typeof name === 'string' && name.trim() ? name.trim() : undefined;
+
     // Validate policy acceptance
     if (!acceptedTerms || !acceptedPrivacy) {
       res.status(400).json({
@@ -169,7 +173,7 @@ router.post(
     }
 
     // Register user (validates email uniqueness, password strength)
-    const user = await authService.register(email, password, name, ipAddress, userAgent);
+    const user = await authService.register(email, password, nameOrUndefined, ipAddress, userAgent);
 
     // Record policy acceptance (GDPR compliance)
     await prisma.policyAcceptance.createMany({
@@ -351,6 +355,11 @@ router.post(
     // If MFA is required, return requiresMfa flag and temporary token
     // Temporary token allows user to complete MFA verification without re-entering password
     if (loginResult.requiresMfa) {
+      // Send Email OTP when Email MFA is required (user will receive code to complete login)
+      if (loginResult.mfaMethod === 'EMAIL') {
+        await mfaService.sendEmailOtp(loginResult.user.id);
+      }
+
       // Create temporary session for MFA verification (10 minute expiration)
       const tempToken = require('crypto').randomBytes(32).toString('hex');
       const expiresAt = new Date();
@@ -483,6 +492,9 @@ router.post(
 
     // Clear refresh token cookie
     res.clearCookie('refreshToken', getCookieOptions(0));
+
+    // Clear CSRF cookie so next session gets fresh token
+    res.clearCookie('csrf_token', { path: '/' });
 
     res.json({
       success: true,
@@ -1104,8 +1116,6 @@ router.get(
 /**
  * MFA Routes
  */
-
-import * as mfaService from '../services/mfaService';
 
 /**
  * @swagger

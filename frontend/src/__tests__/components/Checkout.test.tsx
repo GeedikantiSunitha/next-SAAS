@@ -119,6 +119,19 @@ describe('Checkout', () => {
     expect(amountInput).not.toHaveClass('pl-10');
   });
 
+  it('should show currency options without redundant symbol (Issue 23)', () => {
+    render(<Checkout />, { wrapper: createWrapper() });
+
+    const currencySelect = screen.getByLabelText(/currency/i);
+    const options = Array.from(currencySelect.querySelectorAll('option'));
+
+    // Currency labels should be "USD", "INR", etc. — not "USD ($)", "INR (₹)"
+    expect(options.find((o) => o.value === 'USD')?.textContent).toBe('USD');
+    expect(options.find((o) => o.value === 'INR')?.textContent).toBe('INR');
+    expect(options.find((o) => o.value === 'EUR')?.textContent).toBe('EUR');
+    expect(options.find((o) => o.value === 'GBP')?.textContent).toBe('GBP');
+  });
+
   it('should show validation error for invalid amount', async () => {
     const user = userEvent.setup();
 

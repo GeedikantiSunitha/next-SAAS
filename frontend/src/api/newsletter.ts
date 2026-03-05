@@ -70,7 +70,7 @@ export interface GetSubscriptionsParams {
  */
 export const subscribe = async (email: string): Promise<NewsletterSubscription> => {
   const response = await apiClient.post<{ success: true; data: NewsletterSubscription }>(
-    '/newsletter/subscribe',
+    '/api/newsletter/subscribe',
     { email }
   );
   return response.data.data;
@@ -81,7 +81,7 @@ export const subscribe = async (email: string): Promise<NewsletterSubscription> 
  */
 export const unsubscribe = async (token: string): Promise<NewsletterSubscription> => {
   const response = await apiClient.post<{ success: true; data: NewsletterSubscription }>(
-    '/newsletter/unsubscribe',
+    '/api/newsletter/unsubscribe',
     { token }
   );
   return response.data.data;
@@ -92,7 +92,7 @@ export const unsubscribe = async (token: string): Promise<NewsletterSubscription
  */
 export const getSubscription = async (): Promise<NewsletterSubscription> => {
   const response = await apiClient.get<{ success: true; data: NewsletterSubscription }>(
-    '/newsletter/subscription'
+    '/api/newsletter/subscription'
   );
   return response.data.data;
 };
@@ -104,7 +104,7 @@ export const getNewsletters = async (
   params?: GetNewslettersParams
 ): Promise<Newsletter[]> => {
   const response = await apiClient.get<{ success: true; data: Newsletter[] }>(
-    '/newsletter',
+    '/api/newsletter',
     params ? { params } : undefined
   );
   return response.data.data;
@@ -115,7 +115,7 @@ export const getNewsletters = async (
  */
 export const getNewsletterById = async (id: string): Promise<Newsletter> => {
   const response = await apiClient.get<{ success: true; data: Newsletter }>(
-    `/newsletter/${id}`
+    `/api/newsletter/${id}`
   );
   return response.data.data;
 };
@@ -127,7 +127,7 @@ export const createNewsletter = async (
   data: CreateNewsletterData
 ): Promise<Newsletter> => {
   const response = await apiClient.post<{ success: true; data: Newsletter }>(
-    '/newsletter',
+    '/api/newsletter',
     data
   );
   return response.data.data;
@@ -141,7 +141,7 @@ export const updateNewsletter = async (
   data: UpdateNewsletterData
 ): Promise<Newsletter> => {
   const response = await apiClient.put<{ success: true; data: Newsletter }>(
-    `/newsletter/${id}`,
+    `/api/newsletter/${id}`,
     data
   );
   return response.data.data;
@@ -152,7 +152,7 @@ export const updateNewsletter = async (
  */
 export const sendNewsletter = async (id: string): Promise<Newsletter> => {
   const response = await apiClient.post<{ success: true; data: Newsletter }>(
-    `/newsletter/${id}/send`
+    `/api/newsletter/${id}/send`
   );
   return response.data.data;
 };
@@ -164,7 +164,7 @@ export const getSubscriptions = async (
   params?: GetSubscriptionsParams
 ): Promise<NewsletterSubscription[]> => {
   const response = await apiClient.get<{ success: true; data: NewsletterSubscription[] }>(
-    '/newsletter/subscriptions',
+    '/api/newsletter/subscriptions',
     params ? { params } : undefined
   );
   return response.data.data;
@@ -178,7 +178,7 @@ export const scheduleNewsletter = async (
   scheduledAt: Date
 ): Promise<Newsletter> => {
   const response = await apiClient.post<{ success: true; data: Newsletter }>(
-    `/newsletter/${id}/schedule`,
+    `/api/newsletter/${id}/schedule`,
     { scheduledAt: scheduledAt.toISOString() }
   );
   return response.data.data;

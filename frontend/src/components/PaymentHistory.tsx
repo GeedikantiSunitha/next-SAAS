@@ -4,6 +4,7 @@
  * Displays user's payment history
  */
 
+import { useState } from 'react';
 import { usePayments } from '../hooks/usePayments';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Loader2, CreditCard, Calendar, DollarSign } from 'lucide-react';
@@ -26,7 +27,9 @@ function formatPaymentAmount(amount: number, currency: string): string {
 }
 
 export const PaymentHistory = () => {
-  const { data, isLoading, error } = usePayments();
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const params = statusFilter ? { status: statusFilter as any } : undefined;
+  const { data, isLoading, error } = usePayments(params);
 
   if (isLoading) {
     return (
@@ -48,12 +51,37 @@ export const PaymentHistory = () => {
     );
   }
 
-  if (!data || data.payments.length === 0) {
+  const total = data?.totalCount ?? data?.pagination?.total ?? data?.payments?.length ?? 0;
+  const hasPayments = data && data.payments.length > 0;
+
+  if (!data || !hasPayments) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Payment History</CardTitle>
-          <CardDescription>Your payment transactions will appear here</CardDescription>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                Payment History
+              </CardTitle>
+              <CardDescription>Your payment transactions will appear here</CardDescription>
+            </div>
+            <select
+              data-testid="payment-history-status-filter"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-3 py-2 border rounded-md text-sm"
+            >
+              <option value="">All Statuses</option>
+              <option value="PENDING">Pending</option>
+              <option value="PROCESSING">Processing</option>
+              <option value="SUCCEEDED">Succeeded</option>
+              <option value="FAILED">Failed</option>
+              <option value="CANCELLED">Cancelled</option>
+              <option value="REFUNDED">Refunded</option>
+              <option value="PARTIALLY_REFUNDED">Partially Refunded</option>
+            </select>
+          </div>
         </CardHeader>
         <CardContent>
           <p className="text-center text-gray-500 py-8">No payments found</p>
@@ -62,19 +90,35 @@ export const PaymentHistory = () => {
     );
   }
 
-  // Backend returns totalCount; support optional pagination.total
-  const total = data.totalCount ?? data.pagination?.total ?? data.payments.length;
-
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <CreditCard className="h-5 w-5" />
-          Payment History
-        </CardTitle>
-        <CardDescription>
-          {total} payment{total !== 1 ? 's' : ''} found
-        </CardDescription>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              Payment History
+            </CardTitle>
+            <CardDescription>
+              {total} payment{total !== 1 ? 's' : ''} found
+            </CardDescription>
+          </div>
+          <select
+            data-testid="payment-history-status-filter"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-3 py-2 border rounded-md text-sm"
+          >
+            <option value="">All Statuses</option>
+            <option value="PENDING">Pending</option>
+            <option value="PROCESSING">Processing</option>
+            <option value="SUCCEEDED">Succeeded</option>
+            <option value="FAILED">Failed</option>
+            <option value="CANCELLED">Cancelled</option>
+            <option value="REFUNDED">Refunded</option>
+            <option value="PARTIALLY_REFUNDED">Partially Refunded</option>
+          </select>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">

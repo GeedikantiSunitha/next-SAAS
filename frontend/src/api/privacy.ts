@@ -252,7 +252,7 @@ class PrivacyApi {
     marketing?: boolean;
     functional?: boolean;
   }): Promise<any> {
-    const response = await this.axios.post('/gdpr/cookie-consent', preferences);
+    const response = await this.axios.post('/gdpr/consents/cookies', preferences);
     return response.data;
   }
 }

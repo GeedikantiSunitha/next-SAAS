@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import apiClient from '../../api/client';
+import apiClient, { getCsrfToken, clearCsrfToken } from '../../api/client';
 import axios from 'axios';
 
 // Mock axios for testing
@@ -83,6 +83,31 @@ describe('API Client - Cookie-based Authentication', () => {
       // If refresh fails, should NOT try to remove from localStorage
       // (since it was never stored there)
       expect(removeItemSpy).not.toHaveBeenCalledWith('accessToken');
+    });
+  });
+
+  describe('CSRF Token - clearCsrfToken on logout', () => {
+    it('should clear CSRF cache so next request fetches fresh token', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch');
+      fetchSpy
+        .mockResolvedValueOnce({ json: () => Promise.resolve({ token: 'csrf-old' }) } as Response)
+        .mockResolvedValueOnce({ json: () => Promise.resolve({ token: 'csrf-new' }) } as Response);
+
+      const t1 = await getCsrfToken();
+      expect(t1).toBe('csrf-old');
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+      const t2 = await getCsrfToken();
+      expect(t2).toBe('csrf-old');
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+      clearCsrfToken();
+
+      const t3 = await getCsrfToken();
+      expect(t3).toBe('csrf-new');
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+
+      fetchSpy.mockRestore();
     });
   });
 });

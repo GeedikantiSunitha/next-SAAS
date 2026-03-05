@@ -13,7 +13,8 @@ export const useFeatureFlag = (flagName: string) => {
   const { data, isLoading, error } = useQuery({
     queryKey: ['featureFlag', flagName],
     queryFn: () => getFeatureFlag(flagName),
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    staleTime: 60 * 1000, // 1 minute - admin toggles should propagate quickly
+    refetchOnWindowFocus: true,
     retry: 1,
   });
 
@@ -30,7 +31,8 @@ export const usePublicFeatureFlag = (flagName: string) => {
   const { data, isLoading, error } = useQuery({
     queryKey: ['featureFlag', 'public', flagName],
     queryFn: () => getPublicFeatureFlag(flagName),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 1000, // 1 minute - admin toggles should propagate quickly
+    refetchOnWindowFocus: true,
     retry: 1,
   });
 

@@ -4,8 +4,13 @@
  */
 
 import { prisma } from '../../config/database';
+import * as gdprService from '../../services/gdprService';
 import * as privacyCenterService from '../../services/privacyCenterService';
 import { ConsentType } from '@prisma/client';
+
+jest.mock('../../services/gdprService', () => ({
+  getCookieConsent: jest.fn(),
+}));
 
 jest.mock('../../config/database', () => ({
   prisma: {
@@ -120,6 +125,38 @@ describe('Privacy Center Service', () => {
       expect(result.user.email).toBe('test@example.com');
       expect(result.consents).toHaveLength(1);
       expect(result.privacyPreferences.emailMarketing).toBe(false);
+    });
+
+    it('should return cookie preferences from gdprService when available', async () => {
+      const mockUser = { id: testUserId, email: 'test@example.com', createdAt: new Date() };
+      const mockPreferences = {
+        id: 'pref-1',
+        userId: testUserId,
+        emailMarketing: false,
+        smsMarketing: false,
+        pushNotifications: false,
+        shareWithPartners: false,
+        profileVisibility: 'PRIVATE',
+      };
+      const mockCookieConsent = {
+        essential: true,
+        analytics: true,
+        marketing: false,
+        functional: true,
+      };
+
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue(mockUser);
+      (prisma.privacyPreferences.findUnique as jest.Mock).mockResolvedValue(mockPreferences);
+      (prisma.consentRecord.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.dataExportRequest.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.dataDeletionRequest.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.dataAccessLog.findMany as jest.Mock).mockResolvedValue([]);
+      (gdprService.getCookieConsent as jest.Mock).mockResolvedValue(mockCookieConsent);
+
+      const result = await privacyCenterService.getPrivacyOverview(testUserId);
+
+      expect(result.cookiePreferences).toEqual(mockCookieConsent);
+      expect(gdprService.getCookieConsent).toHaveBeenCalledWith(testUserId);
     });
 
     it('should handle missing user gracefully', async () => {

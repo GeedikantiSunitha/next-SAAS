@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authApi, User } from '../api/auth';
+import { clearCsrfToken } from '../api/client';
 
 interface AuthContextType {
   user: User | null;
@@ -79,7 +80,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Even if logout fails, clear local state
       console.error('Logout error:', error);
     } finally {
-      // Cookies are cleared by backend - no need to clear localStorage
+      clearCsrfToken(); // Clear cached CSRF token so next session gets fresh token
       setUser(null);
     }
   };

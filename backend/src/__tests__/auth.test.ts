@@ -17,6 +17,8 @@ describe('Auth API', () => {
           { email: { startsWith: 'newuser' } },
           { email: { startsWith: 'register-cookie' } },
           { email: { startsWith: 'register-no-token' } },
+          { email: { startsWith: 'register-no-name' } },
+          { email: { startsWith: 'register-empty-name' } },
           { email: { startsWith: 'secure-test' } },
           { email: { startsWith: 'login' } },
           { email: { startsWith: 'cookie-test' } },
@@ -73,6 +75,38 @@ describe('Auth API', () => {
       expect(response.body.data.email).toBe('newuser@example.com');
       expect(response.body.data.name).toBe('New User');
       expect(response.body.data).not.toHaveProperty('password');
+    });
+
+    it('should register with name omitted (optional)', async () => {
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send({
+          email: `register-no-name-${Date.now()}@example.com`,
+          password: 'Password123!',
+          acceptedTerms: true,
+          acceptedPrivacy: true,
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.email).toBeDefined();
+      expect(response.body.data.name).toBeNull();
+    });
+
+    it('should register with empty string name (treat as optional)', async () => {
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send({
+          email: `register-empty-name-${Date.now()}@example.com`,
+          password: 'Password123!',
+          name: '',
+          acceptedTerms: true,
+          acceptedPrivacy: true,
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.name).toBeNull();
     });
 
     it('should reject registration without acceptedTerms', async () => {

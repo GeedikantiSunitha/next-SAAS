@@ -13,13 +13,16 @@ const canRefund = (payment: { status?: string }) => {
 
 export const AdminPayments = () => {
   const [page, setPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<string>('');
   const limit = 20;
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  const queryParams = { page, limit, ...(statusFilter && { status: statusFilter }) };
+
   const { data: paymentsData, isLoading: paymentsLoading } = useQuery({
-    queryKey: ['admin', 'payments', { page, limit }],
-    queryFn: () => adminApi.getPayments({ page, limit }),
+    queryKey: ['admin', 'payments', queryParams],
+    queryFn: () => adminApi.getPayments(queryParams),
   });
 
   const { data: subscriptionsData, isLoading: subscriptionsLoading } = useQuery({
@@ -102,8 +105,26 @@ export const AdminPayments = () => {
 
         {/* Payments Table */}
         <div className="bg-white rounded-lg border overflow-hidden">
-          <div className="p-6 border-b">
+          <div className="p-6 border-b flex flex-wrap items-center justify-between gap-4">
             <h2 className="text-xl font-semibold">Recent Payments</h2>
+            <select
+              data-testid="payment-status-filter"
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
+              className="px-3 py-2 border rounded-md text-sm"
+            >
+              <option value="">All Statuses</option>
+              <option value="PENDING">Pending</option>
+              <option value="PROCESSING">Processing</option>
+              <option value="SUCCEEDED">Succeeded</option>
+              <option value="FAILED">Failed</option>
+              <option value="CANCELLED">Cancelled</option>
+              <option value="REFUNDED">Refunded</option>
+              <option value="PARTIALLY_REFUNDED">Partially Refunded</option>
+            </select>
           </div>
           {paymentsLoading ? (
             <div className="p-6 space-y-4">

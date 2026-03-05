@@ -37,7 +37,7 @@ describe('Newsletter API', () => {
 
       const result = await newsletterApi.subscribe('test@example.com');
 
-      expect(apiClient.post).toHaveBeenCalledWith('/newsletter/subscribe', {
+      expect(apiClient.post).toHaveBeenCalledWith('/api/newsletter/subscribe', {
         email: 'test@example.com',
       });
       expect(result).toEqual(mockResponse.data);
@@ -59,7 +59,7 @@ describe('Newsletter API', () => {
 
       const result = await newsletterApi.unsubscribe('token-123');
 
-      expect(apiClient.post).toHaveBeenCalledWith('/newsletter/unsubscribe', {
+      expect(apiClient.post).toHaveBeenCalledWith('/api/newsletter/unsubscribe', {
         token: 'token-123',
       });
       expect(result).toEqual(mockResponse.data);
@@ -81,7 +81,7 @@ describe('Newsletter API', () => {
 
       const result = await newsletterApi.getSubscription();
 
-      expect(apiClient.get).toHaveBeenCalledWith('/newsletter/subscription');
+      expect(apiClient.get).toHaveBeenCalledWith('/api/newsletter/subscription');
       expect(result).toEqual(mockResponse.data);
     });
   });
@@ -104,7 +104,7 @@ describe('Newsletter API', () => {
 
       const result = await newsletterApi.getNewsletters();
 
-      expect(apiClient.get).toHaveBeenCalledWith('/newsletter', undefined);
+      expect(apiClient.get).toHaveBeenCalledWith('/api/newsletter', undefined);
       expect(result).toEqual(mockResponse.data);
     });
 
@@ -118,7 +118,7 @@ describe('Newsletter API', () => {
 
       const result = await newsletterApi.getNewsletters({ status: 'SENT' });
 
-      expect(apiClient.get).toHaveBeenCalledWith('/newsletter', {
+      expect(apiClient.get).toHaveBeenCalledWith('/api/newsletter', {
         params: { status: 'SENT' },
       });
       expect(result).toEqual(mockResponse.data);
@@ -140,7 +140,7 @@ describe('Newsletter API', () => {
 
       const result = await newsletterApi.getNewsletterById('news-1');
 
-      expect(apiClient.get).toHaveBeenCalledWith('/newsletter/news-1');
+      expect(apiClient.get).toHaveBeenCalledWith('/api/newsletter/news-1');
       expect(result).toEqual(mockResponse.data);
     });
   });
@@ -166,7 +166,7 @@ describe('Newsletter API', () => {
         content: '<p>Content</p>',
       });
 
-      expect(apiClient.post).toHaveBeenCalledWith('/newsletter', {
+      expect(apiClient.post).toHaveBeenCalledWith('/api/newsletter', {
         title: 'New Newsletter',
         subject: 'New Subject',
         content: '<p>Content</p>',
@@ -191,7 +191,7 @@ describe('Newsletter API', () => {
         title: 'Updated Newsletter',
       });
 
-      expect(apiClient.put).toHaveBeenCalledWith('/newsletter/news-1', {
+      expect(apiClient.put).toHaveBeenCalledWith('/api/newsletter/news-1', {
         title: 'Updated Newsletter',
       });
       expect(result).toEqual(mockResponse.data);
@@ -213,7 +213,7 @@ describe('Newsletter API', () => {
 
       const result = await newsletterApi.sendNewsletter('news-1');
 
-      expect(apiClient.post).toHaveBeenCalledWith('/newsletter/news-1/send');
+      expect(apiClient.post).toHaveBeenCalledWith('/api/newsletter/news-1/send');
       expect(result).toEqual(mockResponse.data);
     });
   });
@@ -235,7 +235,7 @@ describe('Newsletter API', () => {
 
       const result = await newsletterApi.getSubscriptions();
 
-      expect(apiClient.get).toHaveBeenCalledWith('/newsletter/subscriptions', undefined);
+      expect(apiClient.get).toHaveBeenCalledWith('/api/newsletter/subscriptions', undefined);
       expect(result).toEqual(mockResponse.data);
     });
 
@@ -249,8 +249,31 @@ describe('Newsletter API', () => {
 
       const result = await newsletterApi.getSubscriptions({ isActive: true });
 
-      expect(apiClient.get).toHaveBeenCalledWith('/newsletter/subscriptions', {
+      expect(apiClient.get).toHaveBeenCalledWith('/api/newsletter/subscriptions', {
         params: { isActive: true },
+      });
+      expect(result).toEqual(mockResponse.data);
+    });
+  });
+
+  describe('scheduleNewsletter', () => {
+    it('should schedule newsletter', async () => {
+      const scheduledAt = new Date('2025-12-01T10:00:00Z');
+      const mockResponse = {
+        success: true,
+        data: {
+          id: 'news-1',
+          status: 'SCHEDULED',
+          scheduledAt: scheduledAt.toISOString(),
+        },
+      };
+
+      (apiClient.post as any).mockResolvedValue({ data: mockResponse });
+
+      const result = await newsletterApi.scheduleNewsletter('news-1', scheduledAt);
+
+      expect(apiClient.post).toHaveBeenCalledWith('/api/newsletter/news-1/schedule', {
+        scheduledAt: scheduledAt.toISOString(),
       });
       expect(result).toEqual(mockResponse.data);
     });

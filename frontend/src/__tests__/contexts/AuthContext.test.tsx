@@ -14,6 +14,17 @@ vi.mock('../../api/auth', () => ({
   },
 }));
 
+// Mock clearCsrfToken to verify it's called on logout
+vi.mock('../../api/client', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../api/client')>();
+  return {
+    ...actual,
+    clearCsrfToken: vi.fn(),
+  };
+});
+
+import { clearCsrfToken } from '../../api/client';
+
 // Test component that uses auth
 const TestComponent = () => {
   const { user, loading, isAuthenticated, login, register, logout } = useAuth();
@@ -240,6 +251,9 @@ describe('AuthContext', () => {
         expect(screen.getByTestId('authenticated')).toHaveTextContent('false');
         expect(authApi.logout).toHaveBeenCalled();
       }, { timeout: 3000 });
+
+      // Verify clearCsrfToken called on logout (so next session gets fresh token)
+      expect(clearCsrfToken).toHaveBeenCalled();
 
       // Verify localStorage.removeItem was NOT called (cookies handled by backend)
       expect(removeItemSpy).not.toHaveBeenCalledWith(STORAGE_KEYS.ACCESS_TOKEN);

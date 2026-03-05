@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AdminLayout } from '../../components/admin/AdminLayout';
 import { adminApi } from '../../api/admin';
@@ -41,8 +42,18 @@ interface User {
 }
 
 export const AdminUsers = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const roleFilter = searchParams.get('role') || '';
+  const setRoleFilter = (value: string) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (value) next.set('role', value);
+      else next.delete('role');
+      return next;
+    });
+  };
+
   const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState<string>('');
   const [activeFilter, setActiveFilter] = useState<string>('');
   const [page, setPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -184,7 +195,11 @@ export const AdminUsers = () => {
 
   const clearFilters = () => {
     setSearch('');
-    setRoleFilter('');
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete('role');
+      return next;
+    });
     setActiveFilter('');
     setPage(1);
   };
@@ -223,6 +238,7 @@ export const AdminUsers = () => {
               />
             </div>
             <select
+              data-testid="role-filter"
               value={roleFilter}
               onChange={(e) => {
                 setRoleFilter(e.target.value);

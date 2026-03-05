@@ -5,6 +5,7 @@
 
 import { prisma } from '../config/database';
 import { ConsentType, PrivacyPreferences } from '@prisma/client';
+import * as gdprService from './gdprService';
 
 // Simple in-memory cache (in production, use Redis)
 const cacheStore = new Map<string, { data: any; expiry: number }>();
@@ -139,9 +140,8 @@ export async function getPrivacyOverview(userId: string): Promise<PrivacyOvervie
     take: 5,
   });
 
-  // Cookie consent - in production, this would come from a real model
-  // For now, using default values
-  const cookieConsent = null;
+  // Cookie consent from GDPR service (ConsentRecord with type COOKIES)
+  const cookieConsent = await gdprService.getCookieConsent(userId);
 
   // Fetch recent access logs
   const accessLogs = await prisma.dataAccessLog.findMany({
@@ -204,7 +204,7 @@ export async function getPrivacyOverview(userId: string): Promise<PrivacyOvervie
         scheduledFor: d.scheduledFor,
       })),
     },
-    cookiePreferences: cookieConsent || {
+    cookiePreferences: (cookieConsent as { essential: boolean; analytics: boolean; marketing: boolean; functional: boolean } | null) || {
       essential: true,
       analytics: false,
       marketing: false,

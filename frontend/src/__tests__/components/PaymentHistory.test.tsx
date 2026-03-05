@@ -72,6 +72,26 @@ describe('PaymentHistory', () => {
     expect(screen.getByText(/no payments found/i)).toBeInTheDocument();
   });
 
+  it('should have status filter and call usePayments with status when selected (Issue 16)', async () => {
+    const user = (await import('@testing-library/user-event')).default.setup();
+    vi.mocked(paymentHooks.usePayments).mockReturnValue({
+      data: { payments: [], pagination: { page: 1, limit: 10, total: 0, totalPages: 0 } },
+      isLoading: false,
+      error: null,
+    } as any);
+
+    render(<PaymentHistory />, { wrapper: createWrapper() });
+
+    const statusFilter = screen.getByTestId('payment-history-status-filter');
+    expect(statusFilter).toBeInTheDocument();
+
+    await user.selectOptions(statusFilter, 'SUCCEEDED');
+
+    expect(paymentHooks.usePayments).toHaveBeenLastCalledWith(
+      expect.objectContaining({ status: 'SUCCEEDED' })
+    );
+  });
+
   it('should display payment list', () => {
     const mockPayments = {
       payments: [
@@ -98,6 +118,6 @@ describe('PaymentHistory', () => {
 
     expect(screen.getByText(/test payment/i)).toBeInTheDocument();
     expect(screen.getByText(/usd 100.00/i)).toBeInTheDocument();
-    expect(screen.getByText(/succeeded/i)).toBeInTheDocument();
+    expect(screen.getByText('SUCCEEDED')).toBeInTheDocument();
   });
 });
