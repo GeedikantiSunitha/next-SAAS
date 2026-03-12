@@ -1755,4 +1755,45 @@ Manual tester reported "Newsletter management not available". Investigation reve
 
 ---
 
-**Last Updated**: January 14, 2025, 15:10 UTC
+## Issue #32: API 429 Too Many Requests in Development (TDD)
+
+**Parent Issue**: MANUAL-032  
+**Date**: March 5, 2026  
+**Status**: ✅ RESOLVED
+
+### Iteration #32.1: Root Cause
+**Error**: "Request failed with status code 429" on privacy-center and other API requests
+
+**Root Cause**: `apiLimiter` only skipped in `NODE_ENV=test`, not in development. 100 req/15 min limit hit quickly during local dev.
+
+**Fix Applied**:
+- Extracted `shouldSkipApiRateLimit()` and added development to skip condition
+- Created `apiRateLimiter.test.ts` (TDD) — skip in test, development; no skip in production
+
+**Result**: ✅ All apiRateLimiter tests pass; development no longer hits 429
+
+---
+
+## Issue #33: Newsletter Timeout + Privacy Center CSRF (TDD)
+
+**Parent Issue**: MANUAL-033  
+**Date**: March 5, 2026  
+**Status**: ✅ RESOLVED
+
+### Iteration #33.1: Newsletter Timeout
+**Error**: "Subscription failed: timeout of 10000 ms exceeded"
+
+**Fix Applied**: Added 30s timeout for newsletter subscribe; TDD test verifies timeout config
+
+### Iteration #33.2: Privacy Center Preferences Not Saved
+**Error**: Preferences (privacy, cookie, consent) not persisting
+
+**Root Cause**: Privacy API used raw axios without CSRF token → 403 on POST
+
+**Fix Applied**: Refactored privacy API to use shared apiClient; TDD tests verify apiClient usage and paths
+
+**Result**: ✅ All privacy and newsletter tests pass
+
+---
+
+**Last Updated**: March 5, 2026

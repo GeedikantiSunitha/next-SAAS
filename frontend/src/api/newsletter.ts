@@ -65,13 +65,17 @@ export interface GetSubscriptionsParams {
   pageSize?: number;
 }
 
+/** Newsletter subscribe timeout (ms) - backend may be slow on cold start */
+const SUBSCRIBE_TIMEOUT_MS = 30000;
+
 /**
  * Subscribe to newsletter
  */
 export const subscribe = async (email: string): Promise<NewsletterSubscription> => {
   const response = await apiClient.post<{ success: true; data: NewsletterSubscription }>(
     '/api/newsletter/subscribe',
-    { email }
+    { email },
+    { timeout: SUBSCRIBE_TIMEOUT_MS }
   );
   return response.data.data;
 };

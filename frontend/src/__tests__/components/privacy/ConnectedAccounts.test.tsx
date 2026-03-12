@@ -5,8 +5,12 @@
 
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import ConnectedAccounts from '../../../components/privacy/ConnectedAccounts';
 import { vi } from 'vitest';
+
+const renderWithRouter = (ui: React.ReactElement) =>
+  render(<MemoryRouter>{ui}</MemoryRouter>);
 
 describe('ConnectedAccounts Component', () => {
   const mockAccounts = [
@@ -25,12 +29,12 @@ describe('ConnectedAccounts Component', () => {
   ];
 
   it('should render section title', () => {
-    render(<ConnectedAccounts accounts={mockAccounts} />);
+    renderWithRouter(<ConnectedAccounts accounts={mockAccounts} />);
     expect(screen.getByText('Connected Accounts')).toBeInTheDocument();
   });
 
   it('should display all connected accounts', () => {
-    render(<ConnectedAccounts accounts={mockAccounts} />);
+    renderWithRouter(<ConnectedAccounts accounts={mockAccounts} />);
 
     expect(screen.getByText(/Google/i)).toBeInTheDocument();
     expect(screen.getByText(/GitHub/i)).toBeInTheDocument();
@@ -38,7 +42,7 @@ describe('ConnectedAccounts Component', () => {
   });
 
   it('should show provider icons', () => {
-    render(<ConnectedAccounts accounts={mockAccounts} />);
+    renderWithRouter(<ConnectedAccounts accounts={mockAccounts} />);
 
     expect(screen.getByAltText('Google icon')).toBeInTheDocument();
     expect(screen.getByAltText('GitHub icon')).toBeInTheDocument();
@@ -46,7 +50,7 @@ describe('ConnectedAccounts Component', () => {
   });
 
   it('should display connection dates', () => {
-    render(<ConnectedAccounts accounts={mockAccounts} />);
+    renderWithRouter(<ConnectedAccounts accounts={mockAccounts} />);
 
     expect(screen.getByText(/Connected:.*Jan 1, 2024/)).toBeInTheDocument();
     expect(screen.getByText(/Connected:.*Jan 15, 2024/)).toBeInTheDocument();
@@ -54,7 +58,7 @@ describe('ConnectedAccounts Component', () => {
   });
 
   it('should show disconnect buttons', () => {
-    render(<ConnectedAccounts accounts={mockAccounts} />);
+    renderWithRouter(<ConnectedAccounts accounts={mockAccounts} />);
 
     const disconnectButtons = screen.getAllByRole('button', { name: /Disconnect/i });
     expect(disconnectButtons).toHaveLength(3);
@@ -62,7 +66,7 @@ describe('ConnectedAccounts Component', () => {
 
   it('should handle disconnect action', () => {
     const mockOnDisconnect = vi.fn();
-    render(<ConnectedAccounts accounts={mockAccounts} onDisconnect={mockOnDisconnect} />);
+    renderWithRouter(<ConnectedAccounts accounts={mockAccounts} onDisconnect={mockOnDisconnect} />);
 
     // Click the first disconnect button to show confirmation
     const googleDisconnectButton = screen.getAllByRole('button', { name: /Disconnect/i })[0];
@@ -76,7 +80,7 @@ describe('ConnectedAccounts Component', () => {
   });
 
   it('should show confirmation before disconnect', () => {
-    render(<ConnectedAccounts accounts={mockAccounts} />);
+    renderWithRouter(<ConnectedAccounts accounts={mockAccounts} />);
 
     const disconnectButton = screen.getAllByRole('button', { name: /Disconnect/i })[0];
     fireEvent.click(disconnectButton);
@@ -94,7 +98,7 @@ describe('ConnectedAccounts Component', () => {
       },
     ];
 
-    render(<ConnectedAccounts accounts={accountsWithPermissions} />);
+    renderWithRouter(<ConnectedAccounts accounts={accountsWithPermissions} />);
 
     expect(screen.getByText(/Permissions:/i)).toBeInTheDocument();
     expect(screen.getByText(/email/i)).toBeInTheDocument();
@@ -111,19 +115,33 @@ describe('ConnectedAccounts Component', () => {
       },
     ];
 
-    render(<ConnectedAccounts accounts={accountsWithAccess} />);
+    renderWithRouter(<ConnectedAccounts accounts={accountsWithAccess} />);
     expect(screen.getByText(/Last accessed:.*Jan 20, 2024/)).toBeInTheDocument();
   });
 
   it('should handle empty accounts list', () => {
-    render(<ConnectedAccounts accounts={[]} />);
+    renderWithRouter(<ConnectedAccounts accounts={[]} />);
     expect(screen.getByText('No accounts connected')).toBeInTheDocument();
     expect(screen.getByText(/Connect accounts to enable/i)).toBeInTheDocument();
   });
 
   it('should show connect new account button', () => {
-    render(<ConnectedAccounts accounts={mockAccounts} />);
+    renderWithRouter(<ConnectedAccounts accounts={mockAccounts} />);
     expect(screen.getByRole('button', { name: /Connect New Account/i })).toBeInTheDocument();
+  });
+
+  it('should navigate to /profile when Connect New Account clicked (fix 404 /settings/connected-accounts)', () => {
+    render(
+      <MemoryRouter initialEntries={['/privacy-center']}>
+        <Routes>
+          <Route path="/privacy-center" element={<ConnectedAccounts accounts={[]} />} />
+          <Route path="/profile" element={<div data-testid="profile-page">Profile</div>} />
+        </Routes>
+      </MemoryRouter>
+    );
+    const connectButton = screen.getByRole('button', { name: /Connect New Account/i });
+    fireEvent.click(connectButton);
+    expect(screen.getByTestId('profile-page')).toBeInTheDocument();
   });
 
   it('should display account status badges', () => {
@@ -140,7 +158,7 @@ describe('ConnectedAccounts Component', () => {
       },
     ];
 
-    render(<ConnectedAccounts accounts={accountsWithStatus} />);
+    renderWithRouter(<ConnectedAccounts accounts={accountsWithStatus} />);
 
     expect(screen.getByText('Active')).toBeInTheDocument();
     expect(screen.getByText('Expired')).toBeInTheDocument();
@@ -155,7 +173,7 @@ describe('ConnectedAccounts Component', () => {
       },
     ];
 
-    render(<ConnectedAccounts accounts={expiredAccount} />);
+    renderWithRouter(<ConnectedAccounts accounts={expiredAccount} />);
     expect(screen.getByRole('button', { name: /Re-authenticate/i })).toBeInTheDocument();
   });
 
@@ -173,7 +191,7 @@ describe('ConnectedAccounts Component', () => {
       },
     ];
 
-    render(<ConnectedAccounts accounts={multipleGoogleAccounts} />);
+    renderWithRouter(<ConnectedAccounts accounts={multipleGoogleAccounts} />);
     expect(screen.getByText('user1@gmail.com')).toBeInTheDocument();
     expect(screen.getByText('user2@gmail.com')).toBeInTheDocument();
   });

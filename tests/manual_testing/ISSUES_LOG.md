@@ -1,7 +1,7 @@
 # Manual Testing Issues Log
 
 **Created**: January 14, 2025  
-**Last Updated**: January 14, 2025  
+**Last Updated**: March 5, 2026  
 **Status**: Active - Tracking all issues from manual testing assessment
 
 **Note**: For technical errors encountered during TDD development iterations, see `DEVELOPMENT_ISSUES_LOG.md`
@@ -1400,6 +1400,36 @@ After investigation with TDD tests, Newsletter Management was actually fully imp
 
 ---
 
+## Issue #27a: CSRF "Invalid or missing CSRF token" - TDD Fix (March 2026)
+
+**Issue ID**: MANUAL-027a
+**Priority**: 🟠 HIGH
+**Status**: ✅ **RESOLVED**
+**Date Resolved**: March 12, 2026
+
+**Tester Notes**: "Invalid or missing CSRF token" on login, persists after refresh
+
+**Root Cause**:
+1. fetch vs axios — CSRF used fetch; axios has withCredentials; inconsistent cookie handling through proxy
+2. Race — concurrent getCsrfToken calls triggered multiple fetches; cookie/cache mismatch
+3. No retry — 403 CSRF left user stuck
+4. No prefetch — token fetched only on first POST; timing issues
+
+**Resolution (TDD)**:
+1. **RED**: Tests — axios.get with withCredentials; serialize concurrent calls; 403 retry; Login prefetch
+2. **GREEN**: Use axios.get for CSRF; csrfTokenFetch serialize; 403 retry in interceptor; getCsrfToken() in Login useEffect
+
+**Files Changed**:
+- `frontend/src/api/client.ts` — axios.get, serialize, 403 retry
+- `frontend/src/pages/Login.tsx` — prefetch getCsrfToken on mount
+- `frontend/src/__tests__/api/client.test.ts` — axios + serialize tests
+- `frontend/src/__tests__/api/client.csrf-retry.test.ts` (NEW) — 403 retry
+- `frontend/src/__tests__/pages/Login.test.tsx` — prefetch test
+
+**Verification**: client.test (8), client.csrf-retry (1), Login (10) — all pass
+
+---
+
 ## Issue #27: Feature Flags UI Not Following Admin Toggle (TDD)
 
 **Issue ID**: MANUAL-027  
@@ -1462,6 +1492,31 @@ After investigation with TDD tests, Newsletter Management was actually fully imp
 **Verification**: Backend auth tests, frontend Register tests — pass
 
 **How to Avoid in Future**: Use optional({ checkFalsy: true }) for optional string fields that may receive "" from forms.
+
+---
+
+## Issue #28b: Connected Accounts Connect New Account 404 (TDD)
+
+**Issue ID**: MANUAL-028b
+**Priority**: 🟡 MEDIUM
+**Status**: ✅ **RESOLVED**
+**Date Resolved**: March 12, 2026
+
+**Test Cases Affected**: 3.6.2 (Privacy Center - Connected Accounts)
+
+**Tester Notes**: "Connect New Account" button navigates to `/settings/connected-accounts` → 404
+
+**Root Cause**: `frontend/src/components/privacy/ConnectedAccounts.tsx` used `window.location.href = '/settings/connected-accounts'` — route does not exist in App.tsx
+
+**Resolution (TDD)**:
+1. **RED**: Test — Connect New Account clicked should navigate to /profile (Profile has full Link UI)
+2. **GREEN**: Use `useNavigate()` and `navigate('/profile')` instead of window.location
+
+**Files Changed**:
+- `frontend/src/components/privacy/ConnectedAccounts.tsx` — useNavigate, navigate('/profile')
+- `frontend/src/__tests__/components/privacy/ConnectedAccounts.test.tsx` — navigation test, MemoryRouter wrapper
+
+**Verification**: ConnectedAccounts.test.tsx — 15 tests pass
 
 ---
 
@@ -1579,6 +1634,75 @@ After investigation with TDD tests, Newsletter Management was actually fully imp
 
 ---
 
+## Issue #32: Privacy Center / API 429 Too Many Requests (TDD)
+
+**Issue ID**: MANUAL-032  
+**Priority**: 🔴 CRITICAL  
+**Status**: ✅ **RESOLVED**  
+**Date Reported**: March 5, 2026  
+**Date Resolved**: March 5, 2026
+
+**Test Cases Affected**: Privacy Center, all API requests in development
+
+**Tester Notes**:
+- "Failed to load privacy data" with "Request failed with status code 429"
+- Happens with every request after hitting limit
+
+**Root Cause**:
+- `apiLimiter` in `backend/src/middleware/security.ts` only skipped in `NODE_ENV=test`, not in development
+- In development, 100 requests per 15 minutes applies to all `/api` routes
+- Multiple pages, React Query retries, CSRF prefetch, auth checks quickly exhaust the limit
+
+**Resolution**:
+- Added `shouldSkipApiRateLimit()` that returns true for `test` and `development`
+- Updated `apiLimiter` to use this skip function (matches `oauthLimiter` pattern)
+- **RED**: `backend/src/__tests__/middleware/apiRateLimiter.test.ts` — skip in development
+- **GREEN**: `backend/src/middleware/security.ts` — skip in development
+
+**Files Changed**:
+- `backend/src/middleware/security.ts` — shouldSkipApiRateLimit, apiLimiter skip
+- `backend/src/__tests__/middleware/apiRateLimiter.test.ts` — new
+
+**Verification**: apiRateLimiter.test (3 tests) — all pass
+
+**How to Avoid in Future**: When adding rate limiters, skip in development (and test) so local dev does not hit 429. Production keeps rate limiting enabled.
+
+---
+
+## Issue #33: Newsletter Timeout + Privacy Center Preferences Not Saved (TDD)
+
+**Issue ID**: MANUAL-033  
+**Priority**: 🔴 CRITICAL  
+**Status**: ✅ **RESOLVED**  
+**Date Reported**: March 5, 2026  
+**Date Resolved**: March 5, 2026
+
+**Test Cases Affected**: 3.8 Newsletter page, 3.9 Privacy Center
+
+**Tester Notes**:
+- 3.8: "Subscription failed: timeout of 10000 ms exceeded"
+- 3.9: "Preferences are not saved"
+
+**Root Cause**:
+- **Newsletter**: apiClient default timeout (10s) too short for backend cold start / slow response
+- **Privacy Center**: Privacy API used its own axios instance without CSRF token → backend returns 403 on all POST requests
+
+**Resolution**:
+- **Newsletter**: Added 30s timeout for subscribe endpoint; RED: newsletter.test.ts expects timeout config; GREEN: newsletter.ts subscribe uses `{ timeout: 30000 }`
+- **Privacy Center**: Refactored privacy API to use shared apiClient (CSRF, auth, refresh); RED: privacy.test.ts expects apiClient usage; GREEN: privacy.ts uses apiClient for all requests
+
+**Files Changed**:
+- `frontend/src/api/privacy.ts` — use apiClient instead of raw axios
+- `frontend/src/api/newsletter.ts` — subscribe timeout 30000ms
+- `frontend/src/__tests__/api/privacy.test.ts` — mock apiClient, verify paths
+- `frontend/src/__tests__/api/newsletter.test.ts` — verify subscribe timeout
+
+**Verification**: privacy.test (2), newsletter.test (12) — all pass
+
+**How to Avoid in Future**: Use shared apiClient for all API calls (CSRF, auth). For slow endpoints, add per-request timeout override.
+
+---
+
 ## Verification: Features Marked "No Code Changes" (Run/Create Tests)
 
 **Date**: March 5, 2026
@@ -1600,5 +1724,5 @@ Ran or created TDD tests to confirm features reported as "exists" are working:
 
 ---
 
-**Last Updated**: March 5, 2026 (Verification tests)
+**Last Updated**: March 5, 2026 (Issue #33)
 
