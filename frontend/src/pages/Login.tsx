@@ -11,6 +11,7 @@ import { Layout } from '../components/Layout';
 import { OAuthButtons } from '../components/OAuthButtons';
 import { MfaVerification } from '../components/MfaVerification';
 import { authApi } from '../api/auth';
+import { getCsrfToken } from '../api/client';
 import { useToast } from '../hooks/use-toast';
 import { usePublicFeatureFlag } from '../hooks/useFeatureFlag';
 
@@ -57,8 +58,12 @@ export const Login = () => {
     setError(null);
   };
 
+  // Prefetch CSRF token on mount so it's ready before first POST (avoids 403 on login)
+  useEffect(() => {
+    getCsrfToken();
+  }, []);
+
   // Redirect if already authenticated (use useEffect to handle async state updates)
-  // Only redirect if not currently submitting (to avoid redirect during form submission)
   useEffect(() => {
     if (isAuthenticated && !isSubmitting) {
       navigate('/dashboard', { replace: true });

@@ -88,26 +88,63 @@ describe('API Client - Cookie-based Authentication', () => {
 
   describe('CSRF Token - clearCsrfToken on logout', () => {
     it('should clear CSRF cache so next request fetches fresh token', async () => {
-      const fetchSpy = vi.spyOn(globalThis, 'fetch');
-      fetchSpy
-        .mockResolvedValueOnce({ json: () => Promise.resolve({ token: 'csrf-old' }) } as Response)
-        .mockResolvedValueOnce({ json: () => Promise.resolve({ token: 'csrf-new' }) } as Response);
+      const axiosGetSpy = vi.spyOn(axios, 'get').mockResolvedValueOnce({ data: { token: 'csrf-old' } } as any)
+        .mockResolvedValueOnce({ data: { token: 'csrf-new' } } as any);
 
       const t1 = await getCsrfToken();
       expect(t1).toBe('csrf-old');
-      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      expect(axiosGetSpy).toHaveBeenCalledWith(expect.stringContaining('/api/csrf-token'), expect.objectContaining({ withCredentials: true }));
 
       const t2 = await getCsrfToken();
       expect(t2).toBe('csrf-old');
-      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      expect(axiosGetSpy).toHaveBeenCalledTimes(1);
 
       clearCsrfToken();
 
       const t3 = await getCsrfToken();
       expect(t3).toBe('csrf-new');
-      expect(fetchSpy).toHaveBeenCalledTimes(2);
+      expect(axiosGetSpy).toHaveBeenCalledTimes(2);
 
-      fetchSpy.mockRestore();
+      axiosGetSpy.mockRestore();
+    });
+  });
+
+  describe('CSRF Token - serialize concurrent getCsrfToken', () => {
+    it('should run only one request when multiple callers need token with empty cache', async () => {
+      clearCsrfToken();
+      const axiosGetSpy = vi.spyOn(axios, 'get');
+      let resolveRequest: (value: any) => void;
+      const requestPromise = new Promise<any>((r) => { resolveRequest = r; });
+      axiosGetSpy.mockReturnValueOnce(requestPromise);
+
+      const p1 = getCsrfToken();
+      const p2 = getCsrfToken();
+      const p3 = getCsrfToken();
+
+      resolveRequest!({ data: { token: 'csrf-serialized' } });
+
+      const [t1, t2, t3] = await Promise.all([p1, p2, p3]);
+      expect(t1).toBe('csrf-serialized');
+      expect(t2).toBe('csrf-serialized');
+      expect(t3).toBe('csrf-serialized');
+      expect(axiosGetSpy).toHaveBeenCalledTimes(1);
+
+      axiosGetSpy.mockRestore();
+    });
+  });
+
+  describe('CSRF Token - use axios with withCredentials (cookie consistency)', () => {
+    it('should use axios.get with withCredentials for CSRF fetch', async () => {
+      clearCsrfToken();
+      const axiosGetSpy = vi.spyOn(axios, 'get').mockResolvedValue({ data: { token: 'csrf-axios' } } as any);
+
+      await getCsrfToken();
+
+      expect(axiosGetSpy).toHaveBeenCalledWith(
+        expect.stringContaining('/api/csrf-token'),
+        expect.objectContaining({ withCredentials: true })
+      );
+      axiosGetSpy.mockRestore();
     });
   });
 });

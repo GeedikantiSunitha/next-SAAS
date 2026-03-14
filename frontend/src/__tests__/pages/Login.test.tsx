@@ -67,6 +67,14 @@ describe('Login Page', () => {
     (authApi.getMe as any).mockRejectedValue(new Error('Not authenticated'));
   });
 
+  it('should prefetch CSRF token on mount', async () => {
+    const clientModule = await import('../../api/client');
+    const csrfSpy = vi.spyOn(clientModule, 'getCsrfToken');
+    render(<Login />, { wrapper: createWrapper() });
+    expect(csrfSpy).toHaveBeenCalled();
+    csrfSpy.mockRestore();
+  });
+
   it('should render login form', () => {
     render(<Login />, { wrapper: createWrapper() });
 

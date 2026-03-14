@@ -4,6 +4,7 @@
  */
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface Account {
   provider: string;
@@ -21,6 +22,7 @@ interface ConnectedAccountsProps {
 
 const ConnectedAccounts: React.FC<ConnectedAccountsProps> = ({ accounts, onDisconnect }) => {
   const [confirmDisconnect, setConfirmDisconnect] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const getProviderIcon = (provider: string): string => {
     // In production, these would be actual icon URLs or SVG components
@@ -55,8 +57,7 @@ const ConnectedAccounts: React.FC<ConnectedAccountsProps> = ({ accounts, onDisco
   };
 
   const handleConnectNew = () => {
-    // In production, this would redirect to OAuth flow
-    window.location.href = '/settings/connected-accounts';
+    navigate('/profile');
   };
 
   if (accounts.length === 0) {

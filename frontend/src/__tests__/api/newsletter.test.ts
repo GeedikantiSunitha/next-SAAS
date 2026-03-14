@@ -37,9 +37,11 @@ describe('Newsletter API', () => {
 
       const result = await newsletterApi.subscribe('test@example.com');
 
-      expect(apiClient.post).toHaveBeenCalledWith('/api/newsletter/subscribe', {
-        email: 'test@example.com',
-      });
+      expect(apiClient.post).toHaveBeenCalledWith(
+        '/api/newsletter/subscribe',
+        { email: 'test@example.com' },
+        expect.objectContaining({ timeout: 30000 })
+      );
       expect(result).toEqual(mockResponse.data);
     });
   });

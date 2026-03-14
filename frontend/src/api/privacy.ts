@@ -1,11 +1,10 @@
 /**
  * Privacy Center API Client
+ *
+ * Uses shared apiClient for CSRF token, auth cookies, and 401 refresh.
  */
 
-import axios from 'axios';
-
-// Use same backend as auth (VITE_API_BASE_URL). Default 3001, not 5000.
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001').replace(/\/$/, '');
+import apiClient from './client';
 
 export interface PrivacyCenterOverview {
   user: {
@@ -132,16 +131,11 @@ export interface PrivacyMetrics {
 }
 
 class PrivacyApi {
-  private axios = axios.create({
-    baseURL: `${API_BASE_URL}/api`,
-    withCredentials: true,
-  });
-
   /**
    * Get complete privacy overview
    */
   async getPrivacyOverview(): Promise<PrivacyCenterOverview> {
-    const response = await this.axios.get('/privacy-center/overview');
+    const response = await apiClient.get<{ data: PrivacyCenterOverview }>('/api/privacy-center/overview');
     return response.data.data;
   }
 
@@ -149,7 +143,7 @@ class PrivacyApi {
    * Get detailed data categories
    */
   async getDataCategories(): Promise<DataCategory[]> {
-    const response = await this.axios.get('/privacy-center/data-categories');
+    const response = await apiClient.get<{ data: DataCategory[] }>('/api/privacy-center/data-categories');
     return response.data.data;
   }
 
@@ -172,7 +166,10 @@ class PrivacyApi {
       totalPages: number;
     };
   }> {
-    const response = await this.axios.get('/privacy-center/access-log', { params });
+    const response = await apiClient.get<{ data: { entries: AccessLogEntry[]; pagination: object } }>(
+      '/api/privacy-center/access-log',
+      { params }
+    );
     return response.data.data;
   }
 
@@ -180,7 +177,7 @@ class PrivacyApi {
    * Get privacy metrics
    */
   async getPrivacyMetrics(): Promise<PrivacyMetrics> {
-    const response = await this.axios.get('/privacy-center/metrics');
+    const response = await apiClient.get<{ data: PrivacyMetrics }>('/api/privacy-center/metrics');
     return response.data.data;
   }
 
@@ -198,7 +195,7 @@ class PrivacyApi {
     profileVisibility: string;
     showActivityStatus: boolean;
   }>): Promise<any> {
-    const response = await this.axios.post('/privacy-center/privacy-preferences', preferences);
+    const response = await apiClient.post('/api/privacy-center/privacy-preferences', preferences);
     return response.data;
   }
 
@@ -206,14 +203,14 @@ class PrivacyApi {
    * Clear privacy cache
    */
   async clearCache(): Promise<void> {
-    await this.axios.post('/privacy-center/clear-cache');
+    await apiClient.post('/api/privacy-center/clear-cache');
   }
 
   /**
    * Request data export
    */
   async requestDataExport(): Promise<{ id: string; message: string }> {
-    const response = await this.axios.post('/gdpr/export');
+    const response = await apiClient.post<{ id: string; message: string }>('/api/gdpr/export');
     return response.data;
   }
 
@@ -221,7 +218,10 @@ class PrivacyApi {
    * Request account deletion
    */
   async requestAccountDeletion(reason?: string): Promise<{ id: string; message: string }> {
-    const response = await this.axios.post('/gdpr/deletion', { reason, deletionType: 'SOFT' });
+    const response = await apiClient.post<{ id: string; message: string }>('/api/gdpr/deletion', {
+      reason,
+      deletionType: 'SOFT',
+    });
     return response.data;
   }
 
@@ -229,7 +229,7 @@ class PrivacyApi {
    * Update consent
    */
   async updateConsent(consentType: string, granted: boolean): Promise<any> {
-    const response = await this.axios.post('/gdpr/consents/update-version', {
+    const response = await apiClient.post('/api/gdpr/consents/update-version', {
       consentType,
       granted,
     });
@@ -240,7 +240,7 @@ class PrivacyApi {
    * Unlink an OAuth provider from the current account
    */
   async unlinkOAuthAccount(provider: string): Promise<void> {
-    await this.axios.post('/auth/oauth/unlink', { provider });
+    await apiClient.post('/api/auth/oauth/unlink', { provider });
   }
 
   /**
@@ -252,7 +252,7 @@ class PrivacyApi {
     marketing?: boolean;
     functional?: boolean;
   }): Promise<any> {
-    const response = await this.axios.post('/gdpr/consents/cookies', preferences);
+    const response = await apiClient.post('/api/gdpr/consents/cookies', preferences);
     return response.data;
   }
 }

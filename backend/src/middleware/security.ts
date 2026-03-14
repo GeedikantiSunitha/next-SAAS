@@ -42,6 +42,12 @@ export const corsConfig = cors({
 });
 
 /**
+ * Skip API rate limiting in test and development to avoid 429 during local dev.
+ */
+export const shouldSkipApiRateLimit = () =>
+  config.nodeEnv === 'test' || config.nodeEnv === 'development';
+
+/**
  * General API rate limiter
  * 100 requests per 15 minutes per IP
  */
@@ -51,8 +57,7 @@ export const apiLimiter = rateLimit({
   message: 'Too many requests from this IP, please try again later',
   standardHeaders: true,
   legacyHeaders: false,
-  // Skip rate limiting in test environment
-  skip: () => config.nodeEnv === 'test',
+  skip: shouldSkipApiRateLimit,
 });
 
 /**
